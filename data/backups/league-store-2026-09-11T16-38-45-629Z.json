@@ -1,0 +1,4137 @@
+{
+  "seasons": [
+    {
+      "id": "season-2026",
+      "name": "Temporada 2026",
+      "yearStart": 2026,
+      "yearEnd": 2027,
+      "isActive": true
+    }
+  ],
+  "teams": [
+    {
+      "id": "aston-birras",
+      "name": "Aston Birras",
+      "shortName": "AST",
+      "short_name": "AST",
+      "primaryColor": "#FF7E2D",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "Aner Azpitarte Leaniz",
+          "dorsal": 0,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Beñat Castilla Areitioaurtena",
+          "dorsal": 2,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Ibai Aldalur Sanz",
+          "dorsal": 4,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Aitor De La Torre Fernández",
+          "dorsal": 6,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Juan Ángel Piriz Zuheros",
+          "dorsal": 7,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Jonatan Ruiz Piriz",
+          "dorsal": 8,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Peru Caminos Solaguren",
+          "dorsal": 9,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Alain Fernandez Igarza",
+          "dorsal": 10,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Kristian Cayetano Vadillo",
+          "dorsal": 11,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Lamin Sane Sagna",
+          "dorsal": 15,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Mário Jorge Morgado Martins",
+          "dorsal": 17,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Benito Jorge Jorge",
+          "dorsal": 18,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Alex Mamani Alvarado",
+          "dorsal": 20,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Aratz Azpiri Maurtua",
+          "dorsal": 21,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Josu Zenitagoia Arexolaleiba",
+          "dorsal": 23,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        },
+        {
+          "name": "Mossab Elouazzani Elmakhoud",
+          "dorsal": 30,
+          "teamId": "aston-birras",
+          "seasonId": "season-2026",
+          "teamName": "Aston Birras"
+        }
+      ]
+    },
+    {
+      "id": "kalekantoi",
+      "name": "Kalekantoi",
+      "shortName": "KAL",
+      "short_name": "KAL",
+      "primaryColor": "#B0232B",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "Ander Cifuentes",
+          "dorsal": 1,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Oier Calleja",
+          "dorsal": 6,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Lyon Cuenca",
+          "dorsal": 7,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Eric Figueredo",
+          "dorsal": 9,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Jon Noriega",
+          "dorsal": 10,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Egoitz Bereziartua",
+          "dorsal": 11,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Iker Asategi",
+          "dorsal": 17,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Ander Bastida",
+          "dorsal": 19,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Jon Garcia",
+          "dorsal": 20,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Markel Rodriguez",
+          "dorsal": 22,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Liher Lorenzo",
+          "dorsal": 23,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Alex Sanchez",
+          "dorsal": 24,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Peio Cerro",
+          "dorsal": 25,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Eneko Usategi",
+          "dorsal": 44,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Haimar Otxoa",
+          "dorsal": 45,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Aimar Torres",
+          "dorsal": 69,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        },
+        {
+          "name": "Iñaki Iglesias",
+          "dorsal": 80,
+          "teamId": "kalekantoi",
+          "seasonId": "season-2026",
+          "teamName": "Kalekantoi"
+        }
+      ]
+    },
+    {
+      "id": "inter-panda",
+      "name": "Inter Panda",
+      "shortName": "INT",
+      "short_name": "INT",
+      "primaryColor": "#ffffff",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "David Xu Zhou",
+          "dorsal": 2,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Jon Barahona García",
+          "dorsal": 3,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Beñat Etxebarria Uranga",
+          "dorsal": 4,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Iker González García",
+          "dorsal": 5,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Raúl Gallo Galerón",
+          "dorsal": 7,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Ibra Sane",
+          "dorsal": 8,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Aitor Setien Aguirre",
+          "dorsal": 9,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Ander Pérez",
+          "dorsal": 11,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Milton Melgar Muñoz",
+          "dorsal": 14,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Egoitz Vazquez Barragan",
+          "dorsal": 15,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Joseba Valladares Santibañez",
+          "dorsal": 16,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "David Vilumbrales Gómez",
+          "dorsal": 19,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Dani Xu Zhou",
+          "dorsal": 21,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Sergio Zapatero Crespo",
+          "dorsal": 26,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        },
+        {
+          "name": "Mikel Velasco Eguen",
+          "dorsal": 33,
+          "teamId": "inter-panda",
+          "seasonId": "season-2026",
+          "teamName": "Inter Panda"
+        }
+      ]
+    },
+    {
+      "id": "pitxi-fc",
+      "name": "Pitxi FC",
+      "shortName": "PIT",
+      "short_name": "PIT",
+      "primaryColor": "#83512C",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "Omar Bouchlaghem",
+          "dorsal": 1,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Aimar Sevilla",
+          "dorsal": 4,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Daniel Jorge",
+          "dorsal": 5,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Yassine Taouil",
+          "dorsal": 6,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Hamsa Belaidi",
+          "dorsal": 7,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Oier Ruiz",
+          "dorsal": 8,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "El Mostafa El Arbaoui",
+          "dorsal": 9,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Anas Belaidi",
+          "dorsal": 10,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Nicolás Baruja",
+          "dorsal": 11,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Kevin Sierra",
+          "dorsal": 13,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Arkaitz Sepúlveda",
+          "dorsal": 14,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Eihar Igartua",
+          "dorsal": 20,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Joseph Diatta",
+          "dorsal": 21,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Unax Osuna",
+          "dorsal": 22,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Urko Iza",
+          "dorsal": 25,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Ivan Sierra",
+          "dorsal": 30,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        },
+        {
+          "name": "Eneko Manzano",
+          "dorsal": 69,
+          "teamId": "pitxi-fc",
+          "seasonId": "season-2026",
+          "teamName": "Pitxi FC"
+        }
+      ]
+    },
+    {
+      "id": "zero-filtro",
+      "name": "Zero Filtro",
+      "shortName": "ZEF",
+      "short_name": "ZEF",
+      "primaryColor": "#1D9649",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "Ignacio Cruzado",
+          "dorsal": 0,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Aritz Alberdi",
+          "dorsal": 1,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Jon Tinoko",
+          "dorsal": 2,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Juan Gogeascoechea",
+          "dorsal": 4,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Asier Zenikaonandia",
+          "dorsal": 6,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Adrián Vicandi",
+          "dorsal": 7,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Eder Asategi",
+          "dorsal": 8,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Guillermo Zugaza",
+          "dorsal": 9,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Ander Santos",
+          "dorsal": 10,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Eder del Valle",
+          "dorsal": 11,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Markel Zenikaonandia",
+          "dorsal": 13,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Javier Atutxa",
+          "dorsal": 15,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Javier Alonso",
+          "dorsal": 18,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Gorka Iglesias",
+          "dorsal": 21,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Pelayo Pereira",
+          "dorsal": 22,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Niko Capelastegui",
+          "dorsal": 45,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        },
+        {
+          "name": "Iñaki Bidarte",
+          "dorsal": 97,
+          "teamId": "zero-filtro",
+          "seasonId": "season-2026",
+          "teamName": "Zero Filtro"
+        }
+      ]
+    },
+    {
+      "id": "tigres",
+      "name": "Tigres",
+      "shortName": "TIG",
+      "short_name": "TIG",
+      "primaryColor": "#F3DA13",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "Víctor Cardona",
+          "dorsal": 1,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Jonathan Sisalima",
+          "dorsal": 2,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Diego Cordoba",
+          "dorsal": 4,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Julen Tejón",
+          "dorsal": 5,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Andres Quevedo",
+          "dorsal": 6,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Jonathan Nsue Nchama",
+          "dorsal": 7,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Steven Valencia",
+          "dorsal": 8,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Kevin Criollo Vivanco",
+          "dorsal": 9,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Patxi Criollo",
+          "dorsal": 10,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "José María Moreno Zamora",
+          "dorsal": 11,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Javier Rivera",
+          "dorsal": 12,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Camilo Jaramillo",
+          "dorsal": 13,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Jon Ander Vivanco Rubia",
+          "dorsal": 15,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Jorge Mora",
+          "dorsal": 17,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Iván Sao Roque Mateus",
+          "dorsal": 23,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Hugo Da Silva",
+          "dorsal": 28,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        },
+        {
+          "name": "Jhonier Criollo Obaco",
+          "dorsal": 30,
+          "teamId": "tigres",
+          "seasonId": "season-2026",
+          "teamName": "Tigres"
+        }
+      ]
+    },
+    {
+      "id": "lojanos",
+      "name": "Lojanos",
+      "shortName": "LOJ",
+      "short_name": "LOJ",
+      "primaryColor": "#2E4980",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "Anthony Rueda",
+          "dorsal": 0,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Dorian Aponte",
+          "dorsal": 1,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Javier Zalduegui",
+          "dorsal": 3,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Limbert Trujillo",
+          "dorsal": 5,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Asier López",
+          "dorsal": 6,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Julen Uchuari",
+          "dorsal": 7,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Jeyson Rueda",
+          "dorsal": 8,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Ivan Andrade",
+          "dorsal": 9,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Carlos Quevedo",
+          "dorsal": 10,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Carlos Daniel",
+          "dorsal": 11,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Alejandro Cabrera",
+          "dorsal": 12,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Patricio Tonguino",
+          "dorsal": 14,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Ander Torres",
+          "dorsal": 21,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Javier Valdiviezo",
+          "dorsal": 22,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Aitor Parada",
+          "dorsal": 23,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "José Luis Torres",
+          "dorsal": 25,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        },
+        {
+          "name": "Cristian Torres",
+          "dorsal": 80,
+          "teamId": "lojanos",
+          "seasonId": "season-2026",
+          "teamName": "Lojanos"
+        }
+      ]
+    },
+    {
+      "id": "martxel-juniors",
+      "name": "Martxel Juniors",
+      "shortName": "MAR",
+      "short_name": "MAR",
+      "primaryColor": "#E21D1D",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "Eneko Calvo",
+          "dorsal": 2,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Oier de Arriba",
+          "dorsal": 3,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Paul de Arriba",
+          "dorsal": 5,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Iker Reneo",
+          "dorsal": 6,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Javi Jauregui",
+          "dorsal": 7,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Ekain Montecelo",
+          "dorsal": 8,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Ekain Atutxa",
+          "dorsal": 9,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Santiago Martinez",
+          "dorsal": 10,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Iker Molina",
+          "dorsal": 11,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Danel Barrutia",
+          "dorsal": 13,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Unax Diaz",
+          "dorsal": 17,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Xabier Urretxa",
+          "dorsal": 20,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Julen Perez",
+          "dorsal": 21,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Julen Tapiz",
+          "dorsal": 77,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Paul Molina",
+          "dorsal": 33,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Beñat Mendibe",
+          "dorsal": 66,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        },
+        {
+          "name": "Ekain Odriozola",
+          "dorsal": 90,
+          "teamId": "martxel-juniors",
+          "seasonId": "season-2026",
+          "teamName": "Martxel Juniors"
+        }
+      ]
+    },
+    {
+      "id": "parceros",
+      "name": "Parceros",
+      "shortName": "PAR",
+      "short_name": "PAR",
+      "primaryColor": "#FFFAD8",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "Julen Benito",
+          "dorsal": 1,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Andres León",
+          "dorsal": 5,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Santiago Gallego",
+          "dorsal": 6,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Javi Vega",
+          "dorsal": 7,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Juanjo Valencia",
+          "dorsal": 8,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Josué Cardoza",
+          "dorsal": 9,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Henry Trujillo",
+          "dorsal": 10,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Kell Reyes",
+          "dorsal": 11,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Maicol Sánchez",
+          "dorsal": 12,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Diego Bejarano",
+          "dorsal": 13,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Johao Reyes",
+          "dorsal": 24,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Cristian Díaz",
+          "dorsal": 30,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Jheiner Almeida",
+          "dorsal": 80,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        },
+        {
+          "name": "Wilson Henao",
+          "dorsal": 88,
+          "teamId": "parceros",
+          "seasonId": "season-2026",
+          "teamName": "Parceros"
+        }
+      ]
+    },
+    {
+      "id": "rayo-forestal",
+      "name": "Rayo Forestal Internacional",
+      "shortName": "RFI",
+      "short_name": "RFI",
+      "primaryColor": "#193E2C",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "Hamid Jaafari",
+          "dorsal": 1,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Hugo Marin",
+          "dorsal": 5,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Asier Legido",
+          "dorsal": 6,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Dylan Marin",
+          "dorsal": 7,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Alejandro Marin",
+          "dorsal": 8,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Jonathan Bolívar",
+          "dorsal": 9,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Pablo Fidalgo",
+          "dorsal": 10,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Bernat Robledo",
+          "dorsal": 11,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Junior José Castillo Lara",
+          "dorsal": 14,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Luis Miguel Sarmiento",
+          "dorsal": 16,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Luis Miguel Criollo Vivanco",
+          "dorsal": 17,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Edval Da Silva Nascimento",
+          "dorsal": 18,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Carlos Lagos",
+          "dorsal": 19,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Mikel Ortega",
+          "dorsal": 21,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Jose Manuel Orol",
+          "dorsal": 28,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Martin Pereira",
+          "dorsal": 33,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        },
+        {
+          "name": "Jonatan Gomes Martín",
+          "dorsal": 99,
+          "teamId": "rayo-forestal",
+          "seasonId": "season-2026",
+          "teamName": "Rayo Forestal Internacional"
+        }
+      ]
+    },
+    {
+      "id": "gora-gora",
+      "name": "Gora Gora",
+      "shortName": "GOR",
+      "short_name": "GOR",
+      "primaryColor": "#DE81B1",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "Javier Castrillo Sampedro",
+          "dorsal": 0,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Edorta Olabarrieta Rodríguez",
+          "dorsal": 2,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Igor Arana Amado",
+          "dorsal": 3,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Jon Carracedo Lopez",
+          "dorsal": 5,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Iker Pinilla Perez",
+          "dorsal": 7,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Aitor Mendilibar Otamendi",
+          "dorsal": 8,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Roberto Barquín Aguirre",
+          "dorsal": 9,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Kevin Doyle Martinez",
+          "dorsal": 10,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Aitzol Arregi Arruabarrena",
+          "dorsal": 11,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Unai Azkune Ansa",
+          "dorsal": 13,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Xabier Bilbao Bilbao",
+          "dorsal": 14,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Aitor Martinez Barrutieta",
+          "dorsal": 18,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Raúl Ramos García",
+          "dorsal": 19,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Nestor Ibañez González",
+          "dorsal": 21,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Jon Ander Navarro Goikoetxea",
+          "dorsal": 30,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Kepa Uriarteb Amantegui",
+          "dorsal": 37,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        },
+        {
+          "name": "Adrián Abasolo Amantegui",
+          "dorsal": 69,
+          "teamId": "gora-gora",
+          "seasonId": "season-2026",
+          "teamName": "Gora Gora"
+        }
+      ]
+    },
+    {
+      "id": "gure-fc",
+      "name": "Gure FC",
+      "shortName": "GUR",
+      "short_name": "GUR",
+      "primaryColor": "#9ED6D7",
+      "seasonId": "season-2026",
+      "stadiumName": "Tabira",
+      "stadium_name": "Tabira",
+      "players": [
+        {
+          "name": "Gorka Zabala Goienetxea",
+          "dorsal": 1,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Ekain Sarriugarte Irisarri",
+          "dorsal": 4,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Alvaro Oñate Erdoiza",
+          "dorsal": 6,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Oier Costana Derteano",
+          "dorsal": 7,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Urtzi Etxebarrieta Ruiz de Loizaga",
+          "dorsal": 8,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Oier Acosta Jayo",
+          "dorsal": 9,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Manex Asategi Arrondo",
+          "dorsal": 10,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Unai Barrutia Ruiz",
+          "dorsal": 13,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Xabi Arbonies Jauregi",
+          "dorsal": 14,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Urko Sarriugarte Irisarri",
+          "dorsal": 17,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Pello Bengoa Meabe",
+          "dorsal": 18,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "id": "gure-fc-Peru Arestu Gabiola",
+          "name": "Peru Arestu Gabiola",
+          "dorsal": 19,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Ekaitz Larrinaga Madariaga",
+          "dorsal": 20,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Ander Bejarano Martin",
+          "dorsal": 21,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Iker Ortega Arquellada",
+          "dorsal": 66,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Bradcol Nyarko Behelo",
+          "dorsal": 77,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        },
+        {
+          "name": "Unai Duran Turienzo",
+          "dorsal": 80,
+          "teamId": "gure-fc",
+          "seasonId": "season-2026",
+          "teamName": "Gure FC"
+        }
+      ]
+    }
+  ],
+  "rounds": [
+    {
+      "id": "round-1",
+      "seasonId": "season-2026",
+      "title": "Jornada 1",
+      "roundNumber": 1,
+      "date": "domingo, 20 septiembre",
+      "status": "completed"
+    },
+    {
+      "id": "round-2",
+      "seasonId": "season-2026",
+      "title": "Jornada 2",
+      "roundNumber": 2,
+      "date": "domingo, 4 octubre",
+      "status": "completed"
+    },
+    {
+      "id": "round-3",
+      "seasonId": "season-2026",
+      "title": "Jornada 3",
+      "roundNumber": 3,
+      "date": "domingo, 25 octubre",
+      "status": "completed"
+    },
+    {
+      "id": "round-4",
+      "seasonId": "season-2026",
+      "title": "Jornada 4",
+      "roundNumber": 4,
+      "date": "domingo, 8 noviembre",
+      "status": "completed"
+    },
+    {
+      "id": "round-5",
+      "seasonId": "season-2026",
+      "title": "Jornada 5",
+      "roundNumber": 5,
+      "date": "domingo, 15 noviembre",
+      "status": "in-progress"
+    },
+    {
+      "id": "round-6",
+      "seasonId": "season-2026",
+      "title": "Jornada 6",
+      "roundNumber": 6,
+      "date": "domingo, 22 noviembre",
+      "status": "upcoming"
+    },
+    {
+      "id": "round-7",
+      "seasonId": "season-2026",
+      "title": "Jornada 7",
+      "roundNumber": 7,
+      "date": "domingo, 29 noviembre",
+      "status": "upcoming"
+    },
+    {
+      "id": "round-8",
+      "seasonId": "season-2026",
+      "title": "Jornada 8",
+      "roundNumber": 8,
+      "date": "domingo, 13 diciembre",
+      "status": "upcoming"
+    },
+    {
+      "id": "round-9",
+      "seasonId": "season-2026",
+      "title": "Jornada 9",
+      "roundNumber": 9,
+      "date": "domingo, 20 diciembre",
+      "status": "upcoming"
+    },
+    {
+      "id": "round-10",
+      "seasonId": "season-2026",
+      "title": "Jornada 10",
+      "roundNumber": 10,
+      "date": "domingo, 10 enero",
+      "status": "upcoming"
+    },
+    {
+      "id": "round-11",
+      "seasonId": "season-2026",
+      "title": "Jornada 11",
+      "roundNumber": 11,
+      "date": "domingo, 17 enero",
+      "status": "upcoming"
+    },
+    {
+      "id": "round-12",
+      "seasonId": "season-2026",
+      "title": "Jornada 12",
+      "roundNumber": 12,
+      "date": "domingo, 24 enero",
+      "status": "upcoming"
+    },
+    {
+      "id": "round-13",
+      "seasonId": "season-2026",
+      "title": "Jornada 13",
+      "roundNumber": 13,
+      "date": "domingo, 31 enero",
+      "status": "upcoming"
+    },
+    {
+      "id": "round-14",
+      "seasonId": "season-2026",
+      "title": "Jornada 14",
+      "roundNumber": 14,
+      "date": "domingo, 7 febrero",
+      "status": "upcoming"
+    }
+  ],
+  "matches": [
+    {
+      "id": 1,
+      "jornada": "Jornada 1",
+      "date": "20 sep 2026",
+      "time": "15:00",
+      "home": "Aston Birras",
+      "away": "Kalekantoi",
+      "score": "1 - 0",
+      "stadium": "Tabira",
+      "events": {
+        "home": "G. Ramos 18', R. Soler 73'",
+        "away": "D. Salgado 81'"
+      },
+      "goalScorers": [
+        {
+          "player": "Aner Azpitarte Leaniz",
+          "team": "Aston Birras"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-1",
+      "homeTeamId": "aston-birras",
+      "awayTeamId": "kalekantoi",
+      "scheduledAt": "20 sep 2026T15:00:00",
+      "stadiumName": "Tabira",
+      "status": "finished"
+    },
+    {
+      "id": 2,
+      "jornada": "Jornada 1",
+      "date": "20 sep 2026",
+      "time": "16:00",
+      "home": "Inter Panda",
+      "away": "Parceros",
+      "score": "2 - 0",
+      "stadium": "Tabira",
+      "events": {
+        "home": "J. Cuevas 66'",
+        "away": ""
+      },
+      "goalScorers": [
+        {
+          "player": "Dani Xu Zhou",
+          "team": "Inter Panda"
+        },
+        {
+          "player": "Iker González García",
+          "team": "Inter Panda"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-1",
+      "homeTeamId": "inter-panda",
+      "awayTeamId": "parceros",
+      "scheduledAt": "20 sep 2026T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "finished"
+    },
+    {
+      "id": 3,
+      "jornada": "Jornada 1",
+      "date": "20 sep 2026",
+      "time": "17:00",
+      "home": "Gure FC",
+      "away": "Pitxi FC",
+      "score": "1 - 1",
+      "shootoutScore": "2 - 0",
+      "stadium": "Tabira",
+      "events": {
+        "home": "P. Tena 11', 63'",
+        "away": "J. GÃƒÂ³mez 27', 59'"
+      },
+      "goalScorers": [
+        {
+          "player": "Oier Acosta Jayo",
+          "team": "Gure FC"
+        },
+        {
+          "player": "El Mostafa El Arbaoui",
+          "team": "Pitxi FC"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-1",
+      "homeTeamId": "gure-fc",
+      "awayTeamId": "pitxi-fc",
+      "scheduledAt": "20 sep 2026T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "finished"
+    },
+    {
+      "id": 4,
+      "jornada": "Jornada 1",
+      "date": "20 sep 2026",
+      "time": "18:00",
+      "home": "Zero Filtro",
+      "away": "Gora Gora",
+      "score": "1 - 2",
+      "stadium": "Tabira",
+      "events": {
+        "home": "A. D?f?az 71'",
+        "away": "I. Baeza 82'"
+      },
+      "goalScorers": [
+        {
+          "player": "Pelayo Pereira",
+          "team": "Zero Filtro"
+        },
+        {
+          "player": "Nestor Ibañez González",
+          "team": "Gora Gora"
+        },
+        {
+          "player": "Iker Pinilla Perez",
+          "team": "Gora Gora"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-1",
+      "homeTeamId": "zero-filtro",
+      "awayTeamId": "gora-gora",
+      "scheduledAt": "20 sep 2026T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "finished"
+    },
+    {
+      "id": 5,
+      "jornada": "Jornada 1",
+      "date": "20 sep 2026",
+      "time": "19:00",
+      "home": "Rayo Forestal Internacional",
+      "away": "Tigres",
+      "score": "1 - 3",
+      "stadium": "Tabira",
+      "events": {
+        "home": "K. Romero 34', 50'",
+        "away": "B. Ibarra 17', 74', 90'"
+      },
+      "goalScorers": [
+        {
+          "player": "Luis Miguel Criollo Vivanco",
+          "team": "Rayo Forestal Internacional"
+        },
+        {
+          "player": "Patxi Criollo",
+          "team": "Tigres"
+        },
+        {
+          "player": "Patxi Criollo",
+          "team": "Tigres"
+        },
+        {
+          "player": "Andres Quevedo",
+          "team": "Tigres"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-1",
+      "homeTeamId": "rayo-forestal",
+      "awayTeamId": "tigres",
+      "scheduledAt": "20 sep 2026T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "finished"
+    },
+    {
+      "id": 6,
+      "jornada": "Jornada 2",
+      "date": "4 oct 2026",
+      "time": "15:00",
+      "home": "Pitxi FC",
+      "away": "Rayo Forestal Internacional",
+      "score": "1 - 0",
+      "winner": "Pitxi FC",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": "K. Romero 41', 77'"
+      },
+      "goalScorers": [
+        {
+          "player": "Aimar Sevilla",
+          "team": "Pitxi FC"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-2",
+      "homeTeamId": "pitxi-fc",
+      "awayTeamId": "rayo-forestal",
+      "scheduledAt": "4 oct 2026T15:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 7,
+      "jornada": "Jornada 2",
+      "date": "4 oct 2026",
+      "time": "16:00",
+      "home": "Kalekantoi",
+      "away": "Martxel Juniors",
+      "score": "1 - 0",
+      "winner": "Kalekantoi",
+      "stadium": "Tabira",
+      "events": {
+        "home": "D. Salgado 13', 55', 80'",
+        "away": "M. Arostegui 48'"
+      },
+      "goalScorers": [
+        {
+          "player": "Alex Sanchez",
+          "team": "Kalekantoi"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-2",
+      "homeTeamId": "kalekantoi",
+      "awayTeamId": "martxel-juniors",
+      "scheduledAt": "4 oct 2026T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 8,
+      "jornada": "Jornada 2",
+      "date": "4 oct 2026",
+      "time": "17:00",
+      "home": "Gora Gora",
+      "away": "Lojanos",
+      "score": "1 - 0",
+      "winner": "Gora Gora",
+      "stadium": "Tabira",
+      "events": {
+        "home": "I. Baeza 22', 65'",
+        "away": "C. Daniel 70'"
+      },
+      "goalScorers": [
+        {
+          "player": "Xabier Bilbao Bilbao",
+          "team": "Gora Gora"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-2",
+      "homeTeamId": "gora-gora",
+      "awayTeamId": "lojanos",
+      "scheduledAt": "4 oct 2026T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 9,
+      "jornada": "Jornada 2",
+      "date": "4 oct 2026",
+      "time": "18:00",
+      "home": "Parceros",
+      "away": "Aston Birras",
+      "score": "1 - 0",
+      "winner": "Parceros",
+      "stadium": "Tabira",
+      "events": {
+        "home": "E. Aramendi 83'",
+        "away": "G. Ramos 24', 68', 88'"
+      },
+      "goalScorers": [
+        {
+          "player": "Kell Reyes",
+          "team": "Parceros"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-2",
+      "homeTeamId": "parceros",
+      "awayTeamId": "aston-birras",
+      "scheduledAt": "4 oct 2026T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 10,
+      "jornada": "Jornada 2",
+      "date": "4 oct 2026",
+      "time": "19:00",
+      "home": "Inter Panda",
+      "away": "Tigres",
+      "score": "1 - 0",
+      "winner": "Inter Panda",
+      "stadium": "Tabira",
+      "events": {
+        "home": "J. Cuevas 12', 76'",
+        "away": "B. Ibarra 90'"
+      },
+      "goalScorers": [
+        {
+          "player": "Aitor Setien Aguirre",
+          "team": "Inter Panda"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-2",
+      "homeTeamId": "inter-panda",
+      "awayTeamId": "tigres",
+      "scheduledAt": "4 oct 2026T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 11,
+      "jornada": "Jornada 3",
+      "date": "25 oct 2026",
+      "time": "15:00",
+      "home": "Zero Filtro",
+      "away": "Tigres",
+      "score": "0 - 1",
+      "winner": "Tigres",
+      "stadium": "Tabira",
+      "events": {
+        "home": "A. D?f?az 21', 51'",
+        "away": ""
+      },
+      "goalScorers": [
+        {
+          "player": "Camilo Jaramillo",
+          "team": "Tigres"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-3",
+      "homeTeamId": "zero-filtro",
+      "awayTeamId": "tigres",
+      "scheduledAt": "25 oct 2026T15:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 12,
+      "jornada": "Jornada 3",
+      "date": "25 oct 2026",
+      "time": "16:00",
+      "home": "Rayo Forestal Internacional",
+      "away": "Lojanos",
+      "score": "1 - 0",
+      "winner": "Rayo Forestal Internacional",
+      "stadium": "Tabira",
+      "events": {
+        "home": "K. Romero 45'",
+        "away": "C. Daniel 67'"
+      },
+      "goalScorers": [
+        {
+          "player": "Alejandro Marin",
+          "team": "Rayo Forestal Internacional"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-3",
+      "homeTeamId": "rayo-forestal",
+      "awayTeamId": "lojanos",
+      "scheduledAt": "25 oct 2026T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 13,
+      "jornada": "Jornada 3",
+      "date": "25 oct 2026",
+      "time": "17:00",
+      "home": "Aston Birras",
+      "away": "Martxel Juniors",
+      "score": "0 - 1",
+      "winner": "Martxel Juniors",
+      "stadium": "Tabira",
+      "events": {
+        "home": "G. Ramos 17', 44', 90'",
+        "away": ""
+      },
+      "goalScorers": [
+        {
+          "player": "Oier de Arriba",
+          "team": "Martxel Juniors"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-3",
+      "homeTeamId": "aston-birras",
+      "awayTeamId": "martxel-juniors",
+      "scheduledAt": "25 oct 2026T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 14,
+      "jornada": "Jornada 3",
+      "date": "25 oct 2026",
+      "time": "18:00",
+      "home": "Gure FC",
+      "away": "Kalekantoi",
+      "score": "1 - 0",
+      "winner": "Gure FC",
+      "stadium": "Tabira",
+      "events": {
+        "home": "P. Tena 75'",
+        "away": "D. Salgado 31', 71'"
+      },
+      "goalScorers": [
+        {
+          "player": "Pello Bengoa Meabe",
+          "team": "Gure FC"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-3",
+      "homeTeamId": "gure-fc",
+      "awayTeamId": "kalekantoi",
+      "scheduledAt": "25 oct 2026T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 15,
+      "jornada": "Jornada 3",
+      "date": "25 oct 2026",
+      "time": "19:00",
+      "home": "Parceros",
+      "away": "Gora Gora",
+      "score": "2 - 0",
+      "winner": "Parceros",
+      "stadium": "Tabira",
+      "events": {
+        "home": "E. Aramendi 9', 53'",
+        "away": "I. Baeza 38', 78'"
+      },
+      "goalScorers": [
+        {
+          "player": "Kell Reyes",
+          "team": "Parceros"
+        },
+        {
+          "player": "Henry Trujillo",
+          "team": "Parceros"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-3",
+      "homeTeamId": "parceros",
+      "awayTeamId": "gora-gora",
+      "scheduledAt": "25 oct 2026T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 16,
+      "jornada": "Jornada 4",
+      "date": "8 nov 2026",
+      "time": "15:00",
+      "home": "Parceros",
+      "away": "Lojanos",
+      "score": "1 - 0",
+      "winner": "Parceros",
+      "stadium": "Tabira",
+      "events": {
+        "home": "E. Aramendi 58'",
+        "away": "J. Rueda 62'"
+      },
+      "goalScorers": [
+        {
+          "player": "Cristian Díaz",
+          "team": "Parceros"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-4",
+      "homeTeamId": "parceros",
+      "awayTeamId": "lojanos",
+      "scheduledAt": "8 nov 2026T15:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 17,
+      "jornada": "Jornada 4",
+      "date": "8 nov 2026",
+      "time": "16:00",
+      "home": "Zero Filtro",
+      "away": "Aston Birras",
+      "score": "1 - 0",
+      "winner": "Zero Filtro",
+      "stadium": "Tabira",
+      "events": {
+        "home": "A. D?f?az 21', 69'",
+        "away": "G. Ramos 40', 82'"
+      },
+      "goalScorers": [
+        {
+          "player": "Markel Zenikaonandia",
+          "team": "Zero Filtro"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-4",
+      "homeTeamId": "zero-filtro",
+      "awayTeamId": "aston-birras",
+      "scheduledAt": "8 nov 2026T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 18,
+      "jornada": "Jornada 4",
+      "date": "8 nov 2026",
+      "time": "17:00",
+      "home": "Inter Panda",
+      "away": "Kalekantoi",
+      "score": "1 - 0",
+      "winner": "Inter Panda",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": "D. Salgado 51'"
+      },
+      "goalScorers": [
+        {
+          "player": "Milton Melgar Muñoz",
+          "team": "Inter Panda"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-4",
+      "homeTeamId": "inter-panda",
+      "awayTeamId": "kalekantoi",
+      "scheduledAt": "8 nov 2026T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 19,
+      "jornada": "Jornada 4",
+      "date": "8 nov 2026",
+      "time": "18:00",
+      "home": "Pitxi FC",
+      "away": "Martxel Juniors",
+      "score": "1 - 0",
+      "winner": "Pitxi FC",
+      "stadium": "Tabira",
+      "events": {
+        "home": "J. GÃƒÂ³mez 18', 49'",
+        "away": "M. Arostegui 61'"
+      },
+      "goalScorers": [
+        {
+          "player": "Nicolás Baruja",
+          "team": "Pitxi FC"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-4",
+      "homeTeamId": "pitxi-fc",
+      "awayTeamId": "martxel-juniors",
+      "scheduledAt": "8 nov 2026T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 20,
+      "jornada": "Jornada 4",
+      "date": "8 nov 2026",
+      "time": "19:00",
+      "home": "Gure FC",
+      "away": "Rayo Forestal Internacional",
+      "score": "1 - 0",
+      "winner": "Gure FC",
+      "stadium": "Tabira",
+      "events": {
+        "home": "P. Tena 72'",
+        "away": "K. Romero 12', 48', 88'"
+      },
+      "goalScorers": [
+        {
+          "player": "Urtzi Etxebarrieta Ruiz de Loizaga",
+          "team": "Gure FC"
+        }
+      ],
+      "seasonId": "season-2026",
+      "roundId": "round-4",
+      "homeTeamId": "gure-fc",
+      "awayTeamId": "rayo-forestal",
+      "scheduledAt": "8 nov 2026T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 21,
+      "jornada": "Jornada 5",
+      "date": "15 nov 2026",
+      "time": "16:00",
+      "home": "Gora Gora",
+      "away": "Tigres",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "I. Baeza 39'",
+        "away": "B. Ibarra 75'"
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-5",
+      "homeTeamId": "gora-gora",
+      "awayTeamId": "tigres",
+      "scheduledAt": "15 nov 2026T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 22,
+      "jornada": "Jornada 5",
+      "date": "15 nov 2026",
+      "time": "17:00",
+      "home": "Aston Birras",
+      "away": "Rayo Forestal Internacional",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "G. Ramos 19', 80'",
+        "away": "K. Romero 41', 70'"
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-5",
+      "homeTeamId": "aston-birras",
+      "awayTeamId": "rayo-forestal",
+      "scheduledAt": "15 nov 2026T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 23,
+      "jornada": "Jornada 5",
+      "date": "15 nov 2026",
+      "time": "18:00",
+      "home": "Inter Panda",
+      "away": "Pitxi FC",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "J. Cuevas 64'",
+        "away": "J. GÃƒÂ³mez 58'"
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-5",
+      "homeTeamId": "inter-panda",
+      "awayTeamId": "pitxi-fc",
+      "scheduledAt": "15 nov 2026T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 24,
+      "jornada": "Jornada 5",
+      "date": "15 nov 2026",
+      "time": "19:00",
+      "home": "Lojanos",
+      "away": "Martxel Juniors",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "C. Daniel 52'",
+        "away": "M. Arostegui 33', 77'"
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-5",
+      "homeTeamId": "lojanos",
+      "awayTeamId": "martxel-juniors",
+      "scheduledAt": "15 nov 2026T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 25,
+      "jornada": "Jornada 6",
+      "date": "22 nov 2026",
+      "time": "16:00",
+      "home": "Gure FC",
+      "away": "Zero Filtro",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-6",
+      "homeTeamId": "gure-fc",
+      "awayTeamId": "zero-filtro",
+      "scheduledAt": "22 nov 2026T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 26,
+      "jornada": "Jornada 6",
+      "date": "22 nov 2026",
+      "time": "17:00",
+      "home": "Inter Panda",
+      "away": "Lojanos",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-6",
+      "homeTeamId": "inter-panda",
+      "awayTeamId": "lojanos",
+      "scheduledAt": "22 nov 2026T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 27,
+      "jornada": "Jornada 6",
+      "date": "22 nov 2026",
+      "time": "18:00",
+      "home": "Kalekantoi",
+      "away": "Parceros",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-6",
+      "homeTeamId": "kalekantoi",
+      "awayTeamId": "parceros",
+      "scheduledAt": "22 nov 2026T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 28,
+      "jornada": "Jornada 6",
+      "date": "22 nov 2026",
+      "time": "19:00",
+      "home": "Aston Birras",
+      "away": "Pitxi FC",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-6",
+      "homeTeamId": "aston-birras",
+      "awayTeamId": "pitxi-fc",
+      "scheduledAt": "22 nov 2026T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 29,
+      "jornada": "Jornada 7",
+      "date": "29 nov 2026",
+      "time": "16:00",
+      "home": "Inter Panda",
+      "away": "Martxel Juniors",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-7",
+      "homeTeamId": "inter-panda",
+      "awayTeamId": "martxel-juniors",
+      "scheduledAt": "29 nov 2026T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 30,
+      "jornada": "Jornada 7",
+      "date": "29 nov 2026",
+      "time": "17:00",
+      "home": "Kalekantoi",
+      "away": "Rayo Forestal Internacional",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-7",
+      "homeTeamId": "kalekantoi",
+      "awayTeamId": "rayo-forestal",
+      "scheduledAt": "29 nov 2026T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 31,
+      "jornada": "Jornada 7",
+      "date": "29 nov 2026",
+      "time": "18:00",
+      "home": "Gora Gora",
+      "away": "Aston Birras",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-7",
+      "homeTeamId": "gora-gora",
+      "awayTeamId": "aston-birras",
+      "scheduledAt": "29 nov 2026T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 32,
+      "jornada": "Jornada 7",
+      "date": "29 nov 2026",
+      "time": "19:00",
+      "home": "Pitxi FC",
+      "away": "Zero Filtro",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-7",
+      "homeTeamId": "pitxi-fc",
+      "awayTeamId": "zero-filtro",
+      "scheduledAt": "29 nov 2026T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 33,
+      "jornada": "Jornada 8",
+      "date": "13 dec 2026",
+      "time": "16:00",
+      "home": "Parceros",
+      "away": "Gure FC",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-8",
+      "homeTeamId": "parceros",
+      "awayTeamId": "gure-fc",
+      "scheduledAt": "13 dec 2026T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 34,
+      "jornada": "Jornada 8",
+      "date": "13 dec 2026",
+      "time": "17:00",
+      "home": "Martxel Juniors",
+      "away": "Gora Gora",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-8",
+      "homeTeamId": "martxel-juniors",
+      "awayTeamId": "gora-gora",
+      "scheduledAt": "13 dec 2026T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 35,
+      "jornada": "Jornada 8",
+      "date": "13 dec 2026",
+      "time": "18:00",
+      "home": "Tigres",
+      "away": "Lojanos",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-8",
+      "homeTeamId": "tigres",
+      "awayTeamId": "lojanos",
+      "scheduledAt": "13 dec 2026T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 36,
+      "jornada": "Jornada 8",
+      "date": "13 dec 2026",
+      "time": "19:00",
+      "home": "Rayo Forestal Internacional",
+      "away": "Zero Filtro",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-8",
+      "homeTeamId": "rayo-forestal",
+      "awayTeamId": "zero-filtro",
+      "scheduledAt": "13 dec 2026T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 37,
+      "jornada": "Jornada 9",
+      "date": "20 dec 2026",
+      "time": "15:00",
+      "home": "Inter Panda",
+      "away": "Gora Gora",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-9",
+      "homeTeamId": "inter-panda",
+      "awayTeamId": "gora-gora",
+      "scheduledAt": "20 dec 2026T15:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 38,
+      "jornada": "Jornada 9",
+      "date": "20 dec 2026",
+      "time": "16:00",
+      "home": "Pitxi FC",
+      "away": "Kalekantoi",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-9",
+      "homeTeamId": "pitxi-fc",
+      "awayTeamId": "kalekantoi",
+      "scheduledAt": "20 dec 2026T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 39,
+      "jornada": "Jornada 9",
+      "date": "20 dec 2026",
+      "time": "17:00",
+      "home": "Parceros",
+      "away": "Tigres",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-9",
+      "homeTeamId": "parceros",
+      "awayTeamId": "tigres",
+      "scheduledAt": "20 dec 2026T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 40,
+      "jornada": "Jornada 9",
+      "date": "20 dec 2026",
+      "time": "18:00",
+      "home": "Gure FC",
+      "away": "Martxel Juniors",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-9",
+      "homeTeamId": "gure-fc",
+      "awayTeamId": "martxel-juniors",
+      "scheduledAt": "20 dec 2026T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 41,
+      "jornada": "Jornada 9",
+      "date": "20 dec 2026",
+      "time": "19:00",
+      "home": "Zero Filtro",
+      "away": "Lojanos",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-9",
+      "homeTeamId": "zero-filtro",
+      "awayTeamId": "lojanos",
+      "scheduledAt": "20 dec 2026T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 42,
+      "jornada": "Jornada 10",
+      "date": "10 jan 2027",
+      "time": "15:00",
+      "home": "Lojanos",
+      "away": "Gure FC",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-10",
+      "homeTeamId": "lojanos",
+      "awayTeamId": "gure-fc",
+      "scheduledAt": "10 jan 2027T15:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 43,
+      "jornada": "Jornada 10",
+      "date": "10 jan 2027",
+      "time": "16:00",
+      "home": "Tigres",
+      "away": "Pitxi FC",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-10",
+      "homeTeamId": "tigres",
+      "awayTeamId": "pitxi-fc",
+      "scheduledAt": "10 jan 2027T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 44,
+      "jornada": "Jornada 10",
+      "date": "10 jan 2027",
+      "time": "17:00",
+      "home": "Martxel Juniors",
+      "away": "Parceros",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-10",
+      "homeTeamId": "martxel-juniors",
+      "awayTeamId": "parceros",
+      "scheduledAt": "10 jan 2027T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 45,
+      "jornada": "Jornada 10",
+      "date": "10 jan 2027",
+      "time": "18:00",
+      "home": "Kalekantoi",
+      "away": "Gora Gora",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-10",
+      "homeTeamId": "kalekantoi",
+      "awayTeamId": "gora-gora",
+      "scheduledAt": "10 jan 2027T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 46,
+      "jornada": "Jornada 10",
+      "date": "10 jan 2027",
+      "time": "19:00",
+      "home": "Inter Panda",
+      "away": "Aston Birras",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-10",
+      "homeTeamId": "inter-panda",
+      "awayTeamId": "aston-birras",
+      "scheduledAt": "10 jan 2027T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 47,
+      "jornada": "Jornada 11",
+      "date": "17 jan 2027",
+      "time": "15:00",
+      "home": "Martxel Juniors",
+      "away": "Rayo Forestal Internacional",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-11",
+      "homeTeamId": "martxel-juniors",
+      "awayTeamId": "rayo-forestal",
+      "scheduledAt": "17 jan 2027T15:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 48,
+      "jornada": "Jornada 11",
+      "date": "17 jan 2027",
+      "time": "16:00",
+      "home": "Tigres",
+      "away": "Aston Birras",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-11",
+      "homeTeamId": "tigres",
+      "awayTeamId": "aston-birras",
+      "scheduledAt": "17 jan 2027T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 49,
+      "jornada": "Jornada 11",
+      "date": "17 jan 2027",
+      "time": "17:00",
+      "home": "Kalekantoi",
+      "away": "Zero Filtro",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-11",
+      "homeTeamId": "kalekantoi",
+      "awayTeamId": "zero-filtro",
+      "scheduledAt": "17 jan 2027T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 50,
+      "jornada": "Jornada 11",
+      "date": "17 jan 2027",
+      "time": "18:00",
+      "home": "Pitxi FC",
+      "away": "Parceros",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-11",
+      "homeTeamId": "pitxi-fc",
+      "awayTeamId": "parceros",
+      "scheduledAt": "17 jan 2027T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 51,
+      "jornada": "Jornada 11",
+      "date": "17 jan 2027",
+      "time": "19:00",
+      "home": "Gora Gora",
+      "away": "Gure FC",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-11",
+      "homeTeamId": "gora-gora",
+      "awayTeamId": "gure-fc",
+      "scheduledAt": "17 jan 2027T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 52,
+      "jornada": "Jornada 12",
+      "date": "24 jan 2027",
+      "time": "15:00",
+      "home": "Martxel Juniors",
+      "away": "Zero Filtro",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-12",
+      "homeTeamId": "martxel-juniors",
+      "awayTeamId": "zero-filtro",
+      "scheduledAt": "24 jan 2027T15:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 53,
+      "jornada": "Jornada 12",
+      "date": "24 jan 2027",
+      "time": "16:00",
+      "home": "Lojanos",
+      "away": "Aston Birras",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-12",
+      "homeTeamId": "lojanos",
+      "awayTeamId": "aston-birras",
+      "scheduledAt": "24 jan 2027T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 54,
+      "jornada": "Jornada 12",
+      "date": "24 jan 2027",
+      "time": "17:00",
+      "home": "Tigres",
+      "away": "Gure FC",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-12",
+      "homeTeamId": "tigres",
+      "awayTeamId": "gure-fc",
+      "scheduledAt": "24 jan 2027T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 55,
+      "jornada": "Jornada 12",
+      "date": "24 jan 2027",
+      "time": "18:00",
+      "home": "Inter Panda",
+      "away": "Rayo Forestal Internacional",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-12",
+      "homeTeamId": "inter-panda",
+      "awayTeamId": "rayo-forestal",
+      "scheduledAt": "24 jan 2027T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 56,
+      "jornada": "Jornada 12",
+      "date": "24 jan 2027",
+      "time": "19:00",
+      "home": "Gora Gora",
+      "away": "Pitxi FC",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-12",
+      "homeTeamId": "gora-gora",
+      "awayTeamId": "pitxi-fc",
+      "scheduledAt": "24 jan 2027T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 57,
+      "jornada": "Jornada 13",
+      "date": "31 jan 2027",
+      "time": "15:00",
+      "home": "Inter Panda",
+      "away": "Gure FC",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-13",
+      "homeTeamId": "inter-panda",
+      "awayTeamId": "gure-fc",
+      "scheduledAt": "31 jan 2027T15:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 58,
+      "jornada": "Jornada 13",
+      "date": "31 jan 2027",
+      "time": "16:00",
+      "home": "Rayo Forestal Internacional",
+      "away": "Gora Gora",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-13",
+      "homeTeamId": "rayo-forestal",
+      "awayTeamId": "gora-gora",
+      "scheduledAt": "31 jan 2027T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 59,
+      "jornada": "Jornada 13",
+      "date": "31 jan 2027",
+      "time": "17:00",
+      "home": "Zero Filtro",
+      "away": "Parceros",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-13",
+      "homeTeamId": "zero-filtro",
+      "awayTeamId": "parceros",
+      "scheduledAt": "31 jan 2027T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 60,
+      "jornada": "Jornada 13",
+      "date": "31 jan 2027",
+      "time": "18:00",
+      "home": "Martxel Juniors",
+      "away": "Tigres",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-13",
+      "homeTeamId": "martxel-juniors",
+      "awayTeamId": "tigres",
+      "scheduledAt": "31 jan 2027T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 61,
+      "jornada": "Jornada 13",
+      "date": "31 jan 2027",
+      "time": "19:00",
+      "home": "Lojanos",
+      "away": "Kalekantoi",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-13",
+      "homeTeamId": "lojanos",
+      "awayTeamId": "kalekantoi",
+      "scheduledAt": "31 jan 2027T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 62,
+      "jornada": "Jornada 14",
+      "date": "7 feb 2027",
+      "time": "15:00",
+      "home": "Tigres",
+      "away": "Kalekantoi",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-14",
+      "homeTeamId": "tigres",
+      "awayTeamId": "kalekantoi",
+      "scheduledAt": "7 feb 2027T15:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 63,
+      "jornada": "Jornada 14",
+      "date": "7 feb 2027",
+      "time": "16:00",
+      "home": "Rayo Forestal Internacional",
+      "away": "Parceros",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-14",
+      "homeTeamId": "rayo-forestal",
+      "awayTeamId": "parceros",
+      "scheduledAt": "7 feb 2027T16:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 64,
+      "jornada": "Jornada 14",
+      "date": "7 feb 2027",
+      "time": "17:00",
+      "home": "Lojanos",
+      "away": "Pitxi FC",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-14",
+      "homeTeamId": "lojanos",
+      "awayTeamId": "pitxi-fc",
+      "scheduledAt": "7 feb 2027T17:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 65,
+      "jornada": "Jornada 14",
+      "date": "7 feb 2027",
+      "time": "18:00",
+      "home": "Inter Panda",
+      "away": "Zero Filtro",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-14",
+      "homeTeamId": "inter-panda",
+      "awayTeamId": "zero-filtro",
+      "scheduledAt": "7 feb 2027T18:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    },
+    {
+      "id": 66,
+      "jornada": "Jornada 14",
+      "date": "7 feb 2027",
+      "time": "19:00",
+      "home": "Aston Birras",
+      "away": "Gure FC",
+      "score": "-",
+      "stadium": "Tabira",
+      "events": {
+        "home": "",
+        "away": ""
+      },
+      "goalScorers": [],
+      "seasonId": "season-2026",
+      "roundId": "round-14",
+      "homeTeamId": "aston-birras",
+      "awayTeamId": "gure-fc",
+      "scheduledAt": "7 feb 2027T19:00:00",
+      "stadiumName": "Tabira",
+      "status": "scheduled"
+    }
+  ],
+  "calendar": [
+    {
+      "id": 1,
+      "title": "Jornada 1",
+      "date": "2026-09-20",
+      "status": "completed",
+      "matches": [
+        {
+          "time": "15:00",
+          "home": "Aston Birras",
+          "away": "Kalekantoi",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "16:00",
+          "home": "Inter Panda",
+          "away": "Parceros",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Gure FC",
+          "away": "Pitxi FC",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Zero Filtro",
+          "away": "Gora Gora",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Rayo Forestal Internacional",
+          "away": "Tigres",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Lojanos",
+        "Martxel Juniors"
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Jornada 2",
+      "date": "2026-10-04",
+      "status": "completed",
+      "matches": [
+        {
+          "time": "15:00",
+          "home": "Pitxi FC",
+          "away": "Rayo Forestal Internacional",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "16:00",
+          "home": "Kalekantoi",
+          "away": "Martxel Juniors",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Gora Gora",
+          "away": "Lojanos",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Parceros",
+          "away": "Aston Birras",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Inter Panda",
+          "away": "Tigres",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Gure FC",
+        "Zero Filtro"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Jornada 3",
+      "date": "2026-10-25",
+      "status": "completed",
+      "matches": [
+        {
+          "time": "15:00",
+          "home": "Zero Filtro",
+          "away": "Tigres",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "16:00",
+          "home": "Rayo Forestal Internacional",
+          "away": "Lojanos",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Aston Birras",
+          "away": "Martxel Juniors",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Gure FC",
+          "away": "Kalekantoi",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Parceros",
+          "away": "Gora Gora",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Inter Panda",
+        "Pitxi FC"
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Jornada 4",
+      "date": "2026-11-08",
+      "status": "completed",
+      "matches": [
+        {
+          "time": "15:00",
+          "home": "Parceros",
+          "away": "Lojanos",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "16:00",
+          "home": "Zero Filtro",
+          "away": "Aston Birras",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Inter Panda",
+          "away": "Kalekantoi",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Pitxi FC",
+          "away": "Martxel Juniors",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Gure FC",
+          "away": "Rayo Forestal Internacional",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Gora Gora",
+        "Tigres"
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Jornada 5",
+      "date": "2026-11-15",
+      "status": "upcoming",
+      "matches": [
+        {
+          "time": "16:00",
+          "home": "Gora Gora",
+          "away": "Tigres",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Aston Birras",
+          "away": "Rayo Forestal Internacional",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Inter Panda",
+          "away": "Pitxi FC",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Lojanos",
+          "away": "Martxel Juniors",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Gure FC",
+        "Zero Filtro",
+        "Kalekantoi",
+        "Parceros"
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Jornada 6",
+      "date": "2026-11-22",
+      "status": "upcoming",
+      "matches": [
+        {
+          "time": "16:00",
+          "home": "Gure FC",
+          "away": "Zero Filtro",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Inter Panda",
+          "away": "Lojanos",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Kalekantoi",
+          "away": "Parceros",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Aston Birras",
+          "away": "Pitxi FC",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Rayo Forestal Internacional",
+        "Martxel Juniors",
+        "Tigres",
+        "Gora Gora"
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Jornada 7",
+      "date": "2026-11-29",
+      "status": "upcoming",
+      "matches": [
+        {
+          "time": "16:00",
+          "home": "Inter Panda",
+          "away": "Martxel Juniors",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Kalekantoi",
+          "away": "Rayo Forestal Internacional",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Gora Gora",
+          "away": "Aston Birras",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Pitxi FC",
+          "away": "Zero Filtro",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Parceros",
+        "Gure FC",
+        "Tigres",
+        "Lojanos"
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Jornada 8",
+      "date": "2026-12-13",
+      "status": "upcoming",
+      "matches": [
+        {
+          "time": "16:00",
+          "home": "Parceros",
+          "away": "Gure FC",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Martxel Juniors",
+          "away": "Gora Gora",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Tigres",
+          "away": "Lojanos",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Rayo Forestal Internacional",
+          "away": "Zero Filtro",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Inter Panda",
+        "Aston Birras",
+        "Kalekantoi",
+        "Pitxi FC"
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Jornada 9",
+      "date": "2026-12-20",
+      "status": "upcoming",
+      "matches": [
+        {
+          "time": "15:00",
+          "home": "Inter Panda",
+          "away": "Gora Gora",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "16:00",
+          "home": "Pitxi FC",
+          "away": "Kalekantoi",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Parceros",
+          "away": "Tigres",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Gure FC",
+          "away": "Martxel Juniors",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Zero Filtro",
+          "away": "Lojanos",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Aston Birras",
+        "Rayo Forestal Internacional"
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Jornada 10",
+      "date": "2027-01-10",
+      "status": "upcoming",
+      "matches": [
+        {
+          "time": "15:00",
+          "home": "Lojanos",
+          "away": "Gure FC",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "16:00",
+          "home": "Tigres",
+          "away": "Pitxi FC",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Martxel Juniors",
+          "away": "Parceros",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Kalekantoi",
+          "away": "Gora Gora",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Inter Panda",
+          "away": "Aston Birras",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Rayo Forestal Internacional",
+        "Zero Filtro"
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Jornada 11",
+      "date": "2027-01-17",
+      "status": "upcoming",
+      "matches": [
+        {
+          "time": "15:00",
+          "home": "Martxel Juniors",
+          "away": "Rayo Forestal Internacional",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "16:00",
+          "home": "Tigres",
+          "away": "Aston Birras",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Kalekantoi",
+          "away": "Zero Filtro",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Pitxi FC",
+          "away": "Parceros",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Gora Gora",
+          "away": "Gure FC",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Inter Panda",
+        "Lojanos"
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Jornada 12",
+      "date": "2027-01-24",
+      "status": "upcoming",
+      "matches": [
+        {
+          "time": "15:00",
+          "home": "Martxel Juniors",
+          "away": "Zero Filtro",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "16:00",
+          "home": "Lojanos",
+          "away": "Aston Birras",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Tigres",
+          "away": "Gure FC",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Inter Panda",
+          "away": "Rayo Forestal Internacional",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Gora Gora",
+          "away": "Pitxi FC",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Kalekantoi",
+        "Parceros"
+      ]
+    },
+    {
+      "id": 13,
+      "title": "Jornada 13",
+      "date": "2027-01-31",
+      "status": "upcoming",
+      "matches": [
+        {
+          "time": "15:00",
+          "home": "Inter Panda",
+          "away": "Gure FC",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "16:00",
+          "home": "Rayo Forestal Internacional",
+          "away": "Gora Gora",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Zero Filtro",
+          "away": "Parceros",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Martxel Juniors",
+          "away": "Tigres",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Lojanos",
+          "away": "Kalekantoi",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Aston Birras",
+        "Pitxi FC"
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Jornada 14",
+      "date": "2027-02-07",
+      "status": "upcoming",
+      "matches": [
+        {
+          "time": "15:00",
+          "home": "Tigres",
+          "away": "Kalekantoi",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "16:00",
+          "home": "Rayo Forestal Internacional",
+          "away": "Parceros",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "17:00",
+          "home": "Lojanos",
+          "away": "Pitxi FC",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "18:00",
+          "home": "Inter Panda",
+          "away": "Zero Filtro",
+          "stadium": "Tabira"
+        },
+        {
+          "time": "19:00",
+          "home": "Aston Birras",
+          "away": "Gure FC",
+          "stadium": "Tabira"
+        }
+      ],
+      "descansan": [
+        "Martxel Juniors",
+        "Gora Gora"
+      ]
+    }
+  ],
+  "sanctions": [
+    {
+      "id": 1789135136503,
+      "player": "Alain Fernandez Igarza",
+      "team": "Aston Birras",
+      "teamId": "aston-birras",
+      "card": "Amarilla",
+      "card_type": "Amarilla",
+      "matches": 1,
+      "remaining": 1,
+      "reason": "Motivos deportivos",
+      "jornada": "Jornada 4",
+      "suspensionMatches": 0,
+      "suspensionRemaining": 0,
+      "costAmount": 2,
+      "cost_amount": 2,
+      "points": 2,
+      "pointsAmount": 2
+    },
+    {
+      "id": 1789134305286,
+      "player": "Alain Fernandez Igarza",
+      "team": "Aston Birras",
+      "teamId": "aston-birras",
+      "card": "Amarilla",
+      "card_type": "Amarilla",
+      "matches": 1,
+      "remaining": 1,
+      "reason": "Motivos deportivos",
+      "jornada": "Jornada 3",
+      "suspensionMatches": 1,
+      "suspensionRemaining": 1,
+      "costAmount": 2,
+      "cost_amount": 2,
+      "points": 2,
+      "pointsAmount": 2
+    },
+    {
+      "id": 1789134295532,
+      "player": "Alain Fernandez Igarza",
+      "team": "Aston Birras",
+      "teamId": "aston-birras",
+      "card": "Amarilla",
+      "card_type": "Amarilla",
+      "matches": 1,
+      "remaining": 1,
+      "reason": "Motivos deportivos",
+      "jornada": "Jornada 2",
+      "suspensionMatches": 0,
+      "suspensionRemaining": 0,
+      "costAmount": 2,
+      "cost_amount": 2,
+      "points": 2,
+      "pointsAmount": 2
+    },
+    {
+      "id": 1789134285319,
+      "player": "Alain Fernandez Igarza",
+      "team": "Aston Birras",
+      "teamId": "aston-birras",
+      "card": "Amarilla",
+      "card_type": "Amarilla",
+      "matches": 1,
+      "remaining": 1,
+      "reason": "Motivos deportivos",
+      "jornada": "Jornada 1",
+      "suspensionMatches": 0,
+      "suspensionRemaining": 0,
+      "costAmount": 2,
+      "cost_amount": 2,
+      "points": 2,
+      "pointsAmount": 2
+    },
+    {
+      "id": 1789132655553,
+      "player": "Aner Azpitarte Leaniz",
+      "team": "Aston Birras",
+      "teamId": "aston-birras",
+      "card": "Amarilla",
+      "card_type": "Amarilla",
+      "matches": 1,
+      "remaining": 1,
+      "reason": "Motivos deportivos",
+      "jornada": "Jornada 3",
+      "suspensionMatches": 0,
+      "suspensionRemaining": 0,
+      "costAmount": 2,
+      "cost_amount": 2,
+      "points": 2,
+      "pointsAmount": 2
+    },
+    {
+      "id": 1789045545420,
+      "player": "Aner Azpitarte Leaniz",
+      "team": "Aston Birras",
+      "teamId": "aston-birras",
+      "card": "Roja",
+      "card_type": "Roja",
+      "matches": 1,
+      "remaining": 1,
+      "reason": "Motivos antideportivos",
+      "jornada": "Jornada 1",
+      "suspensionReason": "Otro motivo",
+      "suspensionMatches": 5,
+      "suspensionRemaining": 5,
+      "costAmount": 10,
+      "cost_amount": 10,
+      "points": 10,
+      "pointsAmount": 10
+    },
+    {
+      "id": 1789043371431,
+      "player": "Juan Ángel Piriz Zuheros",
+      "team": "Aston Birras",
+      "teamId": "aston-birras",
+      "card": "Otra",
+      "card_type": "Otra",
+      "matches": 1,
+      "remaining": 1,
+      "reason": "Motivos antideportivos",
+      "jornada": "Jornada 2",
+      "costAmount": 2,
+      "cost_amount": 2,
+      "points": 2,
+      "pointsAmount": 2,
+      "suspensionMatches": 1,
+      "suspensionRemaining": 1
+    }
+  ],
+  "finances": {
+    "fees": {
+      "Aston Birras": 700,
+      "Kalekantoi": 700,
+      "Inter Panda": 700,
+      "Pitxi FC": 700,
+      "Zero Filtro": 700,
+      "Tigres": 700,
+      "Lojanos": 700,
+      "Martxel Juniors": 700,
+      "Parceros": 700,
+      "Rayo Forestal Internacional": 700,
+      "Gora Gora": 700,
+      "Gure FC": 700
+    },
+    "payments": {
+      "Aston Birras": 250,
+      "Kalekantoi": 120,
+      "Inter Panda": 700,
+      "Pitxi FC": 120,
+      "Zero Filtro": 120,
+      "Tigres": 0,
+      "Lojanos": 120,
+      "Martxel Juniors": 120,
+      "Parceros": 130,
+      "Rayo Forestal Internacional": 120,
+      "Gora Gora": 0,
+      "Gure FC": 700
+    },
+    "expenses": [
+      {
+        "id": 1789144690999,
+        "concept": "Abonos de cuota anteriores",
+        "amount": 250,
+        "type": "cobro",
+        "kind": "cuota",
+        "category": "Cuota",
+        "entity": "Aston Birras",
+        "paid": 250,
+        "pending": 0,
+        "date": "2026-09-11",
+        "status": "pagado"
+      },
+      {
+        "id": 1789144691000,
+        "concept": "Abonos de cuota anteriores",
+        "amount": 120,
+        "type": "cobro",
+        "kind": "cuota",
+        "category": "Cuota",
+        "entity": "Kalekantoi",
+        "paid": 120,
+        "pending": 0,
+        "date": "2026-09-11",
+        "status": "pagado"
+      },
+      {
+        "id": 1789144691001,
+        "concept": "Abonos de cuota anteriores",
+        "amount": 700,
+        "type": "cobro",
+        "kind": "cuota",
+        "category": "Cuota",
+        "entity": "Inter Panda",
+        "paid": 700,
+        "pending": 0,
+        "date": "2026-09-11",
+        "status": "pagado"
+      },
+      {
+        "id": 1789144691002,
+        "concept": "Abonos de cuota anteriores",
+        "amount": 120,
+        "type": "cobro",
+        "kind": "cuota",
+        "category": "Cuota",
+        "entity": "Pitxi FC",
+        "paid": 120,
+        "pending": 0,
+        "date": "2026-09-11",
+        "status": "pagado"
+      },
+      {
+        "id": 1789144691003,
+        "concept": "Abonos de cuota anteriores",
+        "amount": 120,
+        "type": "cobro",
+        "kind": "cuota",
+        "category": "Cuota",
+        "entity": "Zero Filtro",
+        "paid": 120,
+        "pending": 0,
+        "date": "2026-09-11",
+        "status": "pagado"
+      },
+      {
+        "id": 1789144691005,
+        "concept": "Abonos de cuota anteriores",
+        "amount": 120,
+        "type": "cobro",
+        "kind": "cuota",
+        "category": "Cuota",
+        "entity": "Lojanos",
+        "paid": 120,
+        "pending": 0,
+        "date": "2026-09-11",
+        "status": "pagado"
+      },
+      {
+        "id": 1789144691006,
+        "concept": "Abonos de cuota anteriores",
+        "amount": 120,
+        "type": "cobro",
+        "kind": "cuota",
+        "category": "Cuota",
+        "entity": "Martxel Juniors",
+        "paid": 120,
+        "pending": 0,
+        "date": "2026-09-11",
+        "status": "pagado"
+      },
+      {
+        "id": 1789144691007,
+        "concept": "Abonos de cuota anteriores",
+        "amount": 130,
+        "type": "cobro",
+        "kind": "cuota",
+        "category": "Cuota",
+        "entity": "Parceros",
+        "paid": 130,
+        "pending": 0,
+        "date": "2026-09-11",
+        "status": "pagado"
+      },
+      {
+        "id": 1789144691008,
+        "concept": "Abonos de cuota anteriores",
+        "amount": 120,
+        "type": "cobro",
+        "kind": "cuota",
+        "category": "Cuota",
+        "entity": "Rayo Forestal Internacional",
+        "paid": 120,
+        "pending": 0,
+        "date": "2026-09-11",
+        "status": "pagado"
+      },
+      {
+        "id": 1789144691009,
+        "concept": "Abonos de cuota anteriores",
+        "amount": 700,
+        "type": "cobro",
+        "kind": "cuota",
+        "category": "Cuota",
+        "entity": "Gure FC",
+        "paid": 700,
+        "pending": 0,
+        "date": "2026-09-11",
+        "status": "pagado"
+      }
+    ],
+    "costs": {
+      "yellow": 2,
+      "doubleYellow": 4,
+      "red": 5,
+      "other": 0
+    },
+    "points": {
+      "yellow": 2,
+      "doubleYellow": 4,
+      "red": 5,
+      "other": 0
+    }
+  }
+}
