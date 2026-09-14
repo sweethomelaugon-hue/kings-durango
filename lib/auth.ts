@@ -12,20 +12,23 @@ export const AUTH_COOKIE_NAME = "kings_auth_session";
 export const LEGACY_ADMIN_TOKEN_STORAGE_KEY = "kings-admin-token";
 
 export function getConfiguredAdminCredentials() {
+  const fallbackEmail = "admin@kingsdurango.local";
+  const fallbackPassword = "KingsDurango2026!";
+
   const emailKeys = ["ADMIN_EMAIL", "NEXT_PUBLIC_ADMIN_EMAIL"];
   const passwordKeys = ["ADMIN_PASSWORD", "NEXT_PUBLIC_ADMIN_PASSWORD"];
 
   const email = emailKeys
     .map((key) => process.env[key] ?? "")
-    .find((value) => typeof value === "string" && value.trim().length > 0)?.trim() ?? "";
+    .find((value) => typeof value === "string" && value.trim().length > 0)?.trim() ?? fallbackEmail;
 
   const password = passwordKeys
     .map((key) => process.env[key] ?? "")
-    .find((value) => typeof value === "string" && value.trim().length > 0)?.trim() ?? "";
+    .find((value) => typeof value === "string" && value.trim().length > 0)?.trim() ?? fallbackPassword;
 
   return {
-    email: email || (process.env.NODE_ENV === "production" ? "" : "admin@kingsdurango.local"),
-    password: password || (process.env.NODE_ENV === "production" ? "" : "KingsDurango2026!"),
+    email,
+    password,
   };
 }
 
@@ -203,17 +206,15 @@ export function loginWithCredentials(email: string, password: string): AuthSessi
   const configured = getConfiguredAdminCredentials();
   const normalizedEmail = email.trim().toLowerCase();
 
-  const fallbackEmail = "admin@kingsdurango.local";
-  const fallbackPassword = "KingsDurango2026!";
-  const effectiveEmail = configured.email || fallbackEmail;
-  const effectivePassword = configured.password || fallbackPassword;
+  const effectiveEmail = configured.email.trim();
+  const effectivePassword = configured.password.trim();
 
   if (normalizedEmail !== effectiveEmail.toLowerCase() || password !== effectivePassword) {
     throw new Error("Credenciales no válidas.");
   }
 
   const session: AuthSession = {
-    email: configured.email,
+    email: effectiveEmail,
     role: "admin",
     token: getEffectiveAdminToken(),
     lastLogin: new Date().toISOString(),
