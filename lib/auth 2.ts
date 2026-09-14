@@ -203,12 +203,11 @@ export function loginWithCredentials(email: string, password: string): AuthSessi
   const configured = getConfiguredAdminCredentials();
   const normalizedEmail = email.trim().toLowerCase();
 
-  const fallbackEmail = "admin@kingsdurango.local";
-  const fallbackPassword = "KingsDurango2026!";
-  const effectiveEmail = configured.email || fallbackEmail;
-  const effectivePassword = configured.password || fallbackPassword;
+  if (process.env.NODE_ENV === "production" && (!configured.email || !configured.password)) {
+    throw new Error("Falta configurar NEXT_PUBLIC_ADMIN_EMAIL y NEXT_PUBLIC_ADMIN_PASSWORD en producción.");
+  }
 
-  if (normalizedEmail !== effectiveEmail.toLowerCase() || password !== effectivePassword) {
+  if (normalizedEmail !== configured.email.toLowerCase() || password !== configured.password) {
     throw new Error("Credenciales no válidas.");
   }
 
