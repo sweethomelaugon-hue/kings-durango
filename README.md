@@ -49,3 +49,5 @@ Se recomienda desplegar la app en Vercel y la base de datos en Supabase/PostgreS
 - Autenticación admin: variables de entorno + base de usuarios de producción
 
 Consulta [DEPLOY.md](DEPLOY.md) para la guía completa de despliegue.
+
+Deployment status: ready
