@@ -153,7 +153,15 @@ textarea {
   align-items: center;
   gap: 7px;
   min-width: 0;
+  max-width: 100%;
   vertical-align: middle;
+}
+
+.team-identity > span:last-child {
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: clamp(0.65rem, 1.6vw, 0.95rem);
+  line-height: 1.2;
 }
 
 .team-shield {
@@ -185,6 +193,17 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .home-result-row .team-identity {
+    gap: 5px;
+  }
+
+  .home-result-row .team-identity > span:last-child {
+    font-size: clamp(0.55rem, 2.6vw, 0.8rem);
+    letter-spacing: -0.02em;
+  }
 }
 
 .main-nav {
@@ -364,6 +383,204 @@ textarea {
   margin-bottom: 16px;
   letter-spacing: -0.06em;
   font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .homepage-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .homepage-kpi-grid .kpi-card {
+    min-width: 0;
+    min-height: 156px;
+    padding: 12px 9px 11px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-width: 1px;
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .homepage-kpi-grid .kpi-shield {
+    order: -1;
+    width: 52px;
+    height: 52px;
+    flex-basis: 52px;
+  }
+
+  .homepage-kpi-grid .kpi-copy {
+    width: 100%;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .homepage-kpi-grid .kpi-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+  }
+
+  .homepage-kpi-grid .kpi-copy strong {
+    display: -webkit-box;
+    width: 100%;
+    max-height: 2.3em;
+    overflow: hidden;
+    font-size: 0.82rem;
+    line-height: 1.15;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .homepage-kpi-grid .kpi-copy small {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.62rem;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 22px 16px 18px;
+    text-align: center;
+  }
+
+  .hero-brand-image {
+    width: 100%;
+    min-height: 0;
+    height: 270px;
+    padding: 44px 0 0;
+  }
+
+  .hero-season-label {
+    top: 2px;
+    left: 50%;
+    width: 100%;
+    transform: translateX(-50%);
+    font-size: clamp(1.55rem, 7vw, 2.2rem);
+    white-space: nowrap;
+  }
+
+  .hero-brand-image img {
+    width: min(100%, 320px);
+    max-height: 220px;
+    margin: 0 auto;
+  }
+
+  .hero-round-ticket {
+    justify-self: center;
+    width: 100%;
+    max-width: 390px;
+    text-align: left;
+  }
+
+  .page-header h1 {
+    font-size: clamp(1.7rem, 7vw, 2.2rem);
+    line-height: 1.08;
+    margin-bottom: 8px;
+    letter-spacing: -0.05em;
+  }
+
+  .section-header h2,
+  .content-card h2 {
+    font-size: clamp(1.08rem, 5vw, 1.45rem);
+    line-height: 1.18;
+    letter-spacing: -0.04em;
+  }
+
+  .eyebrow {
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+  }
+}
+
+/* The discipline summary uses compact 2x2 counters on phones instead of
+   allowing each desktop-sized card to dominate the first viewport. */
+@media (max-width: 640px) {
+  .sanction-kpi-row {
+    gap: 6px;
+    margin-top: 12px;
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  .sanction-kpi-heading {
+    align-items: center;
+    padding: 0;
+    text-align: center;
+  }
+
+  .sanction-kpi-heading .eyebrow {
+    display: none;
+  }
+
+  .sanction-kpi-heading h2 {
+    margin-bottom: 2px;
+    font-size: 1rem;
+  }
+
+  .sanction-kpi-heading > span {
+    font-size: 0.6rem;
+  }
+
+  .sanction-kpi-row .sanction-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .sanction-kpi-row .sanction-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr) 22px;
+    align-items: center;
+    column-gap: 8px;
+    min-height: 48px;
+    padding: 7px 11px;
+    border-radius: 9px;
+  }
+
+  .sanction-kpi-row .sanction-card::before {
+    display: none;
+    content: none;
+  }
+
+  .sanction-kpi-row .sanction-card .sanction-card-icon {
+    grid-column: 1;
+    grid-row: 1;
+    display: inline-block !important;
+    width: 16px;
+    min-width: 16px;
+    font-size: 0.65rem;
+    line-height: 1;
+    overflow: visible;
+  }
+
+  .sanction-kpi-row .sanction-card:nth-child(1)::before,
+  .sanction-kpi-row .sanction-card:nth-child(2)::before,
+  .sanction-kpi-row .sanction-card:nth-child(3)::before,
+  .sanction-kpi-row .sanction-card:nth-child(4)::before {
+    display: none;
+    content: none;
+  }
+
+  .sanction-kpi-row .sanction-card span {
+    display: block;
+    font-size: 0.58rem;
+    line-height: 1.1;
+  }
+
+  .sanction-kpi-row .sanction-card strong {
+    display: inline;
+    margin: 0 0 0 4px;
+    font-size: 0.92rem;
+    line-height: 1;
+  }
 }
 
 .lead {
@@ -571,6 +788,16 @@ textarea {
   color: var(--green-soft);
 }
 
+.home-standing-row.group-champions {
+  background: linear-gradient(90deg, rgba(47, 201, 138, 0.08), rgba(255, 255, 255, 0.018));
+  border-left: 2px solid rgba(47, 201, 138, 0.65);
+}
+
+.home-standing-row.group-hoyo {
+  background: linear-gradient(90deg, rgba(245, 119, 93, 0.08), rgba(255, 255, 255, 0.018));
+  border-left: 2px solid rgba(245, 119, 93, 0.6);
+}
+
 .home-standing-heading {
   padding-top: 0;
   color: var(--muted);
@@ -687,6 +914,8 @@ textarea {
   justify-content: space-between;
   gap: 14px;
   border: 2px solid color-mix(in srgb, var(--kpi-team-color) 76%, rgba(255, 255, 255, 0.16));
+  color: inherit;
+  text-decoration: none;
   box-shadow: 0 16px 30px color-mix(in srgb, var(--kpi-team-color) 28%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
@@ -1472,9 +1701,14 @@ select option {
 }
 
 .match-item .match-teams .team-side .team-identity {
-  width: 100%;
+  width: fit-content;
   max-width: 100%;
   overflow: visible;
+}
+
+.match-item .match-teams .team-side .team-identity > span:last-child {
+  flex: 0 1 auto;
+  max-width: calc(100% - 43px);
 }
 
 .match-item .match-teams .team-side > strong {
@@ -1593,30 +1827,156 @@ select option {
    break letter by letter. Shrink the score box and its column together so
    team names get their word-wrapped space back. */
 @media (max-width: 520px) {
-  .match-teams {
-    grid-template-columns: minmax(0, 1fr) 60px minmax(0, 1fr);
+  .tabs {
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin: 4px 0 12px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    gap: 5px;
+    padding: 7px 9px;
+    font-size: 0.72rem;
+  }
+
+  .status-pill {
+    padding: 4px 6px;
+    font-size: 0.58rem;
+  }
+
+  .round-summary {
+    margin: 10px 0 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+  }
+
+  .match-item {
     gap: 8px;
+    padding: 10px 12px 9px;
+    border-radius: 16px;
+  }
+
+  .match-meta {
+    padding-bottom: 6px;
+    font-size: 0.62rem;
+  }
+
+  .match-teams {
+    grid-template-columns: minmax(0, 1fr) 68px minmax(0, 1fr);
+    align-items: start;
+    gap: 6px;
+    padding: 0;
   }
 
   .match-score,
   .match-item-played .match-score {
-    min-width: 60px;
-    padding: 6px 6px;
+    min-width: 0;
+    width: 68px;
+    box-sizing: border-box;
+    padding: 6px 4px;
     font-size: clamp(0.95rem, 5vw, 1.15rem);
+    border-radius: 11px;
+  }
+
+  .team-side,
+  .team-side-away {
+    align-items: center;
+    text-align: center;
+    gap: 3px;
   }
 
   .team-side strong {
-    font-size: 0.86rem;
+    width: 100%;
+    font-size: 0.78rem;
+    line-height: 1.15;
   }
 
   .team-side .team-identity {
-    gap: 6px;
+    width: 100%;
+    justify-content: center;
+    gap: 5px;
+    flex: 0 1 auto;
+  }
+
+  .team-side .team-identity > span:last-child {
+    flex: 0 1 auto;
+    width: auto;
+    max-width: calc(100% - 33px);
   }
 
   .team-side .team-shield {
-    width: 26px !important;
-    height: 26px !important;
-    flex-basis: 26px;
+    width: 28px !important;
+    height: 28px !important;
+    flex-basis: 28px;
+  }
+
+  .match-item .team-identity > span:last-child,
+  .match-item .match-teams .team-side .team-identity > span:last-child {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .team-side strong.team-winner,
+  .team-side-away > strong.team-winner {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    text-shadow: none;
+  }
+
+  .team-scorers {
+    justify-content: center;
+    gap: 3px;
+    margin-top: 2px;
+    font-size: 0.56rem;
+  }
+
+  .scorer-chip {
+    max-width: 100%;
+    padding: 3px 5px;
+    font-size: 0.56rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .shootout-score {
+    font-size: 0.58rem;
+  }
+
+  .shootout-winner {
+    align-self: center;
+    max-width: 100%;
+    padding: 5px 8px;
+    font-size: 0.62rem;
+    text-align: center;
+  }
+
+  .match-item-played .shootout-winner {
+    padding: 5px 8px;
+  }
+
+  .match-footer {
+    padding-top: 6px;
+    font-size: 0.62rem;
   }
 }
 
@@ -1732,6 +2092,27 @@ select option {
 .standings-table th:nth-child(11), .standings-table td:nth-child(11) { width: 7%; }
 .standings-table th:nth-child(12), .standings-table td:nth-child(12) { width: 16%; }
 
+.mobile-column-heading {
+  display: none;
+}
+
+.mobile-team-name {
+  display: none;
+}
+
+.standings-table tbody tr.group-champions {
+  background: linear-gradient(90deg, rgba(47, 201, 138, 0.04), rgba(255, 255, 255, 0));
+}
+
+.standings-table tbody tr.group-hoyo {
+  background: linear-gradient(90deg, rgba(245, 119, 93, 0.05), rgba(255, 255, 255, 0));
+}
+
+.standings-table tbody tr.league-divider-row td {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
 /* Below this width the 12 columns no longer fit comfortably: keep their
   readable proportions and let .table-wrap's overflow-x:auto handle scrolling. */
 @media (max-width: 720px) {
@@ -1740,13 +2121,243 @@ select option {
   }
 }
 
-/* Keep every classification metric available on phones as well. The table
-  scrolls horizontally instead of truncating or wrapping team names. */
+/* Mobile: keep the standings as a compact, aligned column table. */
 @media (max-width: 640px) {
-  .standings-table th,
-  .standings-table td {
-    padding-left: 4px;
-    padding-right: 4px;
+  .standings-table {
+    min-width: 0;
+    display: block;
+    width: 100%;
+    border-spacing: 0;
+  }
+
+  .standings-table thead {
+    display: grid;
+    grid-template-columns: 28px minmax(118px, 1fr) repeat(6, 25px);
+    gap: 7px;
+    padding: 0 10px 8px;
+    color: rgba(194, 204, 204, 0.72);
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .standings-table thead tr {
+    display: contents;
+  }
+
+  .standings-table thead th {
+    display: block;
+    padding: 0;
+    height: auto;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .standings-table thead th:nth-child(2) {
+    text-align: left;
+  }
+
+  .standings-table thead th:nth-child(n + 9) {
+    display: none;
+  }
+
+  .standings-table thead th:nth-child(3),
+  .standings-table thead th:nth-child(4),
+  .standings-table thead th:nth-child(5),
+  .standings-table thead th:nth-child(7),
+  .standings-table thead th:nth-child(10),
+  .standings-table thead th:nth-child(11) {
+    display: block;
+  }
+
+  .standings-table thead th:nth-child(6),
+  .standings-table thead th:nth-child(8),
+  .standings-table thead th:nth-child(9),
+  .standings-table thead th:nth-child(12) {
+    display: none;
+  }
+
+  .standings-table thead th:nth-child(3) { grid-column: 3; }
+  .standings-table thead th:nth-child(4) { grid-column: 4; }
+  .standings-table thead th:nth-child(5) { grid-column: 5; }
+  .standings-table thead th:nth-child(7) { grid-column: 6; }
+  .standings-table thead th:nth-child(10) { grid-column: 7; }
+  .standings-table thead th:nth-child(11) { grid-column: 8; }
+
+  .standings-table .desktop-column-heading {
+    display: none;
+  }
+
+  .standings-table .mobile-column-heading {
+    display: inline;
+  }
+
+  .standings-table tbody {
+    display: grid;
+    gap: 0;
+  }
+
+  .standings-table tbody tr {
+    display: grid;
+    grid-template-columns: 28px minmax(118px, 1fr) repeat(6, 25px);
+    align-items: center;
+    gap: 7px;
+    min-height: 54px;
+    height: auto;
+    padding: 0 10px;
+    border: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.055);
+    background: transparent;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  .standings-table tbody tr.group-champions {
+    border-left: 0;
+  }
+
+  .standings-table tbody tr.group-hoyo {
+    border-left: 0;
+  }
+
+  .standings-table tbody tr.league-divider-row {
+    margin-top: 7px;
+    border-top: 2px solid rgba(132, 168, 168, 0.5);
+    padding-top: 7px;
+  }
+
+  .standings-table tbody tr.league-divider-row td {
+    border-top: 0;
+    box-shadow: none;
+  }
+
+  .standings-table tbody tr:first-child td {
+    border-top: 0;
+  }
+
+  .standings-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    height: auto;
+    padding: 0;
+    border-bottom: 0;
+    overflow: visible;
+  }
+
+  .standings-table tbody td:nth-child(n + 9) {
+    display: none;
+  }
+
+  .standings-table tbody td:nth-child(1) {
+    font-weight: 800;
+    color: var(--gold-soft);
+    font-size: 0.92rem;
+    min-height: 52px;
+  }
+
+  .standings-table tbody td:nth-child(2) {
+    position: relative;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    padding-right: 0;
+    overflow: visible;
+  }
+
+  .standings-table tbody td:nth-child(2) .team-cell {
+    width: 24px;
+    flex: 0 0 24px;
+    min-width: 0;
+    justify-content: flex-start;
+    padding: 0;
+    box-sizing: border-box;
+    min-height: 24px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  .standings-table tbody td:nth-child(2) .team-name-label {
+    display: inline-flex;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .standings-table tbody td:nth-child(2) .team-name-label > span:last-child {
+    display: none;
+  }
+
+  .standings-table tbody td:nth-child(2) .mobile-team-name {
+    display: block;
+    position: absolute;
+    left: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    right: auto;
+    width: 150px;
+    max-width: 150px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #edf3f1;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .standings-table tbody td:nth-child(2) .team-name-label > span:last-child {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    min-width: 0;
+    display: block;
+    max-width: 100%;
+    flex: 1 1 auto;
+    overflow: hidden !important;
+    color: #edf3f1;
+    background: none;
+    -webkit-text-fill-color: #edf3f1;
+  }
+
+  .standings-table tbody td.mobile-standing-stat {
+    display: flex;
+    color: rgba(239, 245, 243, 0.94);
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .standings-table tbody td.mobile-standing-points {
+    color: #f1d77e;
+    font-weight: 800;
+  }
+
+  .standings-table .position-with-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .standings-table .position-with-change .trend-badge {
+    display: none;
+  }
+
+  .standings-table .form-box,
+  .standings-table .form-box .badge {
+    display: none;
   }
 }
 
@@ -3780,21 +4391,41 @@ select option {
 }
 
 .sanction-card {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
   padding: 18px;
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,0.06);
   background: rgba(255,255,255,0.02);
 }
 
-.sanction-card strong {
+.sanction-card .sanction-card-icon {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
   display: block;
-  font-size: 1.6rem;
-  margin-top: 8px;
+  width: 24px;
+  font-size: 1rem;
+  line-height: 1;
 }
 
-.sanction-card span {
+.sanction-card .sanction-card-label {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  min-width: 0;
   color: var(--muted);
 }
+
+.sanction-card strong {
+  grid-column: 3;
+  grid-row: 1;
+  display: block;
+  font-size: 1.6rem;
+  margin-top: 0;
+  text-align: right;
+}
+
 
 .sanction-item {
   display: flex;
@@ -4266,6 +4897,236 @@ select option {
 
   .brand-mark small {
     font-size: 0.72rem;
+  }
+}
+
+/* Keep the public sanctions list inside the mobile card instead of letting
+   the desktop table width push its values outside the viewport. */
+@media (max-width: 640px) {
+  .active-sanctions-panel {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .active-sanctions-panel .section-header {
+    gap: 6px;
+  }
+
+  .sanctions-public-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .sanctions-public-table tbody,
+  .sanctions-public-table tbody tr,
+  .sanctions-public-table tbody td {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .sanctions-public-table tbody tr {
+    overflow: hidden;
+  }
+
+  .sanctions-public-table td > * {
+    min-width: 0;
+    max-width: 68%;
+  }
+
+  .sanctions-public-table .sanction-team-tag,
+  .sanctions-public-table td:nth-child(5) > span {
+    max-width: 68%;
+    overflow: hidden;
+  }
+
+  .sanctions-public-table .sanction-team-identity {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .sanctions-public-table .sanction-team-identity > span:last-child,
+  .sanctions-public-table td:nth-child(2) > strong,
+  .sanctions-public-table .sanction-badge {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* The mobile browser viewport can report tablet CSS widths, so keep the
+   discipline counters compact throughout the stacked <=900px layout. */
+@media (max-width: 900px) {
+  .sanction-kpi-row {
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .sanction-kpi-heading {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0;
+    text-align: left;
+  }
+
+  .sanction-kpi-heading .eyebrow {
+    display: none;
+  }
+
+  .sanction-kpi-heading h2 {
+    margin-bottom: 2px;
+    font-size: 1rem;
+  }
+
+  .sanction-kpi-heading > span {
+    font-size: 0.6rem;
+  }
+
+  .sanction-kpi-row .sanction-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .sanction-kpi-row .sanction-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr) 22px;
+    align-items: center;
+    column-gap: 8px;
+    min-height: 42px;
+    padding: 6px 8px;
+    border-radius: 9px;
+  }
+
+  .sanction-kpi-row .sanction-card::before {
+    position: static;
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 0.6rem;
+    line-height: 1;
+  }
+
+  .sanction-kpi-row .sanction-card span {
+    grid-column: 2;
+    grid-row: 1;
+    display: block;
+    min-width: 0;
+    font-size: 0.58rem;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+  }
+
+  .sanction-kpi-row .sanction-card strong {
+    grid-column: 3;
+    grid-row: 1;
+    display: block;
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1;
+    text-align: right;
+  }
+}
+
+@media (max-width: 480px) {
+  .sanction-kpi-heading {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .sanction-kpi-row .sanction-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .sanction-kpi-row .sanction-card {
+    grid-template-columns: 13px minmax(0, 1fr) 16px;
+    column-gap: 3px;
+    min-height: 38px;
+    padding: 4px;
+  }
+
+  .sanction-kpi-row .sanction-card .sanction-card-icon {
+    width: 13px;
+    min-width: 13px;
+    font-size: 0.55rem;
+  }
+
+  .sanction-kpi-row .sanction-card span:not(.sanction-card-icon) {
+    font-size: 0.47rem;
+  }
+
+  .sanction-kpi-row .sanction-card strong {
+    font-size: 0.78rem;
+  }
+}
+
+/* Homepage leader cards stay as a compact 2x2 grid on narrow screens. */
+@media (max-width: 640px) {
+  .homepage-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .homepage-kpi-grid .kpi-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 156px;
+    padding: 12px 9px 11px;
+    gap: 7px;
+    border-width: 1px;
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .homepage-kpi-grid .kpi-shield {
+    order: -1;
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+  }
+
+  .homepage-kpi-grid .kpi-copy {
+    width: 100%;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .homepage-kpi-grid .kpi-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+  }
+
+  .homepage-kpi-grid .kpi-copy strong {
+    display: -webkit-box;
+    width: 100%;
+    max-height: 2.3em;
+    overflow: hidden;
+    font-size: 0.82rem;
+    line-height: 1.15;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .homepage-kpi-grid .kpi-copy small {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.62rem;
   }
 }
 

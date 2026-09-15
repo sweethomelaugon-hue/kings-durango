@@ -161,10 +161,10 @@ export default function SancionesPage() {
               <span>{sanctions.length} registros · {activeSanctions.length} sanciones en curso</span>
             </div>
             <div className="sanction-summary">
-              <div className="sanction-card"><span>Amarillas</span><strong>{totalAmarillas}</strong></div>
-              <div className="sanction-card"><span>Doble amarilla</span><strong>{totalDobles}</strong></div>
-              <div className="sanction-card"><span>Rojas</span><strong>{totalRojas}</strong></div>
-              <div className="sanction-card"><span>Otras</span><strong>{totalOtras}</strong></div>
+              <div className="sanction-card"><span className="sanction-card-icon" aria-hidden="true">🟨</span><span className="sanction-card-label">Amarillas</span><strong>{totalAmarillas}</strong></div>
+              <div className="sanction-card"><span className="sanction-card-icon" aria-hidden="true">🟧</span><span className="sanction-card-label">Doble amarilla</span><strong>{totalDobles}</strong></div>
+              <div className="sanction-card"><span className="sanction-card-icon" aria-hidden="true">🟥</span><span className="sanction-card-label">Rojas</span><strong>{totalRojas}</strong></div>
+              <div className="sanction-card"><span className="sanction-card-icon" aria-hidden="true">⚠️</span><span className="sanction-card-label">Otras</span><strong>{totalOtras}</strong></div>
             </div>
           </section>
 

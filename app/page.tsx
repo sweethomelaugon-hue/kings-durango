@@ -309,22 +309,22 @@ export default function Home() {
       {!loading && !error && (
         <>
           <section className="stats-grid homepage-kpi-grid">
-            <article className="stat-card highlight kpi-card" style={{ "--kpi-team-color": kpiTeamColor(homepageStandings[0]?.team ?? "") } as React.CSSProperties}>
+            <Link href="/clasificacion" className="stat-card highlight kpi-card" aria-label="Ver clasificación de la liga" style={{ "--kpi-team-color": kpiTeamColor(homepageStandings[0]?.team ?? "") } as React.CSSProperties}>
               <div className="kpi-copy"><span className="kpi-label">Líder liga</span><strong>{homepageStandings[0]?.team ?? "Sin datos"}</strong><small>{homepageStandings[0] ? `${homepageStandings[0].points} puntos` : "Clasificación pendiente"}</small></div>
               <TeamShield name={homepageStandings[0]?.team ?? ""} className="kpi-shield" size={72} />
-            </article>
-            <article className="stat-card highlight kpi-card" style={{ "--kpi-team-color": kpiTeamColor(topScorer.team) } as React.CSSProperties}>
+            </Link>
+            <Link href="/goleadores" className="stat-card highlight kpi-card" aria-label="Ver clasificación de goleadores" style={{ "--kpi-team-color": kpiTeamColor(topScorer.team) } as React.CSSProperties}>
               <div className="kpi-copy"><span className="kpi-label">Pitxitxi</span><strong>{topScorer.name}</strong><small>{topScorer.team}</small></div>
               <TeamShield name={topScorer.team} className="kpi-shield" size={72} />
-            </article>
-            <article className="stat-card highlight kpi-card" style={{ "--kpi-team-color": kpiTeamColor(zamoraLeader.team) } as React.CSSProperties}>
+            </Link>
+            <Link href="/zamora" className="stat-card highlight kpi-card" aria-label="Ver clasificación de porteros Zamora" style={{ "--kpi-team-color": kpiTeamColor(zamoraLeader.team) } as React.CSSProperties}>
               <div className="kpi-copy"><span className="kpi-label">Zamora</span><strong>{zamoraLeader.name}</strong><small>{zamoraLeader.team}</small></div>
               <TeamShield name={zamoraLeader.team} className="kpi-shield" size={72} />
-            </article>
-            <article className="stat-card highlight kpi-card" style={{ "--kpi-team-color": kpiTeamColor(fairPlayTeam) } as React.CSSProperties}>
-              <div className="kpi-copy"><span className="kpi-label">Fair Play</span><strong>{fairPlayTeam}</strong><small>{fairPlayTeam}</small></div>
+            </Link>
+            <Link href="/sanciones" className="stat-card highlight kpi-card" aria-label="Ver clasificación Fair Play" style={{ "--kpi-team-color": kpiTeamColor(fairPlayTeam) } as React.CSSProperties}>
+              <div className="kpi-copy"><span className="kpi-label">Fair Play</span><strong>{fairPlayTeam}</strong><small>{sanctionCounts[fairPlayTeam] ?? 0} puntos</small></div>
               <TeamShield name={fairPlayTeam} className="kpi-shield" size={72} />
-            </article>
+            </Link>
           </section>
 
           <section className="content-grid">
@@ -333,7 +333,11 @@ export default function Home() {
               <div className="home-standings">
                 <div className="home-standing-row home-standing-heading"><span># Equipo</span><span>PJ</span><span>Pts</span></div>
                 {homepageStandings.length > 0 ? homepageStandings.map((entry, index) => (
-                  <div key={entry.team} className="home-standing-row"><span><b>{index + 1}</b> <TeamIdentity name={entry.team} compact />{entry.positionDelta !== 0 ? <span className={`trend-badge ${entry.positionDelta > 0 ? "up" : "down"}`} aria-label={entry.positionDelta > 0 ? "Sube posiciones" : "Baja posiciones"}>{entry.positionDelta > 0 ? "▲" : "▼"}</span> : <span className="home-standing-neutral" aria-label="Sin cambios">•</span>}</span><span>{entry.played}</span><strong>{entry.points}</strong></div>
+                  <div key={entry.team} className={`home-standing-row ${index < 6 ? "group-champions" : "group-hoyo"}`}>
+                    <span><b>{index + 1}</b> <TeamIdentity name={entry.team} compact />{entry.positionDelta !== 0 ? <span className={`trend-badge ${entry.positionDelta > 0 ? "up" : "down"}`} aria-label={entry.positionDelta > 0 ? "Sube posiciones" : "Baja posiciones"}>{entry.positionDelta > 0 ? "▲" : "▼"}</span> : <span className="home-standing-neutral" aria-label="Sin cambios">•</span>}</span>
+                    <span>{entry.played}</span>
+                    <strong>{entry.points}</strong>
+                  </div>
                 )) : <div className="empty-state">Sin equipos</div>}
               </div>
             </div>
@@ -346,11 +350,6 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="quick-links">
-            <Link href="/calendario" className="nav-card">Calendario</Link>
-            <Link href="/equipos" className="nav-card">Equipos</Link>
-            <Link href="/sanciones" className="nav-card">Sanciones</Link>
-          </section>
         </>
       )}
     </main>

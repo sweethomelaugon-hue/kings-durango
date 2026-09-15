@@ -208,10 +208,10 @@ export default function ClasificacionPage() {
                     <th>Pos</th>
                     <th>Equipo</th>
                     <th>PJ</th>
-                    <th>G</th>
-                    <th>EG</th>
+                    <th><span className="desktop-column-heading">G</span><span className="mobile-column-heading">V</span></th>
+                    <th><span className="desktop-column-heading">EG</span><span className="mobile-column-heading">E</span></th>
                     <th>EP</th>
-                    <th>P</th>
+                    <th><span className="desktop-column-heading">P</span><span className="mobile-column-heading">D</span></th>
                     <th>GF</th>
                     <th>GC</th>
                     <th>DG</th>
@@ -223,24 +223,33 @@ export default function ClasificacionPage() {
                   {resolvedStandings.map((team) => {
                     const palette = getTeamPalette(team.team, teams.find((candidate) => candidate.name === team.team)?.primaryColor);
                     const configuredColor = palette.primary;
+                    const isLeagueDivider = team.position === 7;
+
                     return (
-                      <tr key={team.team}>
-                        <td><span className="position-with-change"><span className="position-number">{team.position}</span><span className={`trend-badge ${positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "up" : "down") : "neutral"}`} aria-label={positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "Sube posiciones" : "Baja posiciones") : "Sin cambios"}>{positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "↑" : "↓") : "•"}</span></span></td>
-                        <td className="team-name-cell">
+                      <tr key={team.team} className={`${team.position && team.position <= 6 ? "group-champions" : "group-hoyo"} ${isLeagueDivider ? "league-divider-row" : ""}`}>
+                        <td data-label="Pos"><span className="position-with-change"><span className="position-number">{team.position}</span><span className={`trend-badge ${positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "up" : "down") : "neutral"}`} aria-label={positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "Sube posiciones" : "Baja posiciones") : "Sin cambios"}>{positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "↑" : "↓") : "•"}</span></span></td>
+                        <td className="team-name-cell" data-label="Equipo">
                           <button type="button" className="team-cell team-detail-trigger" style={{ "--team-color": configuredColor, color: "#edf3f1" } as React.CSSProperties} onClick={() => setSelectedTeam(team.team)}>
                             <TeamIdentity name={team.team} className="team-name-label" compact />
                           </button>
+                          <span className="mobile-team-name">{team.team}</span>
                         </td>
-                        <td>{team.played}</td>
-                        <td>{team.wins}</td>
-                        <td>{team.eg}</td>
-                        <td>{team.ep}</td>
-                        <td>{team.losses}</td>
-                        <td>{team.goalsFor}</td>
-                        <td>{team.goalsAgainst}</td>
-                        <td>{team.goalDifference}</td>
-                        <td><strong className="points-pill">{team.points}</strong></td>
-                        <td><div className="form-box">{team.form.map((result: string, index: number) => <span key={`${team.team}-${index}`} className={`badge badge-${result.toLowerCase()}`}>{result}</span>)}</div></td>
+                        <td className="mobile-standing-stat" data-label="PJ">{team.played}</td>
+                        <td className="mobile-standing-stat" data-label="V">{team.wins}</td>
+                        <td className="mobile-standing-stat" data-label="E">{team.eg + team.ep}</td>
+                        <td className="mobile-standing-stat" data-label="D">{team.losses}</td>
+                        <td className="mobile-standing-stat" data-label="DG">{team.goalDifference > 0 ? `+${team.goalDifference}` : String(team.goalDifference)}</td>
+                        <td className="mobile-standing-stat mobile-standing-points" data-label="PTS">{team.points}</td>
+                        <td data-label="PJ">{team.played}</td>
+                        <td data-label="G">{team.wins}</td>
+                        <td data-label="EG">{team.eg}</td>
+                        <td data-label="EP">{team.ep}</td>
+                        <td data-label="P">{team.losses}</td>
+                        <td data-label="GF">{team.goalsFor}</td>
+                        <td data-label="GC">{team.goalsAgainst}</td>
+                        <td data-label="DG">{team.goalDifference}</td>
+                        <td data-label="Pts"><strong className="points-pill">{team.points}</strong></td>
+                        <td data-label="Últimos 5"><div className="form-box">{team.form.map((result: string, index: number) => <span key={`${team.team}-${index}`} className={`badge badge-${result.toLowerCase()}`}>{result}</span>)}</div></td>
                       </tr>
                     );
                   })}
