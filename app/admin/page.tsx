@@ -2694,7 +2694,7 @@ export default function AdminPage() {
       : [
           ...matchResults,
           ...nextRound.matches.map((fixture, index) => ({
-            id: `match-${nextRound.id}-${index}`,
+            id: nextRound.id + index,
             jornada: nextRound.title,
             date: nextRound.date,
             time: fixture.time,
