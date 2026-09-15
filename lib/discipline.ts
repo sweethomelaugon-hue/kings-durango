@@ -2,6 +2,8 @@ import type { CalendarRound, DisciplinaryRecord } from "@/lib/league-data";
 
 export type DisciplineStatus = DisciplinaryRecord & {
   suspensionRemaining: number;
+  suspensionRoundTitles: string[];
+  suspensionRounds: Array<{ id: number; title: string; status: CalendarRound["status"] }>;
   yellowCards: number;
   isYellowAccumulationSuspension: boolean;
 };
@@ -16,6 +18,36 @@ type YellowState = {
 function roundIdForRecord(record: DisciplinaryRecord, rounds: CalendarRound[]): number | null {
   const round = rounds.find((candidate) => candidate.title === record.jornada);
   return round?.id ?? null;
+}
+
+function roundsPlayedByTeamAfter(
+  rounds: CalendarRound[],
+  team: string,
+  startRoundId: number,
+  matchesToCount: number,
+): CalendarRound[] {
+  if (matchesToCount <= 0) {
+    return [];
+  }
+
+  return [...rounds]
+    .filter((round) => round.id > startRoundId)
+    .filter((round) => round.matches.some((match) => match.home === team || match.away === team))
+    .sort((a, b) => a.id - b.id)
+    .slice(0, matchesToCount);
+}
+
+export function getSuspensionRoundTitles(
+  record: DisciplinaryRecord,
+  rounds: CalendarRound[],
+): string[] {
+  const sanctionRoundId = roundIdForRecord(record, rounds);
+  const matches = Math.max(0, Number(record.suspensionMatches ?? 0));
+  if (sanctionRoundId === null || matches === 0) {
+    return [];
+  }
+
+  return roundsPlayedByTeamAfter(rounds, record.team, sanctionRoundId, matches).map((round) => round.title);
 }
 
 export function recalculateSuspensionRemaining(records: DisciplinaryRecord[], rounds: CalendarRound[]): DisciplinaryRecord[] {
@@ -76,8 +108,6 @@ function yellowStatesByPlayer(
     if (state.count >= 3) {
       state.suspensionRoundId = entry.roundId + 1;
       state.suspensionRecordId = entry.record.id;
-      state.count = 0;
-      state.rounds.clear();
     }
 
     states.set(key, state);
@@ -105,22 +135,45 @@ export function getDisciplineStatus(
   const yellowStates = yellowStatesByPlayer(records, rounds, resetBeforeRoundId);
 
   return records.flatMap((record) => {
-    const sanctionRoundId = roundIdForRecord(record, rounds);
-    const explicitMatches = Number(record.suspensionMatches ?? 0);
-    const roundsSinceSanction = sanctionRoundId === null ? 0 : currentRoundId - sanctionRoundId;
-    const explicitRemaining = sanctionRoundId !== null && explicitMatches > 0 && roundsSinceSanction >= 1 && roundsSinceSanction <= explicitMatches
-      ? explicitMatches - roundsSinceSanction + 1
-      : 0;
     const playerKey = `${record.team.toLowerCase()}::${record.player.toLowerCase()}`;
     const yellowState = yellowStates.get(playerKey);
     const automaticRemaining = yellowState?.suspensionRoundId === currentRoundId && yellowState.suspensionRecordId === record.id ? 1 : 0;
-    const suspensionRemaining = Math.max(explicitRemaining, automaticRemaining);
-    const yellowCards = yellowState?.count ?? 0;
+    const explicitSuspensionRounds = getSuspensionRoundTitles(record, rounds);
+    const automaticSuspensionRounds = yellowState?.suspensionRoundId !== null && yellowState?.suspensionRoundId !== undefined && yellowState.count >= 3
+      ? roundsPlayedByTeamAfter(rounds, record.team, yellowState.suspensionRoundId - 1, 1).map((round) => round.title)
+      : [];
+    const suspensionRoundTitles = Array.from(new Set([...explicitSuspensionRounds, ...automaticSuspensionRounds]));
+    const suspensionRounds = rounds
+      .filter((round) => suspensionRoundTitles.includes(round.title))
+      .sort((a, b) => a.id - b.id)
+      .map((round) => ({ id: round.id, title: round.title, status: round.status }));
+    const suspensionRemaining = suspensionRounds.filter((round) => round.status !== "completed").length;
+    const yellowCards = yellowState && yellowState.suspensionRoundId !== null && currentRoundId > yellowState.suspensionRoundId
+      ? 0
+      : yellowState?.count ?? 0;
 
     return suspensionRemaining > 0 || record.card === "Amarilla"
-      ? [{ ...record, suspensionRemaining, yellowCards, isYellowAccumulationSuspension: automaticRemaining > 0 }]
+      ? [{
+          ...record,
+          suspensionRemaining,
+          suspensionRoundTitles,
+          suspensionRounds,
+          yellowCards,
+          isYellowAccumulationSuspension: automaticRemaining > 0 || (yellowCards >= 3 && suspensionRoundTitles.length > 0),
+        }]
       : [];
   });
+}
+
+export function getNextTeamRound(
+  rounds: CalendarRound[],
+  currentRoundId: number,
+  team: string,
+): CalendarRound | undefined {
+  return [...rounds]
+    .filter((round) => round.id > currentRoundId && round.status !== "completed")
+    .filter((round) => round.matches.some((match) => match.home === team || match.away === team))
+    .sort((a, b) => a.id - b.id)[0];
 }
 
 export function dedupeActiveDisciplineStatus(records: DisciplineStatus[]): DisciplineStatus[] {

@@ -13,11 +13,12 @@
 Crea un archivo `.env.production` o usa el panel de variables del hosting. Configura al menos:
 
 ```bash
-NEXT_PUBLIC_ADMIN_EMAIL=tu-admin@dominio.com
-NEXT_PUBLIC_ADMIN_PASSWORD=TuPasswordSegura2026!
+ADMIN_EMAIL=tu-admin@dominio.com
+ADMIN_PASSWORD=TuPasswordSegura2026!
 ADMIN_ACCESS_TOKEN=token-super-secreto
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=xxxxx
+SUPABASE_SERVICE_ROLE_KEY=xxxxx
 LEAGUE_STORE_PATH=/tmp/league-store.json
 ```
 
@@ -25,6 +26,7 @@ Importante:
 - Nunca dejes la contraseña por defecto en producción.
 - Usa una contraseña fuerte y exclusiva.
 - `ADMIN_ACCESS_TOKEN` sirve para proteger APIs administrativas.
+- `SUPABASE_SERVICE_ROLE_KEY` solo debe existir en el entorno del servidor; nunca lo expongas al navegador.
 
 ## 3. Recomendación de despliegue
 
@@ -56,6 +58,8 @@ Este proyecto está todavía pensado como demo, aunque ya incluye estructura SQL
 
 - `database/schema.sql`
 - `database/seed.sql`
+
+Antes de usar el panel de Economía en una base existente, ejecuta también `database/migrate-financial-movement-details.sql` en el SQL Editor de Supabase. Esta migración conserva importes pagados, pendientes, categorías, fechas, estados y entidades de cada movimiento.
 
 Para producción, migra de almacenamiento JSON a Supabase/PostgreSQL.
 

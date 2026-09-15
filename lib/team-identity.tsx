@@ -16,7 +16,6 @@ const shieldFiles: Record<string, string> = {
   "Inter Panda": "Inter Panda.png",
   "Inter Pandurrio": "Inter Panda.png",
   "Inter Pandurrios": "Inter Panda.png",
-  "Inter Pandurrios": "Inter Panda.png",
   Kalekantoi: "Kalekantoi.png",
   Lojanos: "Lojanos.png",
   "Martxel Juniors": "Martxel Juniors.png",

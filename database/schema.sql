@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS disciplinary_records (
   suspension_remaining INTEGER NOT NULL DEFAULT 0 CHECK (suspension_remaining >= 0),
   points_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
   cost_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  paid_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -108,6 +109,15 @@ CREATE TABLE IF NOT EXISTS financial_movements (
   concept VARCHAR(180) NOT NULL,
   movement_type VARCHAR(20) NOT NULL CHECK (movement_type IN ('income', 'expense')),
   amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  paid_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  pending_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  movement_kind VARCHAR(20) NOT NULL DEFAULT 'otro',
+  category VARCHAR(120),
+  entity VARCHAR(180),
+  movement_date DATE,
+  status VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+  previous_paid NUMERIC(10,2),
+  settlement_only BOOLEAN NOT NULL DEFAULT FALSE,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

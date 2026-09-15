@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { publicLeagueMigrationSeed } from "@/lib/league-data";
 import { recalculateSuspensionRemaining } from "@/lib/discipline";
-import { dedupeActiveDisciplineStatus, getDisciplineStatus } from "@/lib/discipline";
 import { readLeagueStore, repairMojibake, validateLeagueStorePayload, writeLeagueStore } from "@/lib/league-store";
 import { isAdminAuthorized } from "@/lib/supabase";
 
@@ -374,14 +373,9 @@ function validateGoalScorers(store: Awaited<ReturnType<typeof readLeagueStore>>,
       continue;
     }
 
-    const matchJornada = typeof match.jornada === "string" ? match.jornada : "";
-    const round = store.calendar.find((candidate) => candidate.title === matchJornada);
-    const activeSanctions = round
-      ? dedupeActiveDisciplineStatus(getDisciplineStatus(store.sanctions, store.calendar, round.id, store.finances.yellowCardResetRoundId))
-      : [];
-    if (activeSanctions.some((record) => record.team.toLowerCase() === team.name.toLowerCase() && record.player.toLowerCase() === playerName.toLowerCase())) {
-      throw new Error(`El jugador "${playerName}" está cumpliendo sanción y no puede figurar como goleador.`);
-    }
+    // Historical scorers are allowed here. A full-store save can revisit old
+    // matches after a later sanction was registered; the result editor still
+    // validates newly entered scorers before sending them to this route.
   }
 }
 
@@ -497,6 +491,8 @@ export function validateDisciplinaryRecords(
       pointsAmount: points,
       costAmount: sanctionAmount,
       cost_amount: sanctionAmount,
+      paidAmount: Math.min(Number(record.paidAmount ?? record.paid_amount ?? 0) || 0, sanctionAmount),
+      paid_amount: Math.min(Number(record.paidAmount ?? record.paid_amount ?? 0) || 0, sanctionAmount),
     });
   }
 

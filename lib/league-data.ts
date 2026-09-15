@@ -185,6 +185,8 @@ export type DisciplinaryRecord = {
   pointsAmount?: number;
   costAmount?: number;
   cost_amount?: number;
+  paidAmount?: number;
+  paid_amount?: number;
 };
 
 export const teamColors: Record<string, TeamPalette> = {

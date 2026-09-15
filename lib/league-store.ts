@@ -12,7 +12,6 @@ import {
   type CalendarRound,
   type DisciplinaryRecord,
 } from "@/lib/league-data";
-import { readCanonicalLeagueStore, writeCanonicalLeagueStore } from "@/lib/canonical-store";
 import { getSupabaseClient, getSupabaseWriteClient, hasSupabaseConfig, hasSupabaseWriteConfig } from "@/lib/supabase";
 
 export type FinancialMovement = {
@@ -20,7 +19,7 @@ export type FinancialMovement = {
   concept: string;
   amount: number;
   type: "gasto" | "cobro";
-  kind?: "cuota" | "patrocinio" | "premio" | "otro";
+  kind?: "cuota" | "patrocinio" | "premio" | "sancion" | "otro";
   category?: string;
   entity?: string;
   paid?: number;
@@ -67,7 +66,7 @@ export type TeamRecord = Team & {
   players: PlayerRecord[];
 };
 
-export type MatchRecord = Match & {
+export type MatchRecord = Omit<Match, "id"> & {
   id: number | string;
   seasonId?: string;
   roundId?: string;
@@ -386,6 +385,7 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
       suspension_remaining: Number(sanction.suspensionRemaining ?? sanction.suspensionMatches ?? sanction.matches ?? 0),
       points_amount: Number(sanction.points ?? sanction.pointsAmount ?? sanction.costAmount ?? sanction.cost_amount ?? 0),
       cost_amount: Number(sanction.points ?? sanction.pointsAmount ?? sanction.costAmount ?? sanction.cost_amount ?? 0),
+      paid_amount: Number(sanction.paidAmount ?? sanction.paid_amount ?? 0),
     };
   });
 
@@ -410,7 +410,9 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
     };
   }).filter((row): row is NonNullable<typeof row> => row !== null);
 
-  const financialMovementRows = (store.finances?.expenses ?? []).map((entry) => {
+  const manualFinancialMovementRows = (store.finances?.expenses ?? [])
+    .filter((entry) => entry.category !== "Sanción")
+    .map((entry) => {
     const teamName = typeof entry.entity === "string" ? entry.entity.trim() : "";
     const teamId = teamName ? teamIds.get(teamName.trim().toLowerCase()) ?? null : null;
 
@@ -421,9 +423,46 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
       concept: entry.concept ?? "Movimiento financiero",
       movement_type: entry.type === "cobro" ? "income" : "expense",
       amount: Number(entry.amount ?? 0),
+      paid_amount: Number(entry.paid ?? 0),
+      pending_amount: Number(entry.pending ?? Math.max(Number(entry.amount ?? 0) - Number(entry.paid ?? 0), 0)),
+      movement_kind: entry.kind ?? "otro",
+      category: entry.category ?? null,
+      entity: entry.entity ?? null,
+      movement_date: entry.date ?? null,
+      status: entry.status ?? (Number(entry.paid ?? 0) >= Number(entry.amount ?? 0) ? "pagado" : "pendiente"),
+      previous_paid: entry.previousPaid ?? null,
+      settlement_only: entry.settlementOnly === true,
       notes: entry.category ? `${entry.category}` : undefined,
     };
   });
+
+  const sanctionFinancialMovementRows = store.sanctions.map((sanction) => {
+    const amount = Number(sanction.points ?? sanction.pointsAmount ?? sanction.costAmount ?? sanction.cost_amount ?? 0);
+    const paid = Math.min(Number(sanction.paidAmount ?? sanction.paid_amount ?? 0), amount);
+    const teamName = String(sanction.team ?? "").trim();
+    const teamId = teamIds.get(teamName.toLowerCase()) ?? null;
+
+    return {
+      id: toUuid(sanction.id, "sanction-movement"),
+      season_id: seasonId,
+      team_id: teamId,
+      concept: `Sanción · ${sanction.player ?? "Jugador"}`,
+      movement_type: "income",
+      amount,
+      paid_amount: paid,
+      pending_amount: Math.max(amount - paid, 0),
+      movement_kind: "sancion",
+      category: "Sanción",
+      entity: teamName || null,
+      movement_date: null,
+      status: paid >= amount ? "pagado" : "pendiente",
+      previous_paid: null,
+      settlement_only: false,
+      notes: `${sanction.card ?? "Sanción"} · ${sanction.reason ?? ""}`.trim(),
+    };
+  });
+
+  const financialMovementRows = [...manualFinancialMovementRows, ...sanctionFinancialMovementRows];
 
   return {
     seasons: [seasonRow],
@@ -485,7 +524,7 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
   const sanctionsQuery = async () => {
     const withPoints = await client
       .from("disciplinary_records")
-      .select("id, player_id, team_id, match_id, card_type, reason, suspension_matches, suspension_remaining, points_amount, cost_amount, created_at")
+      .select("id, player_id, team_id, match_id, card_type, reason, suspension_matches, suspension_remaining, points_amount, cost_amount, paid_amount, created_at")
       .order("created_at", { ascending: false });
 
     if (!withPoints.error || !/points_amount|column/i.test(withPoints.error.message)) {
@@ -498,13 +537,29 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
       .order("created_at", { ascending: false });
   };
 
+  const movementsQuery = async () => {
+    const detailed = await client
+      .from("financial_movements")
+      .select("id, concept, amount, movement_type, team_id, entity, notes, paid_amount, pending_amount, movement_kind, category, movement_date, status, previous_paid, settlement_only, created_at")
+      .order("created_at", { ascending: false });
+
+    if (!detailed.error || !/column|schema cache/i.test(detailed.error.message)) {
+      return detailed;
+    }
+
+    return client
+      .from("financial_movements")
+      .select("id, concept, amount, movement_type, team_id, notes, created_at")
+      .order("created_at", { ascending: false });
+  };
+
   const [{ data: seasonsData, error: seasonsError }, { data: teamsData, error: teamsError }, { data: roundsData, error: roundsError }, { data: matchesData, error: matchesError }, { data: feesData, error: feesError }, { data: movementsData, error: movementsError }, { data: sanctionsData, error: sanctionsError }, { data: eventsData, error: eventsError }] = await Promise.all([
     client.from("seasons").select("id, name, year_start, year_end, is_active").order("year_start", { ascending: true }),
     client.from("teams").select("id, name, short_name, stadium_name, primary_color, shield_image, season_id, players:players(id, name, dorsal, is_goalkeeper)").order("name"),
     client.from("rounds").select("id, title, round_number, date, status, season_id").order("round_number", { ascending: true }),
     client.from("matches").select("id, season_id, round_id, home_team_id, away_team_id, scheduled_at, stadium_name, home_goals, away_goals, shootout_home_goals, shootout_away_goals, status, created_at, home_team:teams!matches_home_team_id_fkey(name), away_team:teams!matches_away_team_id_fkey(name)").order("scheduled_at", { ascending: true }),
     client.from("team_fees").select("team_id, fee_amount, paid_amount, status").order("team_id", { ascending: true }),
-    client.from("financial_movements").select("id, concept, amount, movement_type, team_id, notes, created_at").order("created_at", { ascending: false }),
+    movementsQuery(),
     sanctionsQuery(),
     client.from("match_events").select("id, match_id, minute, event_type, player:players!match_events_player_id_fkey(name), team:teams!match_events_team_id_fkey(name)").order("minute", { ascending: true }),
   ]);
@@ -712,6 +767,8 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
           pointsAmount: points,
           costAmount: points,
           cost_amount: points,
+          paidAmount: Number((entry as { paid_amount?: number }).paid_amount ?? 0),
+          paid_amount: Number((entry as { paid_amount?: number }).paid_amount ?? 0),
         } satisfies DisciplinaryRecord;
       })
     : defaultStore.sanctions;
@@ -720,19 +777,27 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
     ? movementsData.map((entry, index) => {
         const movementType = String(entry.movement_type ?? "expense") === "income" ? "cobro" : "gasto";
         const numericId = Number(entry.id ?? index + 1);
+        const amount = normalizeSupabaseMoney(entry.amount, 0);
+        const paid = normalizeSupabaseMoney((entry as { paid_amount?: number }).paid_amount, movementType === "gasto" ? 0 : amount);
+        const pending = normalizeSupabaseMoney((entry as { pending_amount?: number }).pending_amount, Math.max(amount - paid, 0));
+        const kind = ["cuota", "patrocinio", "premio", "sancion", "otro"].includes(String((entry as { movement_kind?: string }).movement_kind))
+          ? String((entry as { movement_kind?: string }).movement_kind) as "cuota" | "patrocinio" | "premio" | "sancion" | "otro"
+          : "otro";
 
         return {
           id: Number.isFinite(numericId) ? numericId : index + 1,
           concept: String(entry.concept ?? "Movimiento"),
-          amount: normalizeSupabaseMoney(entry.amount, 0),
+          amount,
           type: movementType as FinancialMovement["type"],
-          kind: "otro" as const,
-          category: "Supabase" as const,
-          entity: typeof entry.team_id === "string" ? teams.find((team) => team.id === entry.team_id)?.name ?? "Equipo" : "Liga",
-          paid: normalizeSupabaseMoney(entry.amount, 0),
-          pending: 0,
-          date: typeof entry.created_at === "string" ? entry.created_at.slice(0, 10) : undefined,
-          status: "pagado" as const,
+          kind,
+          category: typeof (entry as { category?: string }).category === "string" ? (entry as { category?: string }).category : typeof entry.notes === "string" ? entry.notes : undefined,
+          entity: typeof (entry as { entity?: string }).entity === "string" ? (entry as { entity?: string }).entity : typeof entry.team_id === "string" ? teams.find((team) => team.id === entry.team_id)?.name ?? "Equipo" : "Liga",
+          paid,
+          pending,
+          date: typeof (entry as { movement_date?: string }).movement_date === "string" ? (entry as { movement_date?: string }).movement_date : typeof entry.created_at === "string" ? entry.created_at.slice(0, 10) : undefined,
+          status: ["planificado", "pendiente", "pagado"].includes(String((entry as { status?: string }).status)) ? String((entry as { status?: string }).status) as "planificado" | "pendiente" | "pagado" : paid >= amount ? "pagado" : "pendiente",
+          previousPaid: Number.isFinite(Number((entry as { previous_paid?: number }).previous_paid)) ? Number((entry as { previous_paid?: number }).previous_paid) : undefined,
+          settlementOnly: (entry as { settlement_only?: boolean }).settlement_only === true,
         } satisfies FinancialMovement;
       })
     : defaultStore.finances.expenses;
@@ -1192,7 +1257,7 @@ export function normalizeLeagueStore(value: unknown): LeagueStore {
           concept: normalizeString(entry.concept, "Movimiento sin nombre"),
           amount,
           type: entry.type === "cobro" ? "cobro" : "gasto",
-          kind: entry.kind === "cuota" || entry.kind === "patrocinio" || entry.kind === "premio" || entry.kind === "otro" ? entry.kind : undefined,
+          kind: entry.kind === "cuota" || entry.kind === "patrocinio" || entry.kind === "premio" || entry.kind === "sancion" || entry.kind === "otro" ? entry.kind : undefined,
           category: typeof entry.category === "string" ? entry.category : undefined,
           entity: typeof entry.entity === "string" ? entry.entity : undefined,
           paid,
@@ -1294,14 +1359,12 @@ export async function ensureStoreFile(): Promise<LeagueStore> {
 
 export async function readLeagueStore(): Promise<LeagueStore> {
   if (!hasSupabaseConfig) {
-    const canonicalStore = await readCanonicalLeagueStore();
-    return canonicalStore;
+    throw new Error("La base de datos no está configurada. No se mostrarán datos locales.");
   }
 
   const supabaseStore = await readSupabaseLeagueStore();
   if (!supabaseStore) {
-    const canonicalStore = await readCanonicalLeagueStore();
-    return canonicalStore;
+    throw new Error("No se pudo acceder a Supabase. No se mostrarán datos locales.");
   }
 
   return supabaseStore;
@@ -1394,9 +1457,19 @@ async function syncLeagueStoreToSupabase(nextStore: LeagueStore) {
     throw new Error(`No se pudo guardar las cuotas en Supabase: ${feesError.message}`);
   }
 
-  const { error: movementsError } = await client.from("financial_movements").upsert(syncRows.financial_movements, { onConflict: "id" });
+  const { error: deleteMovementsError } = await client
+    .from("financial_movements")
+    .delete()
+    .eq("season_id", seasonIds[0]);
+  if (deleteMovementsError) {
+    throw new Error(`No se pudieron reemplazar los movimientos económicos en Supabase: ${deleteMovementsError.message}`);
+  }
+
+  const { error: movementsError } = syncRows.financial_movements.length > 0
+    ? await client.from("financial_movements").insert(syncRows.financial_movements)
+    : { error: null };
   if (movementsError) {
-    throw new Error(`No se pudo guardar los movimientos en Supabase: ${movementsError.message}`);
+    throw new Error(`No se pudo guardar los movimientos en Supabase. Ejecuta database/migrate-financial-movement-details.sql en Supabase: ${movementsError.message}`);
   }
 }
 
@@ -1408,8 +1481,7 @@ export async function writeLeagueStore(nextStore: LeagueStore): Promise<LeagueSt
   }
 
   if (!hasSupabaseWriteConfig) {
-    await writeCanonicalLeagueStore(resolvedStore);
-    return resolvedStore;
+    throw new Error("La base de datos no está disponible para guardar cambios.");
   }
 
   await syncLeagueStoreToSupabase(resolvedStore);

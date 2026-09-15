@@ -11,7 +11,7 @@ import {
   teams,
 } from "@/lib/league-data";
 import { teamColors } from "@/lib/league-data";
-import { dedupeActiveDisciplineStatus, getDisciplineStatus, getYellowCardsForPlayer, recalculateSuspensionRemaining } from "@/lib/discipline";
+import { dedupeActiveDisciplineStatus, getDisciplineStatus, getNextTeamRound, getYellowCardsForPlayer, recalculateSuspensionRemaining } from "@/lib/discipline";
 import type { SeasonRecord, TeamRecord } from "@/lib/league-store";
 import { clearAuthSession, isAdminSession, readAuthSession } from "@/lib/auth";
 import { buildAdminHeaders } from "@/lib/supabase";
@@ -142,7 +142,7 @@ const resultDraftFromMatch = (match: { home: string; away: string; score: string
   };
 };
 
-type FinanceKind = "cuota" | "patrocinio" | "premio" | "otro";
+type FinanceKind = "cuota" | "patrocinio" | "premio" | "sancion" | "otro";
 
 type ExpenseItem = {
   id: number;
@@ -868,16 +868,21 @@ export default function AdminPage() {
       return [];
     }
 
-    const byPlayer = new Map<string, { player: string; team: string; yellowCards: number }>();
+    const byPlayer = new Map<string, { player: string; team: string; yellowCards: number; suspensionRoundTitle?: string }>();
     getDisciplineStatus(cardDocket, calendarRounds, currentRound.id, yellowCardResetRoundId).forEach((record) => {
-      if (record.yellowCards <= 0 || record.suspensionRemaining > 0) {
+      if (record.yellowCards <= 0) {
         return;
       }
 
       const key = `${record.team.toLowerCase()}::${record.player.toLowerCase()}`;
       const current = byPlayer.get(key);
       if (!current || record.yellowCards > current.yellowCards) {
-        byPlayer.set(key, { player: record.player, team: record.team, yellowCards: record.yellowCards });
+        byPlayer.set(key, {
+          player: record.player,
+          team: record.team,
+          yellowCards: record.yellowCards,
+          suspensionRoundTitle: record.yellowCards >= 3 ? getNextTeamRound(calendarRounds, currentRound.id, record.team)?.title : undefined,
+        });
       }
     });
 
@@ -1043,6 +1048,63 @@ export default function AdminPage() {
     return totals;
   }, [cardDocket, penaltyCosts, storeTeams]);
 
+  const pendingSanctionCostsByTeam = useMemo(
+    () => storeTeams.map((team) => ({
+      team,
+      pending: cardDocket
+        .filter((record) => record.team === team.name)
+        .reduce((sum, record) => sum + Math.max(
+          Number(record.costAmount ?? record.cost_amount ?? record.points ?? record.pointsAmount ?? 0)
+            - Number(record.paidAmount ?? record.paid_amount ?? 0),
+          0
+        ), 0),
+    })),
+    [cardDocket, storeTeams]
+  );
+
+  const settleSanctionCosts = async (teamName: string) => {
+    const teamPending = pendingSanctionCostsByTeam.find((entry) => entry.team.name === teamName)?.pending ?? 0;
+    if (teamPending <= 0) {
+      return;
+    }
+
+    const nextSanctions = cardDocket.map((record) => {
+      if (record.team !== teamName) {
+        return record;
+      }
+
+      const amount = Number(record.costAmount ?? record.cost_amount ?? record.points ?? record.pointsAmount ?? 0);
+      return {
+        ...record,
+        paidAmount: amount,
+        paid_amount: amount,
+      };
+    });
+
+    setIsSavingStore(true);
+    try {
+      await persistLeagueStore({
+        seasons,
+        teams: storeTeams,
+        matches: matchResults,
+        calendar: calendarRounds,
+        sanctions: nextSanctions,
+        finances: {
+          fees: registrationFees,
+          payments: teamPayments,
+          expenses: expenseItems,
+          costs: penaltyCosts,
+        },
+      });
+      setCardDocket(nextSanctions);
+      setFormError(null);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "No se pudo saldar el coste de sanciones.");
+    } finally {
+      setIsSavingStore(false);
+    }
+  };
+
   const economicSummary = useMemo(() => {
     return storeTeams.map((team) => {
       const registrationFee = registrationFees[team.name] ?? 0;
@@ -1154,7 +1216,7 @@ export default function AdminPage() {
             ? Math.max(sponsorTotals.amount - sponsorTotals.paid, 0)
           : Math.max(amount - paid, 0);
         return [
-          item.kind === "cuota" ? "Cuota" : item.kind === "patrocinio" ? "Patrocinio" : item.kind === "premio" ? "Premio" : "Otro",
+          item.kind === "cuota" ? "Cuota" : item.kind === "patrocinio" ? "Patrocinio" : item.kind === "premio" ? "Premio" : item.kind === "sancion" ? "Sanción" : "Otro",
           item.concept,
           item.entity ?? item.sponsorName ?? "",
           item.category ?? "",
@@ -1907,25 +1969,39 @@ export default function AdminPage() {
       const nextSanctions = nameChanged
         ? cardDocket.map((record) => record.player === previousName && record.team === team.name ? { ...record, player: normalizedName } : record)
         : cardDocket;
-      setStoreTeams(nextTeams);
-      setFormError(null);
-      resetPlayerForm();
-      setIsPlayerDialogOpen(false);
       try {
-        await persistLeagueStore({
-          seasons,
-          teams: nextTeams,
-          matches: nextMatches,
-          calendar: calendarRounds,
-          sanctions: nextSanctions,
-          finances: {
-            fees: registrationFees,
-            payments: teamPayments,
-            expenses: expenseItems,
-            costs: penaltyCosts,
+        if (!previousPlayer?.id) {
+          throw new Error("No se encontró el identificador del jugador en Supabase.");
+        }
+
+        const response = await fetch("/api/players", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...buildAdminHeaders(adminToken),
           },
+          body: JSON.stringify({
+            id: previousPlayer.id,
+            name: normalizedName,
+            dorsal: playerForm.dorsal === "" ? 0 : Number(playerForm.dorsal) || playerForm.dorsal,
+            isGoalkeeper: playerForm.isGoalkeeper,
+          }),
         });
-      } catch {
+        if (!response.ok) {
+          const payloadError = await response.json().catch(() => null);
+          throw new Error(payloadError?.error ?? "No se pudo actualizar el jugador en Supabase.");
+        }
+
+        setStoreTeams(nextTeams);
+        if (nameChanged) {
+          setMatchResults(nextMatches);
+        }
+        setCardDocket(nextSanctions);
+        setFormError(null);
+        resetPlayerForm();
+        setIsPlayerDialogOpen(false);
+      } catch (error) {
+        setFormError(error instanceof Error ? error.message : "No se pudo guardar el jugador.");
         setStoreTeams(storeTeams);
       }
       return;
@@ -2164,16 +2240,19 @@ export default function AdminPage() {
         return;
       }
 
-      const hasHomeScore = /^\d+$/.test(draft.home.trim());
-      const hasAwayScore = /^\d+$/.test(draft.away.trim());
+      const homeScoreValue = draft.home.trim();
+      const awayScoreValue = draft.away.trim();
+      const hasHomeScore = homeScoreValue === "" || /^\d+$/.test(homeScoreValue);
+      const hasAwayScore = awayScoreValue === "" || /^\d+$/.test(awayScoreValue);
       const isFinalized = draft.isFinalized === true;
-      if (isFinalized && (!hasHomeScore || !hasAwayScore)) {
-        setFormError(`Completa el resultado de ${fixture.home} vs ${fixture.away} antes de marcarlo como finalizado.`);
+      if (!hasHomeScore || !hasAwayScore) {
+        setFormError(`El resultado de ${fixture.home} vs ${fixture.away} solo puede contener números; deja vacío un campo para indicar 0.`);
         return;
       }
 
-      const homeGoals = hasHomeScore ? Number(draft.home) : 0;
-      const awayGoals = hasAwayScore ? Number(draft.away) : 0;
+      const hasAnyScore = homeScoreValue !== "" || awayScoreValue !== "";
+      const homeGoals = homeScoreValue === "" ? 0 : Number(homeScoreValue);
+      const awayGoals = awayScoreValue === "" ? 0 : Number(awayScoreValue);
       const homeScorers = draft.homeScorers ?? [];
       const awayScorers = draft.awayScorers ?? [];
       const activeSanctionsForRound = dedupeActiveDisciplineStatus(
@@ -2216,11 +2295,11 @@ export default function AdminPage() {
       ];
       updatedByFixture.set(resultDraftKey(fixture.home, fixture.away), {
         ...match,
-        score: hasHomeScore || hasAwayScore ? `${homeGoals} - ${awayGoals}` : "-",
-        status: isFinalized ? "finished" : hasHomeScore || hasAwayScore ? "in-progress" : "scheduled",
-        winner: hasHomeScore || hasAwayScore ? homeGoals > awayGoals ? match.home : awayGoals > homeGoals ? match.away : "Empate" : undefined,
-        goalScorers: hasHomeScore || hasAwayScore ? goalScorers : [],
-        shootoutScore: hasHomeScore || hasAwayScore ? shootoutScore : undefined,
+        score: hasAnyScore || isFinalized ? `${homeGoals} - ${awayGoals}` : "-",
+        status: isFinalized ? "finished" : hasAnyScore ? "in-progress" : "scheduled",
+        winner: hasAnyScore || isFinalized ? homeGoals > awayGoals ? match.home : awayGoals > homeGoals ? match.away : "Empate" : undefined,
+        goalScorers: hasAnyScore ? goalScorers : [],
+        shootoutScore: hasAnyScore ? shootoutScore : undefined,
       });
     }
 
@@ -3329,7 +3408,7 @@ export default function AdminPage() {
                     </div>
                     <div className="sanction-active-meta">
                       <span>{record.jornada ?? "Sin jornada"}</span>
-                      <span>{record.card}</span>
+                      <span>{record.isYellowAccumulationSuspension ? "3 amarillas" : record.card}</span>
                       <strong>{record.suspensionRemaining} {record.suspensionRemaining === 1 ? "partido" : "partidos"}</strong>
                     </div>
                     <small>{record.isYellowAccumulationSuspension ? "Acumulación 3 amarillas" : record.reason}</small>
@@ -3361,8 +3440,12 @@ export default function AdminPage() {
                 <div className="team-points-list">
                   {accumulatedYellowCards.length > 0 ? accumulatedYellowCards.map((record) => (
                     <div key={`${record.team}-${record.player}`} className="team-points-row">
-                      <span><strong>{record.player}</strong><small style={{ display: "block", color: "#b0bab8", marginTop: 3 }}>{record.team}</small></span>
-                      <strong className={record.yellowCards === 2 ? "critical" : "medium"}>{record.yellowCards}/3</strong>
+                      <span>
+                        <strong>{record.player}</strong>
+                        <small style={{ display: "block", color: "#b0bab8", marginTop: 3 }}>{record.team}</small>
+                        {record.yellowCards >= 3 ? <small style={{ display: "block", color: "#f4d78d", marginTop: 5 }}>No podrá jugar{record.suspensionRoundTitle ? ` en ${record.suspensionRoundTitle}` : " en la próxima jornada de su equipo"}</small> : null}
+                      </span>
+                      <strong className={record.yellowCards === 3 ? "critical" : record.yellowCards === 2 ? "high" : "medium"}>{record.yellowCards}/3</strong>
                     </div>
                   )) : <p className="empty-state">No hay jugadores con amarillas acumuladas.</p>}
                 </div>
@@ -3731,6 +3814,29 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              <div className="content-card team-sanction-costs-card" style={{ marginBottom: 18 }}>
+                <div className="section-header compact-header">
+                  <h2>Costes pendientes de sanciones</h2>
+                  <span>Coste</span>
+                </div>
+                <div className="team-points-list team-sanction-costs-list">
+                  {pendingSanctionCostsByTeam.map(({ team, pending }) => (
+                    <div key={team.id} className="team-points-row">
+                      <TeamIdentity name={team.name} imageFile={team.shieldImage} compact />
+                      <strong className={pending > 0 ? "critical" : "low"}>€{pending}</strong>
+                      <button
+                        type="button"
+                        className="button button-secondary table-action"
+                        onClick={() => void settleSanctionCosts(team.name)}
+                        disabled={isSavingStore || pending <= 0}
+                      >
+                        Saldar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="economy-heading">
                 <div>
                   <p className="eyebrow">Seguimiento</p>
@@ -3749,6 +3855,7 @@ export default function AdminPage() {
                     <option value="cuota">Cuotas</option>
                     <option value="patrocinio">Patrocinadores</option>
                     <option value="premio">Premios</option>
+                    <option value="sancion">Sanciones</option>
                     <option value="otro">Otros movimientos</option>
                   </select>
                 </label>
@@ -3758,7 +3865,7 @@ export default function AdminPage() {
                 </label>
               </div>
 
-              <div className="table-wrap" style={{ marginTop: 18 }}>
+              <div className="table-wrap economy-movement-scroll" style={{ marginTop: 18 }}>
                 <table className="economy-movement-table">
                   <thead>
                     <tr>
@@ -3799,6 +3906,7 @@ export default function AdminPage() {
                               <option value="cuota">Cuota</option>
                               <option value="patrocinio">Patrocinio</option>
                               <option value="premio">Premio</option>
+                              <option value="sancion">Sanción</option>
                               <option value="otro">Otro</option>
                             </select>
                           </td>

@@ -248,6 +248,20 @@ export default function Home() {
     return `${baseUrl}/storage/v1/object/public/league-assets/${encodeURIComponent(fileName)}`;
   };
 
+  if (error && !loading) {
+    return (
+      <main className="landing-shell">
+        <section className="content-card empty-state error" role="alert">
+          <h1>Datos no disponibles</h1>
+          <p>{error}</p>
+          <button type="button" className="button button-secondary" onClick={() => window.location.reload()}>
+            Reintentar
+          </button>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="landing-shell">
       <section className="hero">

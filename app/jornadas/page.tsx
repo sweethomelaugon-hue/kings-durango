@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { teamColors } from "@/lib/league-data";
 import { TeamIdentity } from "@/lib/team-identity";
@@ -37,7 +37,7 @@ type LeagueTeam = {
   primaryColor?: string;
 };
 
-export default function JornadasPage() {
+function JornadasContent() {
   const searchParams = useSearchParams();
   const requestedRound = searchParams.get("jornada");
   const [calendar, setCalendar] = useState<LeagueRound[]>([]);
@@ -215,5 +215,13 @@ export default function JornadasPage() {
         </section>
       )}
     </main>
+  );
+}
+
+export default function JornadasPage() {
+  return (
+    <Suspense fallback={<main className="page-shell"><p className="empty-state">Cargando resultados…</p></main>}>
+      <JornadasContent />
+    </Suspense>
   );
 }

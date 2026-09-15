@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getTeamPalette, teamColors } from "@/lib/league-data";
-import { dedupeActiveDisciplineStatus, getDisciplineStatus } from "@/lib/discipline";
+import { getTeamPalette } from "@/lib/league-data";
+import { dedupeActiveDisciplineStatus, getDisciplineStatus, getNextTeamRound } from "@/lib/discipline";
 import { TeamIdentity } from "@/lib/team-identity";
 import { TeamShield } from "@/lib/team-identity";
 
@@ -18,6 +18,9 @@ type SanctionRow = {
   jornada?: string;
   suspensionMatches?: number;
   suspensionRemaining?: number;
+  suspensionRoundTitles?: string[];
+  suspensionRounds?: Array<{ id: number; title: string; status: "completed" | "in-progress" | "upcoming" }>;
+  isYellowAccumulationSuspension?: boolean;
   yellowCards?: number;
   points?: number;
   pointsAmount?: number;
@@ -25,7 +28,7 @@ type SanctionRow = {
   cost_amount?: number;
 };
 
-type TeamRow = { name: string; primaryColor?: string };
+type TeamRow = { name: string; primaryColor?: string; shieldImage?: string };
 type CalendarRound = {
   id: number;
   title: string;
@@ -110,6 +113,31 @@ export default function SancionesPage() {
       ? dedupeActiveDisciplineStatus(getDisciplineStatus(sanctions, calendar, currentRound.id, yellowCardResetRoundId))
       : [];
   }, [calendar, currentRound, sanctions, yellowCardResetRoundId]);
+  const accumulatedYellowCards = useMemo(() => {
+    if (!currentRound) {
+      return [];
+    }
+
+    const byPlayer = new Map<string, { player: string; team: string; yellowCards: number; suspensionRoundTitle?: string }>();
+    getDisciplineStatus(sanctions, calendar, currentRound.id, yellowCardResetRoundId).forEach((record) => {
+      if (record.yellowCards <= 0) {
+        return;
+      }
+
+      const key = `${record.team.toLowerCase()}::${record.player.toLowerCase()}`;
+      const current = byPlayer.get(key);
+      if (!current || record.yellowCards > current.yellowCards) {
+        byPlayer.set(key, {
+          player: record.player,
+          team: record.team,
+          yellowCards: record.yellowCards,
+          suspensionRoundTitle: record.yellowCards >= 3 ? getNextTeamRound(calendar, currentRound.id, record.team)?.title : undefined,
+        });
+      }
+    });
+
+    return Array.from(byPlayer.values()).sort((a, b) => b.yellowCards - a.yellowCards || a.player.localeCompare(b.player));
+  }, [calendar, currentRound, sanctions, yellowCardResetRoundId]);
 
   return (
     <main className="page-shell">
@@ -188,20 +216,82 @@ export default function SancionesPage() {
             {activeSanctions.length > 0 ? (
               <table className="league-table sanctions-public-table">
                 <thead>
-                  <tr><th>Equipo</th><th>Jugador</th><th>Tipo de sanción</th><th>Partidos restantes</th></tr>
+                  <tr><th>Equipo</th><th>Jugador</th><th>Tipo de sanción</th><th>Partidos restantes</th><th>Jornadas sanción</th></tr>
                 </thead>
                 <tbody>
                   {activeSanctions.map((item) => (
                     <tr key={item.id}>
                       <td><span className="team-tag sanction-team-tag" style={{ background: `${getTeamPalette(item.team, teams.find((team) => team.name === item.team)?.primaryColor).primary}1A`, color: getTeamPalette(item.team, teams.find((team) => team.name === item.team)?.primaryColor).secondary }}><TeamIdentity name={item.team} className="sanction-team-identity" compact /></span></td>
                       <td><strong>{item.player}</strong></td>
-                      <td><span className={`sanction-badge ${item.card.toLowerCase().replace(/ /g, "-")}`}>{item.card}</span></td>
-                      <td><strong>{item.suspensionRemaining} {item.suspensionRemaining === 1 ? "partido" : "partidos"}</strong></td>
+                      <td><span className={`sanction-badge ${item.card.toLowerCase().replace(/ /g, "-")}`}>{item.isYellowAccumulationSuspension ? "3 amarillas" : item.card}</span></td>
+                      <td>
+                        <strong>
+                          {item.suspensionRemaining}/{item.suspensionRounds?.length ?? item.suspensionMatches ?? 0}
+                        </strong>
+                      </td>
+                      <td>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          {item.suspensionRounds?.map((round) => {
+                            const completed = round.status === "completed";
+                            return (
+                              <span
+                                key={round.id}
+                                title={round.title}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  minWidth: 28,
+                                  height: 28,
+                                  padding: "0 7px",
+                                  borderRadius: 999,
+                                  background: completed ? "rgba(47, 201, 138, 0.16)" : "rgba(249, 115, 22, 0.16)",
+                                  color: completed ? "#a9f0d0" : "#fdba74",
+                                  fontWeight: 800,
+                                }}
+                              >
+                                {round.id}
+                              </span>
+                            );
+                          })}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : <p className="empty-state">No hay jugadores con sanciones en curso.</p>}
+          </section>
+
+          <section className="content-card">
+            <div className="section-header compact-header">
+              <h2>Tarjetas acumuladas</h2>
+              <span>{accumulatedYellowCards.length} jugadores</span>
+            </div>
+            <div className="team-points-list">
+              {accumulatedYellowCards.length > 0 ? accumulatedYellowCards.map((record) => (
+                <div key={`${record.team}-${record.player}`} className="team-points-row">
+                  <span>
+                    <strong style={{ color: getTeamPalette(record.team, teams.find((team) => team.name === record.team)?.primaryColor).primary }}>
+                      {record.player}
+                    </strong>
+                    <small style={{ display: "block", color: "#b0bab8", marginTop: 3 }}>
+                      <TeamIdentity
+                        name={record.team}
+                        imageFile={teams.find((team) => team.name === record.team)?.shieldImage}
+                        compact
+                      />
+                    </small>
+                    {record.yellowCards >= 3 ? (
+                      <small style={{ display: "block", color: "#f4d78d", marginTop: 5 }}>
+                        No podrá jugar{record.suspensionRoundTitle ? ` en ${record.suspensionRoundTitle}` : " en la próxima jornada de su equipo"}
+                      </small>
+                    ) : null}
+                  </span>
+                  <strong className={record.yellowCards === 3 ? "critical" : record.yellowCards === 2 ? "high" : "medium"}>{record.yellowCards}/3</strong>
+                </div>
+              )) : <p className="empty-state">No hay jugadores con amarillas acumuladas.</p>}
+            </div>
           </section>
         </>
       )}

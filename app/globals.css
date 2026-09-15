@@ -1841,15 +1841,80 @@ select option {
   .keepers-table th:nth-child(7), .keepers-table td:nth-child(7) { width: 12%; }
 }
 
-/* Sanciones "Jugadores sancionados" table: Equipo, Jugador, Tipo, Partidos restantes. */
+/* Sanciones "Jugadores sancionados" table. */
 @media (max-width: 640px) {
-  .sanctions-public-table th:nth-child(1), .sanctions-public-table td:nth-child(1) { width: 26%; }
-  .sanctions-public-table th:nth-child(2), .sanctions-public-table td:nth-child(2) { width: 32%; }
-  .sanctions-public-table th:nth-child(3), .sanctions-public-table td:nth-child(3) { width: 22%; }
-  .sanctions-public-table th:nth-child(4), .sanctions-public-table td:nth-child(4) { width: 20%; }
-
   .sanctions-public-table {
+    display: block;
+    width: 100%;
     min-width: 0;
+  }
+
+  .sanctions-public-table thead {
+    display: none;
+  }
+
+  .sanctions-public-table tbody,
+  .sanctions-public-table tr,
+  .sanctions-public-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .sanctions-public-table tbody tr {
+    height: auto;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .sanctions-public-table tbody tr:hover {
+    box-shadow: inset 0 0 0 1px rgba(245, 215, 123, 0.08);
+  }
+
+  .sanctions-public-table tbody tr:first-child td {
+    border-top: 0;
+  }
+
+  .sanctions-public-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 42px;
+    height: auto;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .sanctions-public-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .sanctions-public-table td::before {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .sanctions-public-table td:nth-child(1)::before { content: "Equipo"; }
+  .sanctions-public-table td:nth-child(2)::before { content: "Jugador"; }
+  .sanctions-public-table td:nth-child(3)::before { content: "Sanción"; }
+  .sanctions-public-table td:nth-child(4)::before { content: "Restantes"; }
+  .sanctions-public-table td:nth-child(5)::before { content: "Jornadas"; }
+
+  .sanctions-public-table td:nth-child(2) > strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+
+  .sanctions-public-table td:nth-child(5) > span {
+    justify-content: flex-end;
   }
 }
 
@@ -2201,6 +2266,9 @@ select option {
 }
 
 .economy-movement-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   padding: 12px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
   background: rgba(7, 15, 16, 0.75);
@@ -2261,6 +2329,29 @@ select option {
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 16px;
   background: rgba(4, 10, 11, 0.25);
+}
+
+.economy-movement-scroll {
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.economy-movement-scroll::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.economy-movement-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(4, 10, 11, 0.25);
+  border-radius: 999px;
+  background: rgba(212, 173, 77, 0.42);
+}
+
+@media (max-width: 640px) {
+  .economy-movement-scroll {
+    max-height: 58vh;
+  }
 }
 
 .economy-panel .table-wrap table {
@@ -3645,6 +3736,41 @@ select option {
 
 .sanctions-public-table {
   min-width: 680px;
+}
+
+.team-sanction-costs-list .team-points-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(74px, auto) 82px;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-sanction-costs-list .team-points-row > strong {
+  justify-self: end;
+  min-width: 74px;
+  text-align: center;
+}
+
+.team-sanction-costs-list .team-points-row > button {
+  width: 82px;
+  justify-self: end;
+}
+
+@media (max-width: 520px) {
+  .team-sanction-costs-list .team-points-row {
+    grid-template-columns: minmax(0, 1fr) minmax(64px, auto) 76px;
+    gap: 8px;
+  }
+
+  .team-sanction-costs-list .team-points-row > strong {
+    min-width: 64px;
+  }
+
+  .team-sanction-costs-list .team-points-row > button {
+    width: 76px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
 }
 
 .sanction-summary {
