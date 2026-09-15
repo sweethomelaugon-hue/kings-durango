@@ -145,6 +145,33 @@ test("validateLeagueStorePayload calcula la jornada activa por status y mantiene
   assert.equal(publicCalendar[1].status, "in-progress");
 });
 
+test("validateLeagueStorePayload normaliza los estados de ronda de Supabase: scheduled y finished", () => {
+  const payload = {
+    seasons: [{ id: "season-1", name: "Temporada 2026", year_start: 2026, year_end: 2027, is_active: true }],
+    teams: [
+      { id: "team-1", seasonId: "season-1", name: "Aston Birras", shortName: "AST", stadiumName: "Tabira", players: [] },
+      { id: "team-2", seasonId: "season-1", name: "Kalekantoi", shortName: "KAL", stadiumName: "Tabira", players: [] },
+    ],
+    rounds: [
+      { id: "round-1", seasonId: "season-1", title: "Jornada 1", date: "2026-09-10", status: "scheduled" },
+      { id: "round-2", seasonId: "season-1", title: "Jornada 2", date: "2026-09-17", status: "finished" },
+    ],
+    matches: [],
+    calendar: [
+      { id: 1, title: "Jornada 1", date: "2026-09-10", status: "scheduled", matches: [], descansan: [] },
+      { id: 2, title: "Jornada 2", date: "2026-09-17", status: "finished", matches: [], descansan: [] },
+    ],
+    sanctions: [],
+    finances: { fees: {}, payments: {}, expenses: [], costs: { yellow: 30, doubleYellow: 60, red: 80, other: 120 } },
+  };
+
+  const normalized = validateLeagueStorePayload(payload);
+  assert.equal(normalized.rounds[0].status, "upcoming");
+  assert.equal(normalized.rounds[1].status, "completed");
+  assert.equal(normalized.calendar[0].status, "upcoming");
+  assert.equal(normalized.calendar[1].status, "completed");
+});
+
 test("validateLeagueStorePayload acepta resultados con goleadores asociados a jugadores válidos", () => {
   const payload = {
     seasons: [{ id: "season-1", name: "Temporada 2026", year_start: 2026, year_end: 2027, is_active: true }],

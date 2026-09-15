@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { publicLeagueMigrationSeed } from "@/lib/league-data";
+import { recalculateSuspensionRemaining } from "@/lib/discipline";
+import { dedupeActiveDisciplineStatus, getDisciplineStatus } from "@/lib/discipline";
 import { readLeagueStore, repairMojibake, validateLeagueStorePayload, writeLeagueStore } from "@/lib/league-store";
 import { isAdminAuthorized } from "@/lib/supabase";
 
@@ -351,12 +353,15 @@ function validateGoalScorers(store: Awaited<ReturnType<typeof readLeagueStore>>,
       throw new Error(`El goleador ${index + 1} del partido ${matchIndex + 1} debe incluir nombre y equipo.`);
     }
 
-    if (!teamNames.has(teamName)) {
+    const comparablePlayerName = repairMojibake(playerName).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const namedTeam = store.teams.find((candidate) => candidate.name === teamName);
+    const team = namedTeam ?? store.teams.find((candidate) => candidate.players.some((player) =>
+      repairMojibake(player.name).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === comparablePlayerName
+    ));
+    if (!teamNames.has(teamName) && !team) {
       throw new Error(`El goleador ${playerName} del partido ${matchIndex + 1} no pertenece a un equipo válido.`);
     }
 
-    const team = store.teams.find((candidate) => candidate.name === teamName);
-    const comparablePlayerName = repairMojibake(playerName).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const comparablePlayers = team?.players.filter((player) => repairMojibake(player.name).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === comparablePlayerName) ?? [];
     const firstName = comparablePlayerName.split(/\s+/)[0];
     const firstNameMatches = team?.players.filter((player) => repairMojibake(player.name).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/\s+/)[0] === firstName) ?? [];
@@ -364,7 +369,49 @@ function validateGoalScorers(store: Awaited<ReturnType<typeof readLeagueStore>>,
     if (!registeredPlayer) {
       throw new Error(`El jugador "${playerName}" del equipo "${teamName}" no existe en la plantilla.`);
     }
+
+    if (!team) {
+      continue;
+    }
+
+    const matchJornada = typeof match.jornada === "string" ? match.jornada : "";
+    const round = store.calendar.find((candidate) => candidate.title === matchJornada);
+    const activeSanctions = round
+      ? dedupeActiveDisciplineStatus(getDisciplineStatus(store.sanctions, store.calendar, round.id, store.finances.yellowCardResetRoundId))
+      : [];
+    if (activeSanctions.some((record) => record.team.toLowerCase() === team.name.toLowerCase() && record.player.toLowerCase() === playerName.toLowerCase())) {
+      throw new Error(`El jugador "${playerName}" está cumpliendo sanción y no puede figurar como goleador.`);
+    }
   }
+}
+
+function normalizeGoalScorerTeamNames(
+  store: Awaited<ReturnType<typeof readLeagueStore>>,
+  matches: unknown[],
+) {
+  return matches.map((match) => {
+    if (!isObjectRecord(match) || !Array.isArray(match.goalScorers)) {
+      return match;
+    }
+
+    return {
+      ...match,
+      goalScorers: match.goalScorers.map((entry) => {
+        if (!isObjectRecord(entry) || typeof entry.player !== "string") {
+          return entry;
+        }
+
+        const comparablePlayerName = repairMojibake(entry.player).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const matchingTeams = store.teams.filter((team) => team.players.some((player) =>
+          repairMojibake(player.name).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === comparablePlayerName
+        ));
+        const entryTeamName = typeof entry.team === "string" ? entry.team.trim() : "";
+        const namedTeam = entryTeamName ? store.teams.find((team) => team.name === entryTeamName) : undefined;
+        const resolvedTeam = namedTeam ?? (matchingTeams.length === 1 ? matchingTeams[0] : undefined);
+        return resolvedTeam ? { ...entry, team: resolvedTeam.name } : entry;
+      }),
+    };
+  });
 }
 
 export function validateDisciplinaryRecords(
@@ -393,6 +440,22 @@ export function validateDisciplinaryRecords(
       throw new Error(`El equipo "${teamName}" de la sanción ${index + 1} no existe.`);
     }
 
+    const jornada = typeof record.jornada === "string" ? record.jornada.trim() : "";
+    const sanctionRound = jornada ? store.calendar.find((round) => round.title === jornada) : undefined;
+    if (jornada && (!sanctionRound || sanctionRound.status === "upcoming")) {
+      throw new Error(`La sanción ${index + 1} solo puede pertenecer a una jornada finalizada o en curso.`);
+    }
+
+    const linkedMatch = jornada
+      ? store.matches.find((match) =>
+          match.jornada === jornada
+          && (match.home === teamName || match.away === teamName)
+          && Boolean(match.score && match.score !== "-"))
+      : undefined;
+    if (jornada && !linkedMatch) {
+      throw new Error(`La sanción ${index + 1} solo puede registrarse cuando el partido de ${teamName} ya tiene resultado.`);
+    }
+
     const player = team.players.find((candidate) => candidate.name.toLowerCase() === playerName.toLowerCase());
     if (!player) {
       console.warn(`Sanción ignorada por jugador inexistente: ${playerName} (${teamName})`);
@@ -407,23 +470,17 @@ export function validateDisciplinaryRecords(
 
     const manualAmount = Number(record.pointsAmount ?? record.points ?? record.costAmount ?? record.cost_amount);
     const hasManualAmount = (card === "Otra" || /otros motivos/i.test(reason)) && Number.isFinite(manualAmount) && manualAmount >= 0;
-    const costAmount = hasManualAmount ? manualAmount : card === "Amarilla"
-        ? store.finances.costs.yellow
-        : card === "Doble amarilla"
-          ? store.finances.costs.doubleYellow
-          : card === "Roja"
-            ? store.finances.costs.red * (/antideportiv/i.test(reason) ? 2 : 1)
-            : store.finances.costs.other;
-
     const existingMatches = Number(record.matches ?? 1) || 1;
     const remaining = Number(record.remaining ?? existingMatches) || existingMatches;
     const configuredPoints = Number(store.finances.points?.[card === "Amarilla" ? "yellow" : card === "Doble amarilla" ? "doubleYellow" : card === "Roja" ? "red" : "other"]) || 0;
     const points = hasManualAmount ? manualAmount : card === "Roja" && /antideportiv/i.test(reason) ? configuredPoints * 2 : configuredPoints;
+    const sanctionAmount = points;
 
     normalized.push({
       ...record,
       id: typeof record.id === "number" || typeof record.id === "string" ? record.id : Date.now() + index,
-      jornada: typeof record.jornada === "string" ? record.jornada : undefined,
+      jornada: jornada || linkedMatch?.jornada,
+      matchId: linkedMatch?.id ?? (typeof record.matchId === "string" || typeof record.matchId === "number" ? record.matchId : undefined),
       suspensionReason: typeof record.suspensionReason === "string" ? record.suspensionReason : undefined,
       suspensionMatches: Number(record.suspensionMatches ?? record.matches ?? 0) || 0,
       suspensionRemaining: Number(record.suspensionRemaining ?? record.suspensionMatches ?? record.matches ?? 0) || 0,
@@ -438,8 +495,8 @@ export function validateDisciplinaryRecords(
       reason,
       points,
       pointsAmount: points,
-      costAmount: costAmount,
-      cost_amount: costAmount,
+      costAmount: sanctionAmount,
+      cost_amount: sanctionAmount,
     });
   }
 
@@ -469,7 +526,12 @@ export async function POST(request: Request) {
     const current = await ensurePublicSeed();
     const parsedPayload = isObjectRecord(payload) ? payload : {};
 
-    const matches = Array.isArray(parsedPayload.matches) ? parsedPayload.matches : current.matches;
+    const rawMatches = Array.isArray(parsedPayload.matches) ? parsedPayload.matches : current.matches;
+    const validationStore = {
+      ...current,
+      teams: Array.isArray(parsedPayload.teams) ? validateLeagueStorePayload({ ...current, ...parsedPayload, teams: parsedPayload.teams }).teams : current.teams,
+    };
+    const matches = normalizeGoalScorerTeamNames(validationStore, rawMatches);
     for (const [index, match] of matches.entries()) {
       if (!isObjectRecord(match)) {
         continue;
@@ -510,6 +572,7 @@ export async function POST(request: Request) {
         ...parsedPayload.finances,
       } : current.finances,
     });
+    nextStore.sanctions = recalculateSuspensionRemaining(nextStore.sanctions, nextStore.calendar);
 
     const standings = buildStandingsFromMatches(nextStore.teams, nextStore.matches as Array<Record<string, unknown>>);
     const scorers = buildScorersFromMatches(nextStore.teams, nextStore.matches as Array<Record<string, unknown>>);

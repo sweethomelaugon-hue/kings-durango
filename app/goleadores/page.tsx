@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { teamColors } from "@/lib/league-data";
+import { getTeamPalette, teamColors } from "@/lib/league-data";
 import { TeamIdentity, TeamShield } from "@/lib/team-identity";
 
 type ScorerRow = {
@@ -60,8 +60,8 @@ export default function GoleadoresPage() {
   }, []);
 
   const featured = useMemo(() => scorers[0], [scorers]);
-  const teamPalette = featured ? teamColors[featured.team] ?? teamColors["Aston Birras"] : teamColors["Aston Birras"];
-  const configuredFeaturedColor = featured ? teams.find((team) => team.name === featured.team)?.primaryColor ?? teamPalette.primary : teamPalette.primary;
+  const configuredFeaturedColor = featured ? teams.find((team) => team.name === featured.team)?.primaryColor ?? getTeamPalette(featured.team).primary : getTeamPalette("Aston Birras").primary;
+  const teamPalette = featured ? getTeamPalette(featured.team, teams.find((team) => team.name === featured.team)?.primaryColor) : getTeamPalette("Aston Birras");
 
   return (
     <main className="page-shell">
@@ -105,8 +105,8 @@ export default function GoleadoresPage() {
 
             <div className="stat-rank-list">
               {scorers.length > 0 ? scorers.slice(0, 5).map((player, index) => {
-                const palette = teamColors[player.team] ?? teamColors["Aston Birras"];
-                const configuredColor = teams.find((team) => team.name === player.team)?.primaryColor ?? palette.primary;
+                const palette = getTeamPalette(player.team, teams.find((team) => team.name === player.team)?.primaryColor);
+                const configuredColor = palette.primary;
                 return (
                   <div key={player.name} className="stat-rank-item">
                     <span className="position">#{index + 1}</span>
@@ -152,7 +152,7 @@ export default function GoleadoresPage() {
                       <td>{index + 1}</td>
                       <td>{player.name}</td>
                       <td>
-                        <span className="team-tag" style={{ background: `${teams.find((team) => team.name === player.team)?.primaryColor ?? teamColors[player.team]?.primary ?? "#11845f"}1A`, color: teamColors[player.team]?.secondary ?? "#f5d77b" }}>
+                        <span className="team-tag" style={{ background: `${getTeamPalette(player.team, teams.find((team) => team.name === player.team)?.primaryColor).primary}1A`, color: getTeamPalette(player.team, teams.find((team) => team.name === player.team)?.primaryColor).secondary }}>
                           <TeamIdentity name={player.team} compact />
                         </span>
                       </td>

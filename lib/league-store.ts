@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { createHash } from "crypto";
 
 import {
   teams as seedTeams,
@@ -11,6 +12,7 @@ import {
   type CalendarRound,
   type DisciplinaryRecord,
 } from "@/lib/league-data";
+import { readCanonicalLeagueStore, writeCanonicalLeagueStore } from "@/lib/canonical-store";
 import { getSupabaseClient, getSupabaseWriteClient, hasSupabaseConfig, hasSupabaseWriteConfig } from "@/lib/supabase";
 
 export type FinancialMovement = {
@@ -168,8 +170,8 @@ const defaultStore: LeagueStore = {
   },
 };
 
-function normalizeSupabaseStatus(value: unknown, fallback: string): string {
-  const candidate = typeof value === "string" ? value.trim() : "";
+function normalizeSupabaseStatus(value: unknown, fallback: "completed" | "in-progress" | "upcoming" = "upcoming"): "completed" | "in-progress" | "upcoming" {
+  const candidate = typeof value === "string" ? value.trim().toLowerCase() : "";
   if (!candidate) {
     return fallback;
   }
@@ -178,11 +180,15 @@ function normalizeSupabaseStatus(value: unknown, fallback: string): string {
     return "in-progress";
   }
 
-  if (candidate === "completed") {
+  if (candidate === "finished" || candidate === "completed") {
     return "completed";
   }
 
-  if (candidate === "upcoming") {
+  if (candidate === "scheduled" || candidate === "upcoming") {
+    return "upcoming";
+  }
+
+  if (candidate === "cancelled" || candidate === "canceled") {
     return "upcoming";
   }
 
@@ -192,6 +198,40 @@ function normalizeSupabaseStatus(value: unknown, fallback: string): string {
 function normalizeSupabaseMoney(value: unknown, fallback = 0): number {
   const numericValue = Number(value ?? fallback);
   return Number.isFinite(numericValue) ? numericValue : fallback;
+}
+
+function deriveRoundStatusFromMatches(
+  roundStatus: "completed" | "in-progress" | "upcoming",
+  roundMatches: Array<{ status?: string; hasResult?: boolean }>
+): "completed" | "in-progress" | "upcoming" {
+  if (roundStatus === "in-progress" || roundStatus === "completed") {
+    return roundStatus;
+  }
+
+  if (roundMatches.length === 0) {
+    return roundStatus;
+  }
+
+  const statuses = roundMatches.map((match) => String(match.status ?? "scheduled").trim().toLowerCase());
+  const completedMatches = roundMatches.filter((match) => match.hasResult === true || statusIsFinished(match.status)).length;
+  if (completedMatches === roundMatches.length) {
+    return "completed";
+  }
+
+  if (completedMatches > 0 || statuses.some((status) => status === "in-progress" || status === "in_progress")) {
+    return "in-progress";
+  }
+
+  if (statuses.some((status) => status === "finished" || status === "completed")) {
+    return "in-progress";
+  }
+
+  return "upcoming";
+}
+
+function statusIsFinished(status: string | undefined): boolean {
+  const normalizedStatus = String(status ?? "").trim().toLowerCase();
+  return normalizedStatus === "finished" || normalizedStatus === "completed";
 }
 
 type GoalScorerEntry = {
@@ -220,22 +260,36 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
     return "";
   };
 
+  const toUuid = (value: unknown, namespace = "entity"): string => {
+    const candidate = toIdString(value);
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)) {
+      return candidate;
+    }
+
+    const hash = createHash("sha256").update(`kings-durango:${namespace}:${candidate}`).digest("hex").slice(0, 32);
+    return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-${(parseInt(hash.slice(16, 18), 16) & 0x3f | 0x80).toString(16).padStart(2, "0")}${hash.slice(18, 20)}-${hash.slice(20)}`;
+  };
+
   const teamIds = new Map<string, string>();
   const teamRows = store.teams.map((team) => {
-    const resolvedId = toIdString(team.id).length > 0 ? team.id : crypto.randomUUID();
-    teamIds.set(team.name.trim().toLowerCase(), String(resolvedId));
+    const resolvedId = toUuid(team.id, "team");
+    teamIds.set(team.name.trim().toLowerCase(), resolvedId);
     return {
-      id: String(resolvedId),
+      id: resolvedId,
       season_id: team.seasonId ?? seasonId,
       name: team.name,
       short_name: team.shortName ?? team.short_name ?? team.name.slice(0, 3).toUpperCase(),
       stadium_name: team.stadiumName ?? team.stadium_name ?? "Tabira",
+      primary_color: team.primaryColor ?? null,
+      shield_image: team.shieldImage ?? null,
     };
   });
 
+  const playerIds = new Map<string, string>();
   const playerRows = store.teams.flatMap((team) =>
     (team.players ?? []).map((player) => {
-      const playerId = toIdString(player.id).length > 0 ? String(player.id) : crypto.randomUUID();
+      const playerId = toUuid(player.id ?? `${team.id}:${player.name}`, "player");
+      playerIds.set(`${team.name.trim().toLowerCase()}:${player.name.trim().toLowerCase()}`, playerId);
       return {
         id: playerId,
         season_id: player.seasonId ?? team.seasonId ?? seasonId,
@@ -251,12 +305,14 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
     Array.isArray(store.rounds) && store.rounds.length > 0 ? (store.rounds as Array<Record<string, unknown>>) : (store.calendar as Array<Record<string, unknown>>);
 
   const roundRows = roundSource.map((round, index) => ({
-    id: toIdString(round.id).length > 0 ? String(round.id) : crypto.randomUUID(),
+    id: toUuid(round.id, "round"),
     season_id: typeof round.seasonId === "string" ? round.seasonId : seasonId,
     title: typeof round.title === "string" ? round.title : `Jornada ${index + 1}`,
     round_number: Number(typeof round.roundNumber === "number" ? round.roundNumber : index + 1),
     date: typeof round.date === "string" ? round.date : "2026-09-10",
-    status: typeof round.status === "string" ? round.status : "upcoming",
+    status: typeof store.calendar.find((candidate) => candidate.title === round.title)?.status === "string"
+      ? store.calendar.find((candidate) => candidate.title === round.title)?.status
+      : typeof round.status === "string" ? round.status : "upcoming",
   }));
 
   const roundIdByTitle = new Map<string, string>();
@@ -274,7 +330,12 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
       ?? String(roundRows[0]?.id ?? crypto.randomUUID());
 
     return {
-      id: toIdString(match.id).length > 0 ? String(match.id) : crypto.randomUUID(),
+      id: toUuid(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(toIdString(match.id))
+          ? match.id
+          : `${seasonId}:${match.roundId ?? match.jornada ?? "round"}:${match.home}:${match.away}`,
+        "match"
+      ),
       season_id: match.seasonId ?? store.seasons[0]?.id ?? seasonId,
       round_id: roundId,
       home_team_id: homeTeamId,
@@ -283,25 +344,26 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
       stadium_name: match.stadium ?? match.stadiumName ?? "Tabira",
       home_goals: Number(homeGoals ?? 0),
       away_goals: Number(awayGoals ?? 0),
-      status: match.status ?? ((match.score && match.score !== "-") ? "finished" : "scheduled"),
+      shootout_home_goals: match.shootoutScore ? Number(match.shootoutScore.split(/[-:]/)[0]?.trim()) : null,
+      shootout_away_goals: match.shootoutScore ? Number(match.shootoutScore.split(/[-:]/)[1]?.trim()) : null,
+      status: match.status ?? (match.score && match.score !== "-" ? "finished" : "scheduled"),
     };
   });
 
-  const eventRows = store.matches.flatMap((match) =>
-    (match.goalScorers ?? []).map((scorer) => {
+  const eventRows = store.matches.flatMap((match, matchIndex) =>
+    (match.goalScorers ?? []).map((scorer, scorerIndex) => {
       const teamId = teamIds.get(String(scorer.team ?? "").trim().toLowerCase());
-      const playerId = store.teams
-        .find((team) => team.name.trim().toLowerCase() === String(scorer.team ?? "").trim().toLowerCase())
-        ?.players.find((player) => player.name.trim().toLowerCase() === String(scorer.player ?? "").trim().toLowerCase())?.id
-        ?? crypto.randomUUID();
+      const minute = Number(scorer.minute);
+      const playerId = playerIds.get(`${String(scorer.team ?? "").trim().toLowerCase()}:${String(scorer.player ?? "").trim().toLowerCase()}`)
+        ?? toUuid(`${scorer.team}:${scorer.player}`, "player");
 
       return {
-        id: crypto.randomUUID(),
-        match_id: toIdString(match.id).length > 0 ? String(match.id) : crypto.randomUUID(),
+        id: toUuid(`${matchRows[matchIndex]?.id ?? "match"}:${playerId}:${scorerIndex}`, "match-event"),
+        match_id: String(matchRows[matchIndex]?.id ?? crypto.randomUUID()),
         player_id: playerId,
         team_id: teamId ?? crypto.randomUUID(),
         event_type: "goal",
-        minute: Number(scorer.minute ?? 0),
+        minute: Number.isInteger(minute) && minute >= 1 && minute <= 120 ? minute : null,
         notes: `Sincronizado desde admin (${match.home} vs ${match.away})`,
       };
     })
@@ -312,34 +374,48 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
     const player = team?.players.find((candidate) => candidate.name.trim().toLowerCase() === String(sanction.player ?? "").trim().toLowerCase());
 
     return {
-      id: toIdString(sanction.id).length > 0 ? String(sanction.id) : crypto.randomUUID(),
-      player_id: player?.id ?? crypto.randomUUID(),
+      id: toUuid(sanction.id, "sanction"),
+      player_id: player
+        ? playerIds.get(`${team?.name.trim().toLowerCase()}:${player.name.trim().toLowerCase()}`) ?? toUuid(`${team?.name}:${player.name}`, "player")
+        : toUuid(`${sanction.team}:${sanction.player}`, "player"),
       team_id: team ? (teamIds.get(team.name.trim().toLowerCase()) ?? crypto.randomUUID()) : crypto.randomUUID(),
-      match_id: null,
+      match_id: sanction.matchId !== undefined ? toUuid(sanction.matchId, "match") : null,
       card_type: sanction.card ?? "Amarilla",
       reason: sanction.reason ?? "Registrada desde admin",
-      cost_amount: Number(sanction.costAmount ?? sanction.cost_amount ?? 0),
+      suspension_matches: Number(sanction.suspensionMatches ?? sanction.matches ?? 0),
+      suspension_remaining: Number(sanction.suspensionRemaining ?? sanction.suspensionMatches ?? sanction.matches ?? 0),
+      points_amount: Number(sanction.points ?? sanction.pointsAmount ?? sanction.costAmount ?? sanction.cost_amount ?? 0),
+      cost_amount: Number(sanction.points ?? sanction.pointsAmount ?? sanction.costAmount ?? sanction.cost_amount ?? 0),
     };
   });
 
   const feeRows = Object.entries(store.finances?.fees ?? {}).map(([teamName, amount]) => {
-    const teamId = teamIds.get(teamName.trim().toLowerCase());
+    const normalizedTeamKey = teamName.trim().toLowerCase();
+    const team = store.teams.find((candidate) =>
+      candidate.name.trim().toLowerCase() === normalizedTeamKey || String(candidate.id ?? "") === teamName.trim()
+    );
+    const teamId = team ? teamIds.get(team.name.trim().toLowerCase()) : undefined;
+
+    if (!teamId) {
+      return null;
+    }
+
     return {
       id: crypto.randomUUID(),
-      team_id: teamId ?? crypto.randomUUID(),
+      team_id: teamId,
       season_id: seasonId,
       fee_amount: Number(amount ?? 0),
       paid_amount: Number(store.finances?.payments?.[teamName] ?? 0),
       status: Number(store.finances?.payments?.[teamName] ?? 0) >= Number(amount ?? 0) ? "paid" : "pending",
     };
-  });
+  }).filter((row): row is NonNullable<typeof row> => row !== null);
 
   const financialMovementRows = (store.finances?.expenses ?? []).map((entry) => {
     const teamName = typeof entry.entity === "string" ? entry.entity.trim() : "";
     const teamId = teamName ? teamIds.get(teamName.trim().toLowerCase()) ?? null : null;
 
     return {
-      id: toIdString(entry.id).length > 0 ? String(entry.id) : crypto.randomUUID(),
+      id: toUuid(entry.id, "movement"),
       season_id: seasonId,
       team_id: teamId,
       concept: entry.concept ?? "Movimiento financiero",
@@ -406,18 +482,44 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
     return null;
   }
 
+  const sanctionsQuery = async () => {
+    const withPoints = await client
+      .from("disciplinary_records")
+      .select("id, player_id, team_id, match_id, card_type, reason, suspension_matches, suspension_remaining, points_amount, cost_amount, created_at")
+      .order("created_at", { ascending: false });
+
+    if (!withPoints.error || !/points_amount|column/i.test(withPoints.error.message)) {
+      return withPoints;
+    }
+
+    return client
+      .from("disciplinary_records")
+      .select("id, player_id, team_id, match_id, card_type, reason, cost_amount, created_at")
+      .order("created_at", { ascending: false });
+  };
+
   const [{ data: seasonsData, error: seasonsError }, { data: teamsData, error: teamsError }, { data: roundsData, error: roundsError }, { data: matchesData, error: matchesError }, { data: feesData, error: feesError }, { data: movementsData, error: movementsError }, { data: sanctionsData, error: sanctionsError }, { data: eventsData, error: eventsError }] = await Promise.all([
     client.from("seasons").select("id, name, year_start, year_end, is_active").order("year_start", { ascending: true }),
-    client.from("teams").select("id, name, short_name, stadium_name, season_id, players:players(id, name, dorsal, is_goalkeeper)").order("name"),
+    client.from("teams").select("id, name, short_name, stadium_name, primary_color, shield_image, season_id, players:players(id, name, dorsal, is_goalkeeper)").order("name"),
     client.from("rounds").select("id, title, round_number, date, status, season_id").order("round_number", { ascending: true }),
-    client.from("matches").select("id, season_id, round_id, home_team_id, away_team_id, scheduled_at, stadium_name, home_goals, away_goals, status, home_team:teams!matches_home_team_id_fkey(name), away_team:teams!matches_away_team_id_fkey(name)").order("scheduled_at", { ascending: true }),
+    client.from("matches").select("id, season_id, round_id, home_team_id, away_team_id, scheduled_at, stadium_name, home_goals, away_goals, shootout_home_goals, shootout_away_goals, status, created_at, home_team:teams!matches_home_team_id_fkey(name), away_team:teams!matches_away_team_id_fkey(name)").order("scheduled_at", { ascending: true }),
     client.from("team_fees").select("team_id, fee_amount, paid_amount, status").order("team_id", { ascending: true }),
     client.from("financial_movements").select("id, concept, amount, movement_type, team_id, notes, created_at").order("created_at", { ascending: false }),
-    client.from("disciplinary_records").select("id, player_id, team_id, card_type, reason, cost_amount, created_at").order("created_at", { ascending: false }),
+    sanctionsQuery(),
     client.from("match_events").select("id, match_id, minute, event_type, player:players!match_events_player_id_fkey(name), team:teams!match_events_team_id_fkey(name)").order("minute", { ascending: true }),
   ]);
 
   if (seasonsError || teamsError || roundsError || matchesError || feesError || movementsError || sanctionsError || eventsError) {
+    console.error("No se pudo leer el store completo desde Supabase", {
+      seasons: seasonsError?.message,
+      teams: teamsError?.message,
+      rounds: roundsError?.message,
+      matches: matchesError?.message,
+      fees: feesError?.message,
+      movements: movementsError?.message,
+      sanctions: sanctionsError?.message,
+      events: eventsError?.message,
+    });
     return null;
   }
 
@@ -444,6 +546,8 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
           short_name: String(team.short_name ?? "NUE"),
           stadiumName: String(team.stadium_name ?? "Tabira"),
           stadium_name: String(team.stadium_name ?? "Tabira"),
+          primaryColor: typeof team.primary_color === "string" ? team.primary_color : undefined,
+          shieldImage: typeof team.shield_image === "string" ? team.shield_image : undefined,
           seasonId: typeof team.season_id === "string" ? team.season_id : seasons[0]?.id ?? defaultStore.seasons[0].id,
           players: teamPlayers.map((player) => ({
             id: typeof player.id === "string" || typeof player.id === "number" ? String(player.id) : undefined,
@@ -457,6 +561,21 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
       })
     : defaultStore.teams;
 
+  const uniqueMatchesData = Array.isArray(matchesData)
+    ? Array.from(matchesData.reduce((unique, match) => {
+        const key = `${String(match.round_id ?? "")}:${String(match.home_team_id ?? "")}:${String(match.away_team_id ?? "")}`;
+        const current = unique.get(key);
+        const currentHasResult = current && (Number(current.home_goals ?? 0) > 0 || Number(current.away_goals ?? 0) > 0 || String(current.status ?? "") !== "scheduled");
+        const candidateHasResult = Number(match.home_goals ?? 0) > 0 || Number(match.away_goals ?? 0) > 0 || String(match.status ?? "") !== "scheduled";
+        const currentCreatedAt = Date.parse(String(current?.created_at ?? "")) || 0;
+        const candidateCreatedAt = Date.parse(String(match.created_at ?? "")) || 0;
+        if (!current || (!currentHasResult && candidateHasResult) || (currentHasResult === candidateHasResult && candidateCreatedAt > currentCreatedAt)) {
+          unique.set(key, match);
+        }
+        return unique;
+      }, new Map<string, (typeof matchesData)[number]>()).values())
+    : [];
+
   const rounds = Array.isArray(roundsData)
     ? roundsData.map((entry) => ({
         id: String(entry.id),
@@ -464,7 +583,7 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
         title: String(entry.title ?? "Jornada"),
         roundNumber: Number(entry.round_number ?? 1),
         date: typeof entry.date === "string" ? entry.date : "2026-09-10",
-        status: normalizeSupabaseStatus(entry.status, "upcoming") as "completed" | "in-progress" | "upcoming",
+        status: normalizeSupabaseStatus(entry.status, "upcoming"),
       }))
     : defaultStore.rounds;
 
@@ -485,7 +604,7 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
   }
 
   const matches = Array.isArray(matchesData)
-    ? matchesData.map((match, index) => {
+    ? uniqueMatchesData.map((match, index) => {
         const homeGoals = normalizeSupabaseMoney(match.home_goals, 0);
         const awayGoals = normalizeSupabaseMoney(match.away_goals, 0);
         const homeName = typeof (match as { home_team?: { name?: string } }).home_team?.name === "string"
@@ -497,7 +616,7 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
         const matchId = String(match.id ?? `${index + 1}`);
 
         return {
-          id: typeof match.id === "string" || typeof match.id === "number" ? Number(match.id) || index + 1 : index + 1,
+          id: typeof match.id === "string" || typeof match.id === "number" ? String(match.id) : String(index + 1),
           jornada: rounds.find((round) => round.id === String(match.round_id))?.title ?? `Jornada ${Number(match.round_id) || index + 1}`,
           date: typeof (match as { scheduled_at?: string }).scheduled_at === "string"
             ? new Date((match as { scheduled_at?: string }).scheduled_at as string).toISOString().slice(0, 10)
@@ -508,6 +627,9 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
           home: homeName || `Equipo ${index + 1}`,
           away: awayName || `Equipo ${index + 2}`,
           score: homeGoals === 0 && awayGoals === 0 && String(match.status ?? "") === "scheduled" ? "-" : `${homeGoals} - ${awayGoals}`,
+          shootoutScore: match.shootout_home_goals !== null && match.shootout_away_goals !== null
+            ? `${match.shootout_home_goals} - ${match.shootout_away_goals}`
+            : undefined,
           stadium: typeof match.stadium_name === "string" ? match.stadium_name : "Tabira",
           events: { home: "", away: "" },
           goalScorers: goalScorersByMatch.get(matchId) ?? [],
@@ -517,20 +639,34 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
           awayTeamId: typeof match.away_team_id === "string" ? match.away_team_id : undefined,
           scheduledAt: typeof (match as { scheduled_at?: string }).scheduled_at === "string" ? (match as { scheduled_at?: string }).scheduled_at : undefined,
           stadiumName: typeof match.stadium_name === "string" ? match.stadium_name : "Tabira",
-          status: String(match.status ?? "scheduled") as "scheduled" | "finished" | "in-progress" | "cancelled",
+          status: String(match.status ?? "") === "finished"
+            ? "finished"
+            : String(match.status ?? "") === "in-progress"
+              ? "in-progress"
+              : String(match.status ?? "") === "cancelled"
+                ? "cancelled"
+                : homeGoals !== 0 || awayGoals !== 0
+                  ? "finished"
+                  : "scheduled" as "scheduled" | "finished" | "in-progress" | "cancelled",
         };
       })
     : defaultStore.matches;
 
   const fees = Array.isArray(feesData)
     ? Object.fromEntries(feesData
-        .map((entry) => [String((entry as { team_id?: string }).team_id ?? ""), normalizeSupabaseMoney((entry as { fee_amount?: number }).fee_amount, 0)])
+        .map((entry) => [
+          teams.find((team) => team.id === String((entry as { team_id?: string }).team_id ?? ""))?.name ?? "",
+          normalizeSupabaseMoney((entry as { fee_amount?: number }).fee_amount, 0),
+        ])
         .filter(([key]) => String(key).length > 0))
     : defaultStore.finances.fees;
 
   const payments = Array.isArray(feesData)
     ? Object.fromEntries(feesData
-        .map((entry) => [String((entry as { team_id?: string }).team_id ?? ""), normalizeSupabaseMoney((entry as { paid_amount?: number }).paid_amount, 0)])
+        .map((entry) => [
+          teams.find((team) => team.id === String((entry as { team_id?: string }).team_id ?? ""))?.name ?? "",
+          normalizeSupabaseMoney((entry as { paid_amount?: number }).paid_amount, 0),
+        ])
         .filter(([key]) => String(key).length > 0))
     : defaultStore.finances.payments;
 
@@ -538,18 +674,44 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
     ? sanctionsData.map((entry, index) => {
         const cardValue = (String((entry as { card_type?: string }).card_type ?? "Amarilla") as DisciplinaryRecord["card"]);
         const numericId = Number(entry.id ?? index + 1);
+        const team = teams.find((candidate) => candidate.id === String((entry as { team_id?: string }).team_id));
+        const player = team?.players.find((candidate) => candidate.id === String((entry as { player_id?: string }).player_id));
+        const linkedMatch = matches.find((match) => String(match.id) === String((entry as { match_id?: string | number }).match_id ?? ""));
+        const reason = String((entry as { reason?: string }).reason ?? "Registrada desde Supabase");
+        const configuredPoints = defaultStore.finances.points?.[
+          cardValue === "Amarilla" ? "yellow" : cardValue === "Doble amarilla" ? "doubleYellow" : cardValue === "Roja" ? "red" : "other"
+        ] ?? 0;
+        const storedPoints = Number((entry as { points_amount?: number }).points_amount);
+        const calculatedPoints = cardValue === "Roja" && /antideportiv/i.test(reason) ? configuredPoints * 2 : configuredPoints;
+        const storedCost = Number((entry as { cost_amount?: number }).cost_amount);
+        const points = storedPoints === 0 && Number.isFinite(storedCost) && storedCost !== 0
+          ? storedCost
+          : Number.isFinite(storedPoints) ? storedPoints : calculatedPoints;
+        const suspensionMatches = cardValue === "Roja" && /^motivos deportivos$/i.test(reason) ? 1 : 0;
+        const storedSuspensionMatches = Number((entry as { suspension_matches?: number }).suspension_matches);
+        const storedSuspensionRemaining = Number((entry as { suspension_remaining?: number }).suspension_remaining);
+        const resolvedSuspensionMatches = Number.isFinite(storedSuspensionMatches) ? storedSuspensionMatches : suspensionMatches;
+        const resolvedSuspensionRemaining = Number.isFinite(storedSuspensionRemaining) ? storedSuspensionRemaining : resolvedSuspensionMatches;
 
         return {
           id: Number.isFinite(numericId) ? numericId : index + 1,
-          player: teams.find((team) => team.id === String((entry as { player_id?: string }).player_id))?.players[0]?.name ?? "Jugador",
-          team: teams.find((team) => team.id === String((entry as { team_id?: string }).team_id))?.name ?? "Equipo",
+          matchId: typeof (entry as { match_id?: string | number }).match_id === "string" || typeof (entry as { match_id?: string | number }).match_id === "number"
+            ? String((entry as { match_id?: string | number }).match_id)
+            : undefined,
+          jornada: linkedMatch?.jornada,
+          player: player?.name ?? "Jugador",
+          team: team?.name ?? "Equipo",
           card: cardValue,
           card_type: cardValue,
           matches: 1,
           remaining: 1,
-          reason: String((entry as { reason?: string }).reason ?? "Registrada desde Supabase"),
-          costAmount: normalizeSupabaseMoney((entry as { cost_amount?: number }).cost_amount, 0),
-          cost_amount: normalizeSupabaseMoney((entry as { cost_amount?: number }).cost_amount, 0),
+          suspensionMatches: resolvedSuspensionMatches,
+          suspensionRemaining: resolvedSuspensionRemaining,
+          reason,
+          points,
+          pointsAmount: points,
+          costAmount: points,
+          cost_amount: points,
         } satisfies DisciplinaryRecord;
       })
     : defaultStore.sanctions;
@@ -576,9 +738,22 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
     : defaultStore.finances.expenses;
 
   const calendar = Array.isArray(roundsData)
-    ? rounds
+    ? rounds.map((round) => ({
+        ...round,
+        status: deriveRoundStatusFromMatches(
+          round.status,
+          uniqueMatchesData
+            .filter((match) => String((match as { round_id?: string }).round_id ?? "") === String(round.id))
+            .map((match) => ({
+              status: typeof (match as { status?: string }).status === "string" ? (match as { status?: string }).status : "scheduled",
+              hasResult: Number((match as { home_goals?: number }).home_goals ?? 0) > 0
+                || Number((match as { away_goals?: number }).away_goals ?? 0) > 0
+                || statusIsFinished((match as { status?: string }).status),
+            }))
+        ),
+      }))
         .map((round) => {
-          const roundMatches = (Array.isArray(matchesData) ? matchesData : [])
+          const roundMatches = uniqueMatchesData
             .filter((match) => String((match as { round_id?: string }).round_id ?? "") === String(round.id))
             .map((match, index) => {
               const homeTeam = typeof (match as { home_team?: { name?: string } }).home_team?.name === "string"
@@ -603,13 +778,18 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
             })
             .sort((a, b) => a.time.localeCompare(b.time));
 
+          const teamsPlaying = new Set(roundMatches.flatMap((match) => [match.home, match.away]));
+          const restingTeams = teams
+            .map((team) => team.name)
+            .filter((teamName) => !teamsPlaying.has(teamName));
+
           return {
             id: Number(round.roundNumber) || 1,
             title: round.title,
             date: round.date,
-            status: round.status,
+            status: normalizeSupabaseStatus(round.status, "upcoming"),
             matches: roundMatches,
-            descansan: [],
+            descansan: restingTeams,
           };
         })
         .sort((a, b) => a.id - b.id)
@@ -618,7 +798,20 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
   return {
     seasons,
     teams,
-    rounds,
+    rounds: rounds.map((round) => ({
+      ...round,
+      status: deriveRoundStatusFromMatches(
+        round.status,
+        uniqueMatchesData
+          .filter((match) => String((match as { round_id?: string }).round_id ?? "") === String(round.id))
+          .map((match) => ({
+            status: typeof (match as { status?: string }).status === "string" ? (match as { status?: string }).status : "scheduled",
+            hasResult: Number((match as { home_goals?: number }).home_goals ?? 0) > 0
+              || Number((match as { away_goals?: number }).away_goals ?? 0) > 0
+              || statusIsFinished((match as { status?: string }).status),
+          }))
+      ),
+    })),
     matches,
     calendar,
     sanctions,
@@ -745,9 +938,7 @@ function normalizeRound(value: unknown): RoundRecord | null {
     return null;
   }
 
-  const status = value.status === "completed" || value.status === "in-progress" || value.status === "upcoming"
-    ? value.status
-    : "upcoming";
+  const status = normalizeSupabaseStatus(value.status, "upcoming");
 
   return {
     id: normalizeString(value.id, `round-${Date.now()}`),
@@ -764,9 +955,7 @@ function normalizeCalendarRound(value: unknown): CalendarRound | null {
     return null;
   }
 
-  const status = value.status === "completed" || value.status === "in-progress" || value.status === "upcoming"
-    ? value.status
-    : "upcoming";
+  const status = normalizeSupabaseStatus(value.status, "upcoming");
 
   const roundId = Number(value.id);
 
@@ -800,6 +989,11 @@ function normalizeMatch(value: unknown): MatchRecord | null {
 
   const homeName = normalizeString(value.home, normalizeString(value.homeTeamName, rawHome));
   const awayName = normalizeString(value.away, normalizeString(value.awayTeamName, rawAway));
+  const matchId = typeof value.id === "number" && Number.isFinite(value.id)
+    ? value.id
+    : typeof value.id === "string" && value.id.trim()
+      ? value.id
+      : Date.now();
   const homeGoals = Number(value.homeGoals ?? value.home_goals ?? 0) || 0;
   const awayGoals = Number(value.awayGoals ?? value.away_goals ?? 0) || 0;
   const score = typeof value.score === "string" ? value.score : `${homeGoals} - ${awayGoals}`;
@@ -820,7 +1014,7 @@ function normalizeMatch(value: unknown): MatchRecord | null {
     : [];
 
   return {
-    id: typeof value.id === "number" || typeof value.id === "string" ? Number(value.id) || Date.now() : Date.now(),
+    id: matchId,
     jornada: normalizeString(value.jornada, "Jornada 1"),
     date: normalizeString(value.date, "2026-09-10"),
     time: normalizeString(value.time, normalizeString(value.scheduledAt, "16:00")),
@@ -1100,12 +1294,14 @@ export async function ensureStoreFile(): Promise<LeagueStore> {
 
 export async function readLeagueStore(): Promise<LeagueStore> {
   if (!hasSupabaseConfig) {
-    throw new Error("No hay configuración de Supabase. La app está configurada para leer solo desde Supabase.");
+    const canonicalStore = await readCanonicalLeagueStore();
+    return canonicalStore;
   }
 
   const supabaseStore = await readSupabaseLeagueStore();
   if (!supabaseStore) {
-    throw new Error("No se pudo leer la liga desde Supabase.");
+    const canonicalStore = await readCanonicalLeagueStore();
+    return canonicalStore;
   }
 
   return supabaseStore;
@@ -1118,6 +1314,10 @@ async function syncLeagueStoreToSupabase(nextStore: LeagueStore) {
   }
 
   const syncRows = buildSupabaseSyncRows(nextStore);
+  const uniqueMatchRows = Array.from(new Map(syncRows.matches.map((row) => [
+    `${row.season_id}:${row.round_id}:${row.home_team_id}:${row.away_team_id}`,
+    row,
+  ])).values());
   if (!syncRows.seasons.length) {
     return;
   }
@@ -1142,22 +1342,54 @@ async function syncLeagueStoreToSupabase(nextStore: LeagueStore) {
     throw new Error(`No se pudo guardar las jornadas en Supabase: ${roundsError.message}`);
   }
 
-  const { error: matchesError } = await client.from("matches").upsert(syncRows.matches, { onConflict: "id" });
+  const { error: matchesError } = await client.from("matches").upsert(uniqueMatchRows, { onConflict: "id" });
   if (matchesError) {
     throw new Error(`No se pudo guardar los partidos en Supabase: ${matchesError.message}`);
   }
 
-  const { error: eventsError } = await client.from("match_events").upsert(syncRows.match_events, { onConflict: "id" });
-  if (eventsError) {
-    throw new Error(`No se pudo guardar los goles en Supabase: ${eventsError.message}`);
+  const seasonIds = syncRows.seasons.map((row) => row.id);
+  if (seasonIds.length > 0) {
+    const { data: seasonMatchRows, error: seasonMatchesError } = await client
+      .from("matches")
+      .select("id")
+      .in("season_id", seasonIds);
+    if (seasonMatchesError) {
+      throw new Error(`No se pudieron preparar los goles en Supabase: ${seasonMatchesError.message}`);
+    }
+
+    const seasonMatchIds = (seasonMatchRows ?? []).map((row) => row.id);
+    const { error: deleteEventsError } = await client.from("match_events").delete().in("match_id", seasonMatchIds).eq("event_type", "goal");
+    if (deleteEventsError) {
+      throw new Error(`No se pudieron actualizar los goles en Supabase: ${deleteEventsError.message}`);
+    }
   }
 
-  const { error: sanctionsError } = await client.from("disciplinary_records").upsert(syncRows.disciplinary_records, { onConflict: "id" });
-  if (sanctionsError) {
-    throw new Error(`No se pudo guardar las sanciones en Supabase: ${sanctionsError.message}`);
+  if (syncRows.match_events.length > 0) {
+    const { error: eventsError } = await client.from("match_events").insert(syncRows.match_events);
+    if (eventsError) {
+      throw new Error(`No se pudo guardar los goles en Supabase: ${eventsError.message}`);
+    }
   }
 
-  const { error: feesError } = await client.from("team_fees").upsert(syncRows.team_fees, { onConflict: "id" });
+  const teamIds = syncRows.teams.map((team) => team.id);
+  if (teamIds.length > 0) {
+    const { error: deleteSanctionsError } = await client
+      .from("disciplinary_records")
+      .delete()
+      .in("team_id", teamIds);
+    if (deleteSanctionsError) {
+      throw new Error(`No se pudieron actualizar las sanciones en Supabase: ${deleteSanctionsError.message}`);
+    }
+  }
+
+  if (syncRows.disciplinary_records.length > 0) {
+    const { error: sanctionsError } = await client.from("disciplinary_records").insert(syncRows.disciplinary_records);
+    if (sanctionsError) {
+      throw new Error(`No se pudo guardar las sanciones en Supabase: ${sanctionsError.message}`);
+    }
+  }
+
+  const { error: feesError } = await client.from("team_fees").upsert(syncRows.team_fees, { onConflict: "team_id,season_id" });
   if (feesError) {
     throw new Error(`No se pudo guardar las cuotas en Supabase: ${feesError.message}`);
   }
@@ -1169,16 +1401,19 @@ async function syncLeagueStoreToSupabase(nextStore: LeagueStore) {
 }
 
 export async function writeLeagueStore(nextStore: LeagueStore): Promise<LeagueStore> {
+  const resolvedStore = validateLeagueStorePayload(nextStore);
+
+  if (hasSupabaseConfig && !hasSupabaseWriteConfig) {
+    throw new Error("Supabase está configurado para lectura, pero falta una SUPABASE_SERVICE_ROLE_KEY válida para guardar cambios.");
+  }
+
   if (!hasSupabaseWriteConfig) {
-    throw new Error("Falta SUPABASE_SERVICE_ROLE_KEY. La app está configurada para escribir solo en Supabase.");
+    await writeCanonicalLeagueStore(resolvedStore);
+    return resolvedStore;
   }
 
-  if (!validateLeagueStore(nextStore)) {
-    throw new Error("La estructura del store no es válida antes de guardarse.");
-  }
-
-  await syncLeagueStoreToSupabase(nextStore);
-  return nextStore;
+  await syncLeagueStoreToSupabase(resolvedStore);
+  return resolvedStore;
 }
 
 export async function getTeams() {

@@ -23,6 +23,56 @@ export type TeamPalette = {
   accent: string;
 };
 
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const normalized = hex.replace("#", "").trim();
+  const value = normalized.length === 3
+    ? normalized.split("").map((char) => `${char}${char}`).join("")
+    : normalized;
+
+  const parsed = Number.parseInt(value, 16);
+  if (Number.isNaN(parsed)) {
+    return { r: 255, g: 255, b: 255 };
+  }
+
+  return {
+    r: (parsed >> 16) & 255,
+    g: (parsed >> 8) & 255,
+    b: parsed & 255,
+  };
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (channel: number) => Math.max(0, Math.min(255, channel)).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+}
+
+function mixWithWhite(hex: string, amount: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  const blend = (channel: number) => Math.round(channel + (255 - channel) * amount);
+  return rgbToHex(blend(r), blend(g), blend(b));
+}
+
+function mixWithBlack(hex: string, amount: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  const blend = (channel: number) => Math.round(channel * (1 - amount));
+  return rgbToHex(blend(r), blend(g), blend(b));
+}
+
+export function deriveTeamPalette(primary: string): TeamPalette {
+  const normalizedPrimary = primary && primary.startsWith("#") ? primary : "#117D5F";
+
+  return {
+    primary: normalizedPrimary,
+    secondary: mixWithWhite(normalizedPrimary, 0.28),
+    accent: mixWithBlack(normalizedPrimary, 0.24),
+  };
+}
+
+export function getTeamPalette(teamName: string, primaryColor?: string): TeamPalette {
+  const configuredPrimary = primaryColor || teamColors[teamName]?.primary || "#117D5F";
+  return deriveTeamPalette(configuredPrimary);
+}
+
 export type TeamStanding = {
   position: number;
   name: string;
@@ -53,6 +103,7 @@ export type Match = {
   home: string;
   away: string;
   score: string;
+  status?: "scheduled" | "finished" | "in-progress" | "cancelled";
   shootoutScore?: string;
   winner?: string;
   stadium: string;
@@ -116,6 +167,7 @@ export type CalendarRound = {
 
 export type DisciplinaryRecord = {
   id: number;
+  matchId?: number | string;
   jornada?: string;
   player: string;
   team: string;
@@ -145,7 +197,7 @@ export const teamColors: Record<string, TeamPalette> = {
   "Lojanos": { primary: "#2E4980", secondary: "#bfdbfe", accent: "#1e3a68" },
   "Martxel Juniors": { primary: "#E21D1D", secondary: "#fecaca", accent: "#991b1b" },
   "Parceros": { primary: "#FFFAD8", secondary: "#fffef0", accent: "#d5ac50" },
-  "Rayo Forestal Internacional": { primary: "#193E2C", secondary: "#bbf7d0", accent: "#0b2419" },
+  "Rayo Forestal Internacional": { primary: "#22C55E", secondary: "#DCFCE7", accent: "#0F5E3A" },
   "Gora Gora": { primary: "#DE81B1", secondary: "#fce7f3", accent: "#9d456f" },
   "Gure FC": { primary: "#9ED6D7", secondary: "#ecfeff", accent: "#4f9fa2" },
 };

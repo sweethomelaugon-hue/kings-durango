@@ -322,9 +322,9 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 410px;
+  min-height: 340px;
   overflow: hidden;
-  padding: 70px 0 0;
+  padding: 62px 0 0;
 }
 
 .hero-season-label {
@@ -343,7 +343,7 @@ textarea {
   display: block;
   width: 100%;
   height: 100%;
-  max-height: 390px;
+  max-height: 300px;
   object-fit: contain;
   filter: saturate(1.08) contrast(1.04) brightness(1.08);
 }
@@ -432,6 +432,8 @@ textarea {
   box-shadow: 0 18px 30px rgba(12, 31, 27, 0.26);
   padding: 20px;
   border-radius: 18px;
+  color: var(--text);
+  text-decoration: none;
 }
 
 .ticket-label {
@@ -597,6 +599,17 @@ textarea {
   min-width: 48px;
   padding: 5px 7px;
   border-radius: 8px;
+
+.team-player-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.goalkeeper-mark {
+  font-size: 0.95rem;
+  line-height: 1;
+}
   background: rgba(47, 201, 138, 0.1);
   color: var(--green-soft);
   text-align: center;
@@ -713,18 +726,22 @@ textarea {
 .kpi-copy strong {
   overflow: hidden;
   color: var(--text);
-  font-size: 1.12rem;
+  font-size: clamp(0.76rem, 1.7vw, 1.12rem);
   line-height: 1.1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-overflow: clip;
 }
 
 .kpi-copy small {
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.78rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: clamp(0.68rem, 1.3vw, 0.78rem);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-overflow: clip;
 }
 
 .kpi-shield {
@@ -1692,72 +1709,50 @@ select option {
    (Pos, Equipo, PJ, G, EG, EP, P, GF, GC, DG, Pts, Últimos 5), so they are
    scoped to .standings-table only — other pages reuse .league-table with a
    different number/meaning of columns and have their own rules below. */
-.standings-table th:nth-child(1), .standings-table td:nth-child(1) { width: 5%; }
-.standings-table th:nth-child(2), .standings-table td:nth-child(2) { width: 18%; }
-.standings-table th:nth-child(3), .standings-table td:nth-child(3) { width: 6%; }
-.standings-table th:nth-child(4), .standings-table td:nth-child(4) { width: 6%; }
-.standings-table th:nth-child(5), .standings-table td:nth-child(5) { width: 6%; }
-.standings-table th:nth-child(6), .standings-table td:nth-child(6) { width: 6%; }
-.standings-table th:nth-child(7), .standings-table td:nth-child(7) { width: 6%; }
-.standings-table th:nth-child(8), .standings-table td:nth-child(8) { width: 7%; }
-.standings-table th:nth-child(9), .standings-table td:nth-child(9) { width: 7%; }
-.standings-table th:nth-child(10), .standings-table td:nth-child(10) { width: 7%; }
-.standings-table th:nth-child(11), .standings-table td:nth-child(11) { width: 8%; }
-.standings-table th:nth-child(12), .standings-table td:nth-child(12) { width: 20%; }
+.standings-table {
+  min-width: 1040px;
+}
 
-/* Below this width the 12 columns no longer have room to breathe: instead of
-   squeezing text until it overlaps between columns, give the table a fixed
-   min-width so its percentage columns keep readable proportions and let
-   .table-wrap's overflow-x:auto handle the horizontal scroll instead. */
+.standings-table th,
+.standings-table td {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.standings-table th:nth-child(1), .standings-table td:nth-child(1) { width: 6%; }
+.standings-table th:nth-child(2), .standings-table td:nth-child(2) { width: 28%; }
+.standings-table th:nth-child(3), .standings-table td:nth-child(3),
+.standings-table th:nth-child(4), .standings-table td:nth-child(4),
+.standings-table th:nth-child(5), .standings-table td:nth-child(5),
+.standings-table th:nth-child(6), .standings-table td:nth-child(6),
+.standings-table th:nth-child(7), .standings-table td:nth-child(7) { width: 5%; }
+.standings-table th:nth-child(8), .standings-table td:nth-child(8),
+.standings-table th:nth-child(9), .standings-table td:nth-child(9),
+.standings-table th:nth-child(10), .standings-table td:nth-child(10) { width: 6%; }
+.standings-table th:nth-child(11), .standings-table td:nth-child(11) { width: 7%; }
+.standings-table th:nth-child(12), .standings-table td:nth-child(12) { width: 16%; }
+
+/* Below this width the 12 columns no longer fit comfortably: keep their
+  readable proportions and let .table-wrap's overflow-x:auto handle scrolling. */
 @media (max-width: 720px) {
   .standings-table {
-    min-width: 640px;
+    min-width: 1040px;
   }
 }
 
-/* On phones a horizontal-scrolling table is awkward to read at a glance
-   (Apple Sports-style leaderboards show everything on one screen), so
-   secondary columns (empates ganados/perdidos, goles a favor/en contra,
-   últimos 5) are hidden and the remaining columns reflow to fill the
-   viewport without needing to scroll. */
+/* Keep every classification metric available on phones as well. The table
+  scrolls horizontally instead of truncating or wrapping team names. */
 @media (max-width: 640px) {
-  .standings-table {
-    min-width: 0;
+  .standings-table th,
+  .standings-table td {
+    padding-left: 4px;
+    padding-right: 4px;
   }
-
-  .standings-table th:nth-child(5),
-  .standings-table td:nth-child(5),
-  .standings-table th:nth-child(6),
-  .standings-table td:nth-child(6),
-  .standings-table th:nth-child(8),
-  .standings-table td:nth-child(8),
-  .standings-table th:nth-child(9),
-  .standings-table td:nth-child(9),
-  .standings-table th:nth-child(12),
-  .standings-table td:nth-child(12) {
-    display: none;
-  }
-
-  .standings-table th:nth-child(1), .standings-table td:nth-child(1) { width: 10%; }
-  .standings-table th:nth-child(2), .standings-table td:nth-child(2) { width: 34%; }
-  .standings-table th:nth-child(3), .standings-table td:nth-child(3) { width: 10%; }
-  .standings-table th:nth-child(4), .standings-table td:nth-child(4) { width: 10%; }
-  .standings-table th:nth-child(7), .standings-table td:nth-child(7) { width: 10%; }
-  .standings-table th:nth-child(10), .standings-table td:nth-child(10) { width: 12%; }
-  .standings-table th:nth-child(11), .standings-table td:nth-child(11) { width: 14%; }
 }
 
 /* Very small phones need even more of the row given to the team name, so
    the numeric columns shrink to their tightest readable width. */
 @media (max-width: 380px) {
-  .standings-table th:nth-child(1), .standings-table td:nth-child(1) { width: 8%; }
-  .standings-table th:nth-child(2), .standings-table td:nth-child(2) { width: 40%; }
-  .standings-table th:nth-child(3), .standings-table td:nth-child(3) { width: 9%; }
-  .standings-table th:nth-child(4), .standings-table td:nth-child(4) { width: 9%; }
-  .standings-table th:nth-child(7), .standings-table td:nth-child(7) { width: 9%; }
-  .standings-table th:nth-child(10), .standings-table td:nth-child(10) { width: 11%; }
-  .standings-table th:nth-child(11), .standings-table td:nth-child(11) { width: 14%; }
-
   .standings-table .position-with-change .trend-badge {
     display: none;
   }
@@ -3161,6 +3156,40 @@ select option {
   white-space: nowrap;
 }
 
+.standings-table .team-cell,
+.standings-table .team-name-label,
+.standings-table .team-name-cell .team-cell .team-name-label > span:last-child {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.standings-table .team-cell {
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.standings-table .team-detail-trigger:hover,
+.standings-table .team-detail-trigger:focus-visible {
+  box-shadow: none;
+}
+
+.standings-table .team-name-label > span:last-child {
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    color-mix(in srgb, #ffffff 82%, var(--team-color, var(--green))) 28%,
+    color-mix(in srgb, var(--team-color, var(--green)) 78%, #ffffff) 48%,
+    var(--team-color, var(--green)) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
 .team-detail-trigger {
   cursor: pointer;
   appearance: none;
@@ -3857,6 +3886,76 @@ select option {
   font-weight: 700;
 }
 
+.result-finalization-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: fit-content;
+  margin: 0 auto;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.result-finalization-control input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.result-finalization-control > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.result-finalization-control strong {
+  color: #f4d78d;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.result-finalization-control small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.result-finalization-switch {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  flex: 0 0 38px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.16);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.result-finalization-switch span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #c2cfcb;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.result-finalization-control.is-finalized strong {
+  color: #a9f0d0;
+}
+
+.result-finalization-control.is-finalized .result-finalization-switch {
+  border-color: rgba(47,201,138,0.55);
+  background: rgba(47,201,138,0.35);
+}
+
+.result-finalization-control.is-finalized .result-finalization-switch span {
+  background: #d9ffeb;
+  transform: translateX(16px);
+}
+
 @media (max-width: 900px) {
   .hero,
   .content-grid,
@@ -3885,8 +3984,12 @@ select option {
   }
 
   .hero-brand-image {
-    min-height: 240px;
-    padding-top: 58px;
+    min-height: 205px;
+    padding-top: 52px;
+  }
+
+  .hero-brand-image img {
+    max-height: 180px;
   }
 
   .sanction-kpi-row .sanction-summary {

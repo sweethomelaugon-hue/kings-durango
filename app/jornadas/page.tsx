@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { teamColors } from "@/lib/league-data";
@@ -14,6 +15,7 @@ type LeagueMatch = {
   home: string;
   away: string;
   score: string;
+  status?: "scheduled" | "finished" | "in-progress" | "cancelled";
   shootoutScore?: string;
   winner?: string;
   stadium: string;
@@ -36,6 +38,8 @@ type LeagueTeam = {
 };
 
 export default function JornadasPage() {
+  const searchParams = useSearchParams();
+  const requestedRound = searchParams.get("jornada");
   const [calendar, setCalendar] = useState<LeagueRound[]>([]);
   const [matches, setMatches] = useState<LeagueMatch[]>([]);
   const [teams, setTeams] = useState<LeagueTeam[]>([]);
@@ -84,9 +88,10 @@ export default function JornadasPage() {
     const roundsByDate = [...calendar].sort((a, b) => a.id - b.id);
     const finalizedRounds = roundsByDate.filter((round) => round.status === "completed");
     const pendingRounds = roundsByDate.filter((round) => round.status !== "completed");
-    const currentRound = pendingRounds.find((round) =>
-      matches.some((match) => match.jornada === round.title && match.score && match.score !== "-")
-    );
+    const currentRound = pendingRounds.find((round) => round.status === "in-progress")
+      ?? pendingRounds.find((round) =>
+        matches.some((match) => match.jornada === round.title && match.score && match.score !== "-")
+      );
     const nextRound = pendingRounds.find((round) => round === currentRound || !matches.some(
       (match) => match.jornada === round.title && match.score && match.score !== "-"
     ));
@@ -99,11 +104,9 @@ export default function JornadasPage() {
 
   const orderedRounds = useMemo(
     () => visibleRounds.map((round) => {
-      const hasResult = matches.some((match) => match.jornada === round.title && match.score && match.score !== "-");
-      const status = round.status === "completed" ? "completed" : hasResult ? "in-progress" : "upcoming";
-      return { ...round, status };
+      return round;
     }),
-    [matches, visibleRounds]
+    [visibleRounds]
   );
 
   const [selectedRound, setSelectedRound] = useState<string>("");
@@ -113,11 +116,12 @@ export default function JornadasPage() {
       setSelectedRound("");
       return;
     }
-    const nextSelected = orderedRounds.find((round) => round.status === "in-progress")?.title
+    const nextSelected = orderedRounds.find((round) => round.title === requestedRound)?.title
+      ?? orderedRounds.find((round) => round.status === "in-progress")?.title
       ?? orderedRounds.find((round) => round.status === "upcoming")?.title
       ?? orderedRounds[orderedRounds.length - 1].title;
     setSelectedRound((currentValue) => (orderedRounds.some((round) => round.title === currentValue) ? currentValue : nextSelected));
-  }, [orderedRounds]);
+  }, [orderedRounds, requestedRound]);
 
   const activeMatches = useMemo(() => matches.filter((match) => match.jornada === selectedRound), [matches, selectedRound]);
   const teamColorByName = useMemo(() => Object.fromEntries(teams.map((team) => [team.name, team.primaryColor])), [teams]);
@@ -157,8 +161,9 @@ export default function JornadasPage() {
 
               <div className="match-list">
                 {activeMatches.length > 0 ? activeMatches.map((match) => {
-                  const isPlayed = match.score !== "-";
-                  const statusLabel = isPlayed ? "Finalizado" : "Por disputar";
+                  const hasScore = Boolean(match.score && match.score !== "-");
+                  const isFinished = match.status === "finished" || (!match.status && hasScore);
+                  const statusLabel = match.status === "in-progress" ? "En curso" : isFinished ? "Finalizado" : "Por disputar";
                   const winner = match.winner ?? (match.score && (() => {
                     const [homeGoals, awayGoals] = match.score.split("-").map((part) => Number(part.trim()));
                     if (homeGoals === awayGoals && match.shootoutScore) {
@@ -179,10 +184,10 @@ export default function JornadasPage() {
                   );
                   const homeScorers = scorerCounts(match.home);
                   const awayScorers = scorerCounts(match.away);
-                  const homeIsWinner = winner === match.home;
-                  const awayIsWinner = winner === match.away;
+                  const homeIsWinner = isFinished && winner === match.home;
+                  const awayIsWinner = isFinished && winner === match.away;
                   return (
-                    <article key={match.id} className={`match-item ${isPlayed ? "match-item-played" : "match-item-upcoming"}`}>
+                    <article key={match.id} className={`match-item ${hasScore ? "match-item-played" : "match-item-upcoming"}`}>
                       <div className="match-meta"><span>{match.jornada}</span><span>{match.time ?? "Horario pendiente"}</span></div>
                       <div className="match-teams">
                         <div className="team-side">
@@ -191,7 +196,7 @@ export default function JornadasPage() {
                             <span className="team-scorers">{homeScorers.map(([player, goals]) => <span key={player} className="scorer-chip">{player}{goals > 1 ? ` ×${goals}` : ""}</span>)}</span>
                           )}
                         </div>
-                        <div className="match-score">{isPlayed ? <><span>{match.score}</span>{match.shootoutScore && <small className="shootout-score">(Penaltis {match.shootoutScore})</small>}</> : <span className="match-time-badge">{match.time}</span>}</div>
+                        <div className="match-score">{hasScore ? <><span>{match.score}</span>{match.shootoutScore && <small className="shootout-score">(Penaltis {match.shootoutScore})</small>}</> : <span className="match-time-badge">{match.time}</span>}</div>
                         <div className="team-side team-side-away">
                           <strong className={awayIsWinner ? "team-winner" : undefined} style={awayIsWinner ? { "--team-color": teamColorByName[match.away] || teamColors[match.away]?.primary } as React.CSSProperties : undefined}><TeamIdentity name={match.away} compact /></strong>
                           {awayScorers.length > 0 && (
@@ -199,8 +204,8 @@ export default function JornadasPage() {
                           )}
                         </div>
                       </div>
-                      {winner && winner !== "Empate" && <div className="shootout-winner">Ganador · {winner}{match.shootoutScore ? " · Penaltis" : ""}</div>}
-                      <div className="match-footer"><span>Estadio: {match.stadium}</span><span className={isPlayed ? "match-status-finished" : undefined}>{statusLabel}</span></div>
+                      {isFinished && winner && winner !== "Empate" && <div className="shootout-winner">Ganador · {winner}{match.shootoutScore ? " · Penaltis" : ""}</div>}
+                      <div className="match-footer"><span>Estadio: {match.stadium}</span><span className={isFinished ? "match-status-finished" : undefined}>{statusLabel}</span></div>
                     </article>
                   );
                 }) : <p className="empty-state">No hay partidos para esta jornada.</p>}

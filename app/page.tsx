@@ -263,7 +263,11 @@ export default function Home() {
           />
         </div>
 
-        <div className="hero-ticket hero-round-ticket">
+        <Link
+          href={currentRound?.title ? `/jornadas?jornada=${encodeURIComponent(currentRound.title)}` : "/jornadas"}
+          className="hero-ticket hero-round-ticket"
+          aria-label={currentRound?.title ? `Ver ${currentRound.title}` : "Ver jornadas"}
+        >
           <div className="hero-ticket-heading">
             <span className="ticket-label">{currentRoundHasResults ? "Jornada actual" : "Próxima jornada"}</span>
             <small>{currentRound?.date ?? "Sin fecha"}</small>
@@ -282,7 +286,7 @@ export default function Home() {
           {currentRound?.descansan?.length ? (
             <div className="hero-resting"><span>Descansan</span>{currentRound.descansan.join(" · ")}</div>
           ) : null}
-        </div>
+        </Link>
       </section>
 
       {loading && <p className="empty-state">Cargando datos desde la API…</p>}

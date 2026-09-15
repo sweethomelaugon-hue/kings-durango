@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { teamColors } from "@/lib/league-data";
+import { getTeamPalette, teamColors } from "@/lib/league-data";
 import { TeamIdentity, TeamShield } from "@/lib/team-identity";
 
 type ZamoraRow = {
@@ -62,8 +62,8 @@ export default function ZamoraPage() {
   }, []);
 
   const leader = useMemo(() => zamora[0], [zamora]);
-  const leaderPalette = leader ? teamColors[leader.team] ?? teamColors["Aston Birras"] : teamColors["Aston Birras"];
-  const configuredLeaderColor = leader ? teams.find((team) => team.name === leader.team)?.primaryColor ?? leaderPalette.primary : leaderPalette.primary;
+  const leaderPalette = leader ? getTeamPalette(leader.team, teams.find((team) => team.name === leader.team)?.primaryColor) : getTeamPalette("Aston Birras");
+  const configuredLeaderColor = leaderPalette.primary;
 
   return (
     <main className="page-shell">
@@ -105,8 +105,8 @@ export default function ZamoraPage() {
 
             <div className="stat-rank-list">
               {zamora.length > 0 ? zamora.slice(0, 5).map((keeper, index) => {
-                const palette = teamColors[keeper.team] ?? teamColors["Aston Birras"];
-                const configuredColor = teams.find((team) => team.name === keeper.team)?.primaryColor ?? palette.primary;
+                const palette = getTeamPalette(keeper.team, teams.find((team) => team.name === keeper.team)?.primaryColor);
+                const configuredColor = palette.primary;
                 return (
                   <div key={keeper.name} className="stat-rank-item">
                     <span className="position">#{index + 1}</span>
@@ -154,7 +154,7 @@ export default function ZamoraPage() {
                       <td>{index + 1}</td>
                       <td>{keeper.name}</td>
                       <td>
-                        <span className="team-tag" style={{ background: `${teams.find((team) => team.name === keeper.team)?.primaryColor ?? teamColors[keeper.team]?.primary ?? "#11845f"}1A`, color: teamColors[keeper.team]?.secondary ?? "#f5d77b" }}>
+                        <span className="team-tag" style={{ background: `${getTeamPalette(keeper.team, teams.find((team) => team.name === keeper.team)?.primaryColor).primary}1A`, color: getTeamPalette(keeper.team, teams.find((team) => team.name === keeper.team)?.primaryColor).secondary }}>
                           <TeamIdentity name={keeper.team} compact />
                         </span>
                       </td>

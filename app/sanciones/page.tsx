@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { teamColors } from "@/lib/league-data";
+import { getTeamPalette, teamColors } from "@/lib/league-data";
 import { dedupeActiveDisciplineStatus, getDisciplineStatus } from "@/lib/discipline";
 import { TeamIdentity } from "@/lib/team-identity";
 import { TeamShield } from "@/lib/team-identity";
@@ -97,8 +97,8 @@ export default function SancionesPage() {
     return Array.from(points.entries()).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]));
   }, [sanctions, teams]);
   const fairPlayLeader = fairPlayRanking[0];
-  const fairPlayPalette = fairPlayLeader ? teamColors[fairPlayLeader[0]] ?? teamColors["Aston Birras"] : teamColors["Aston Birras"];
-  const fairPlayConfiguredColor = fairPlayLeader ? teams.find((team) => team.name === fairPlayLeader[0])?.primaryColor ?? fairPlayPalette.primary : fairPlayPalette.primary;
+  const fairPlayPalette = fairPlayLeader ? getTeamPalette(fairPlayLeader[0], teams.find((team) => team.name === fairPlayLeader[0])?.primaryColor) : getTeamPalette("Aston Birras");
+  const fairPlayConfiguredColor = fairPlayPalette.primary;
   const currentRound = useMemo(
     () => calendar.find((round) => round.status === "in-progress")
       ?? calendar.find((round) => round.status === "upcoming")
@@ -164,8 +164,8 @@ export default function SancionesPage() {
             </div>
             <div className="stat-rank-list">
               {fairPlayRanking.length > 0 ? fairPlayRanking.map(([team, points], index) => {
-                const palette = teamColors[team] ?? teamColors["Aston Birras"];
-                const configuredColor = teams.find((entry) => entry.name === team)?.primaryColor ?? palette.primary;
+                const palette = getTeamPalette(team, teams.find((entry) => entry.name === team)?.primaryColor);
+                const configuredColor = palette.primary;
                 return (
                   <div key={team} className={`stat-rank-item ${index === 0 ? "fair-play-first" : ""}`}>
                     <span className="position">#{index + 1}</span>
@@ -193,7 +193,7 @@ export default function SancionesPage() {
                 <tbody>
                   {activeSanctions.map((item) => (
                     <tr key={item.id}>
-                      <td><span className="team-tag sanction-team-tag" style={{ background: `${teams.find((team) => team.name === item.team)?.primaryColor ?? teamColors[item.team]?.primary ?? "#11845f"}1A`, color: teamColors[item.team]?.secondary ?? "#f5d77b" }}><TeamIdentity name={item.team} className="sanction-team-identity" compact /></span></td>
+                      <td><span className="team-tag sanction-team-tag" style={{ background: `${getTeamPalette(item.team, teams.find((team) => team.name === item.team)?.primaryColor).primary}1A`, color: getTeamPalette(item.team, teams.find((team) => team.name === item.team)?.primaryColor).secondary }}><TeamIdentity name={item.team} className="sanction-team-identity" compact /></span></td>
                       <td><strong>{item.player}</strong></td>
                       <td><span className={`sanction-badge ${item.card.toLowerCase().replace(/ /g, "-")}`}>{item.card}</span></td>
                       <td><strong>{item.suspensionRemaining} {item.suspensionRemaining === 1 ? "partido" : "partidos"}</strong></td>

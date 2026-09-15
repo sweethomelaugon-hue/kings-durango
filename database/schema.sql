@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS teams (
   name VARCHAR(150) NOT NULL,
   short_name VARCHAR(20),
   stadium_name VARCHAR(120) DEFAULT 'Tabira',
+  primary_color VARCHAR(20),
+  shield_image TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (season_id, name)
 );
@@ -55,6 +57,8 @@ CREATE TABLE IF NOT EXISTS matches (
   stadium_name VARCHAR(120) DEFAULT 'Tabira',
   home_goals INTEGER DEFAULT 0,
   away_goals INTEGER DEFAULT 0,
+  shootout_home_goals INTEGER,
+  shootout_away_goals INTEGER,
   status VARCHAR(20) DEFAULT 'scheduled',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   CHECK (home_team_id <> away_team_id),
@@ -79,6 +83,9 @@ CREATE TABLE IF NOT EXISTS disciplinary_records (
   match_id UUID REFERENCES matches(id) ON DELETE SET NULL,
   card_type VARCHAR(30) NOT NULL CHECK (card_type IN ('Amarilla', 'Doble amarilla', 'Roja', 'Otra')),
   reason TEXT NOT NULL,
+  suspension_matches INTEGER NOT NULL DEFAULT 0 CHECK (suspension_matches >= 0),
+  suspension_remaining INTEGER NOT NULL DEFAULT 0 CHECK (suspension_remaining >= 0),
+  points_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
   cost_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

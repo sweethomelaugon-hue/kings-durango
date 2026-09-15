@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS shootout_home_goals INTEGER;
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS shootout_away_goals INTEGER;
+
+COMMIT;

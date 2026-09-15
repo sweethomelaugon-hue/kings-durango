@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { teamColors } from "@/lib/league-data";
+import { getTeamPalette } from "@/lib/league-data";
 import { TeamIdentity } from "@/lib/team-identity";
 
 type TeamRow = {
@@ -11,6 +11,7 @@ type TeamRow = {
   shortName?: string;
   primaryColor?: string;
   players: Array<{ name: string; dorsal?: number | string }>;
+  players: Array<{ name: string; dorsal?: number | string; isGoalkeeper?: boolean }>;
 };
 
 type MatchRow = {
@@ -221,13 +222,13 @@ export default function ClasificacionPage() {
                 </thead>
                 <tbody>
                   {resolvedStandings.map((team) => {
-                    const palette = teamColors[team.team] ?? teamColors["Aston Birras"];
-                    const configuredColor = teams.find((candidate) => candidate.name === team.team)?.primaryColor ?? palette.primary;
+                    const palette = getTeamPalette(team.team, teams.find((candidate) => candidate.name === team.team)?.primaryColor);
+                    const configuredColor = palette.primary;
                     return (
                       <tr key={team.team}>
                         <td><span className="position-with-change"><span className="position-number">{team.position}</span><span className={`trend-badge ${positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "up" : "down") : "neutral"}`} aria-label={positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "Sube posiciones" : "Baja posiciones") : "Sin cambios"}>{positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "↑" : "↓") : "•"}</span></span></td>
                         <td className="team-name-cell">
-                          <button type="button" className="team-cell team-detail-trigger" style={{ borderColor: `${configuredColor}99`, background: `${configuredColor}22`, color: "#edf3f1" }} onClick={() => setSelectedTeam(team.team)}>
+                          <button type="button" className="team-cell team-detail-trigger" style={{ "--team-color": configuredColor, color: "#edf3f1" } as React.CSSProperties} onClick={() => setSelectedTeam(team.team)}>
                             <TeamIdentity name={team.team} className="team-name-label" compact />
                           </button>
                         </td>
@@ -259,7 +260,7 @@ export default function ClasificacionPage() {
                   <button type="button" className="team-modal-close" onClick={() => setSelectedTeam(null)} aria-label="Cerrar información del equipo">×</button>
                 </div>
                 <div className="team-modal-body">
-                  {selectedRoster.length > 0 ? selectedRoster.map((player) => <div key={`${selectedTeam}-${player.name}`} className="team-player-row"><span className="player-dorsal">{player.dorsal}</span><span>{player.name}</span></div>) : <p className="team-empty-state">No hay jugadores disponibles.</p>}
+                  {selectedRoster.length > 0 ? selectedRoster.map((player) => <div key={`${selectedTeam}-${player.name}`} className="team-player-row"><span className="player-dorsal">{player.dorsal}</span><span className="team-player-name">{player.name}{player.isGoalkeeper ? <span className="goalkeeper-mark" title="Portero" aria-label="Portero">🧤</span> : null}</span></div>) : <p className="team-empty-state">No hay jugadores disponibles.</p>}
                 </div>
               </div>
             </div>

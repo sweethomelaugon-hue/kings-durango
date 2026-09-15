@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { teamColors } from "@/lib/league-data";
 import { buildGoalScorersFromEvents, buildSupabaseSyncRows, validateLeagueStore, validateLeagueStorePayload } from "@/lib/league-store";
 
 test("buildGoalScorersFromEvents convierte eventos de gol del match_events en goleadores", () => {
@@ -106,6 +107,12 @@ test("validateLeagueStorePayload normaliza valores numéricos y mantiene estruct
   assert.equal(result.finances.costs.red, 80);
 });
 
+test("Rayo Forestal usa un color de marca alto contraste para destacar en la home", () => {
+  assert.equal(teamColors["Rayo Forestal Internacional"].primary, "#22C55E");
+  assert.equal(teamColors["Rayo Forestal Internacional"].secondary, "#DCFCE7");
+  assert.equal(teamColors["Rayo Forestal Internacional"].accent, "#0F5E3A");
+});
+
 test("buildSupabaseSyncRows prepara las filas para sincronizar la liga en Supabase", () => {
   const store = {
     seasons: [{ id: "season-2026", name: "Temporada 2026", yearStart: 2026, yearEnd: 2027, isActive: true }],
@@ -135,6 +142,7 @@ test("buildSupabaseSyncRows prepara las filas para sincronizar la liga en Supaba
   assert.equal(rows.teams[0].name, "Aston Birras");
   assert.equal(rows.players[0].team_id, rows.teams[0].id);
   assert.equal(rows.matches[0].home_team_id, rows.teams[0].id);
+  assert.equal(rows.team_fees[0].team_id, rows.teams[0].id);
   assert.equal(rows.match_events[0].player_id, rows.players[0].id);
   assert.equal(rows.disciplinary_records[0].player_id, rows.players[0].id);
 });

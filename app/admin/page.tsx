@@ -11,7 +11,7 @@ import {
   teams,
 } from "@/lib/league-data";
 import { teamColors } from "@/lib/league-data";
-import { dedupeActiveDisciplineStatus, getDisciplineStatus, getYellowCardsForPlayer } from "@/lib/discipline";
+import { dedupeActiveDisciplineStatus, getDisciplineStatus, getYellowCardsForPlayer, recalculateSuspensionRemaining } from "@/lib/discipline";
 import type { SeasonRecord, TeamRecord } from "@/lib/league-store";
 import { clearAuthSession, isAdminSession, readAuthSession } from "@/lib/auth";
 import { buildAdminHeaders } from "@/lib/supabase";
@@ -39,6 +39,7 @@ type ResultDraft = {
   awayScorers: string[];
   shootoutHome: string;
   shootoutAway: string;
+  isFinalized?: boolean;
 };
 
 const resultDraftKey = (home: string, away: string) => `${home}::${away}`;
@@ -128,7 +129,7 @@ function ResultScorerPicker({ label, players, selected, onSelect, onRemove }: Re
   );
 }
 
-const resultDraftFromMatch = (match: { home: string; away: string; score: string; shootoutScore?: string; goalScorers?: Array<{ player: string; team: string; minute?: number }> }): ResultDraft => {
+const resultDraftFromMatch = (match: { home: string; away: string; score: string; status?: string; shootoutScore?: string; goalScorers?: Array<{ player: string; team: string; minute?: number }> }): ResultDraft => {
   const shootoutParts = match.shootoutScore?.split("-") ?? [];
   return {
     home: match.score === "-" ? "" : match.score.split("-")[0]?.trim() ?? "",
@@ -137,6 +138,7 @@ const resultDraftFromMatch = (match: { home: string; away: string; score: string
     awayScorers: match.goalScorers?.filter((entry) => entry.team === match.away).map((entry) => entry.player) ?? [],
     shootoutHome: shootoutParts[0]?.trim() ?? "",
     shootoutAway: shootoutParts[1]?.trim() ?? "",
+    isFinalized: match.status === "finished" || (match.status === undefined && match.score !== "-"),
   };
 };
 
@@ -711,22 +713,7 @@ export default function AdminPage() {
   const [isSanctionDialogOpen, setIsSanctionDialogOpen] = useState(false);
 
   const getCardCost = (card: CardType, reason = "", manualAmount = "") => {
-    if ((card === "Otra" || /otros motivos/i.test(reason)) && manualAmount.trim() !== "") {
-      return Number(manualAmount) || 0;
-    }
-    const amount = (() => {
-    switch (card) {
-      case "Amarilla":
-        return penaltyCosts.yellow;
-      case "Doble amarilla":
-        return penaltyCosts.doubleYellow;
-      case "Roja":
-        return penaltyCosts.red;
-      default:
-        return penaltyCosts.other;
-    }
-    })();
-    return card === "Roja" && /antideportiv/i.test(reason) ? amount * 2 : amount;
+    return getSanctionPoints(card, reason, manualAmount);
   };
 
   const getSanctionPoints = (card: CardType, reason: string, manualAmount = "") => {
@@ -757,6 +744,18 @@ export default function AdminPage() {
     },
     [cardForm.team, playerSearch, playerRosterByTeam]
   );
+
+  const sanctionRounds = useMemo(
+    () => calendarRounds.filter((round) => round.status !== "upcoming" && matchResults.some((match) =>
+      match.jornada === round.title
+      && (match.home === cardForm.team || match.away === cardForm.team)
+      && Boolean(match.score && match.score !== "-")
+    )),
+    [calendarRounds, cardForm.team, matchResults]
+  );
+  const effectiveSanctionJornada = sanctionRounds.some((round) => round.title === cardForm.jornada)
+    ? cardForm.jornada
+    : sanctionRounds[0]?.title ?? "";
 
   const selectedPlayerYellowCards = useMemo(
     () => getYellowCardsForPlayer(cardDocket, calendarRounds, cardForm.team, cardForm.player, yellowCardResetRoundId),
@@ -817,7 +816,7 @@ export default function AdminPage() {
         const linkedMatches = round.matches.map((fixture) => matchResults.find(
           (match) => match.home === fixture.home && match.away === fixture.away
         ));
-        const completedMatches = linkedMatches.filter((match) => match?.score && match.score !== "-").length;
+        const completedMatches = linkedMatches.filter((match) => match && (match.status === "finished" || (!match.status && match.score !== "-"))).length;
         const isFinalized = round.status === "completed" && round.matches.length > 0 && completedMatches === round.matches.length;
 
         return {
@@ -1682,6 +1681,9 @@ export default function AdminPage() {
     let nextTeams: TeamRecord[];
 
     if (editingTeamId) {
+      const previousTeam = storeTeams.find((team) => team.id === editingTeamId);
+      const previousName = previousTeam?.name ?? normalizedName;
+      const nameChanged = previousName !== normalizedName;
       nextTeams = storeTeams.map((team) =>
         team.id === editingTeamId
           ? {
@@ -1692,8 +1694,8 @@ export default function AdminPage() {
               seasonId: seasonKey,
               stadiumName: teamForm.stadiumName || "Tabira",
               stadium_name: teamForm.stadiumName || "Tabira",
-              primaryColor: teamForm.primaryColor || teamColors[normalizedName]?.primary || "#117d5f",
-              shieldImage: teamForm.shieldImage || undefined,
+              primaryColor: teamForm.primaryColor || team.primaryColor || teamColors[normalizedName]?.primary || "#117d5f",
+              shieldImage: teamForm.shieldImage || team.shieldImage,
               players: team.players.map((player) => ({
                 ...player,
                 seasonId: seasonKey,
@@ -1701,6 +1703,40 @@ export default function AdminPage() {
             }
           : team
       );
+      const nextMatches = nameChanged
+        ? matchResults.map((match) => ({
+            ...match,
+            home: match.home === previousName ? normalizedName : match.home,
+            away: match.away === previousName ? normalizedName : match.away,
+            goalScorers: match.goalScorers?.map((scorer) => ({
+              ...scorer,
+              team: scorer.team === previousName ? normalizedName : scorer.team,
+            })),
+          }))
+        : matchResults;
+      const nextCalendar = nameChanged
+        ? calendarRounds.map((round) => ({
+            ...round,
+            matches: round.matches.map((fixture) => ({
+              ...fixture,
+              home: fixture.home === previousName ? normalizedName : fixture.home,
+              away: fixture.away === previousName ? normalizedName : fixture.away,
+            })),
+            descansan: round.descansan.map((teamName) => teamName === previousName ? normalizedName : teamName),
+          }))
+        : calendarRounds;
+      const nextSanctions = nameChanged
+        ? cardDocket.map((record) => ({ ...record, team: record.team === previousName ? normalizedName : record.team }))
+        : cardDocket;
+      const nextFees = nameChanged
+        ? Object.fromEntries(Object.entries(registrationFees).map(([name, amount]) => [name === previousName ? normalizedName : name, amount]))
+        : registrationFees;
+      const nextPayments = nameChanged
+        ? Object.fromEntries(Object.entries(teamPayments).map(([name, amount]) => [name === previousName ? normalizedName : name, amount]))
+        : teamPayments;
+      const nextExpenses = nameChanged
+        ? expenseItems.map((item) => ({ ...item, entity: item.entity === previousName ? normalizedName : item.entity }))
+        : expenseItems;
       setStoreTeams(nextTeams);
       setFormError(null);
       resetTeamForm();
@@ -1709,13 +1745,13 @@ export default function AdminPage() {
         await persistLeagueStore({
           seasons,
           teams: nextTeams,
-          matches: matchResults,
-          calendar: calendarRounds,
-          sanctions: cardDocket,
+          matches: nextMatches,
+          calendar: nextCalendar,
+          sanctions: nextSanctions,
           finances: {
-            fees: registrationFees,
-            payments: teamPayments,
-            expenses: expenseItems,
+            fees: nextFees,
+            payments: nextPayments,
+            expenses: nextExpenses,
             costs: penaltyCosts,
           },
         });
@@ -1834,6 +1870,9 @@ export default function AdminPage() {
     let nextTeams: TeamRecord[];
 
     if (editingPlayerId) {
+      const previousPlayer = team.players.find((player) => (player.id ?? `${team.id}-${player.name}`) === editingPlayerId);
+      const previousName = previousPlayer?.name ?? normalizedName;
+      const nameChanged = previousName !== normalizedName;
       nextTeams = storeTeams.map((candidate) => {
         if (candidate.id !== team.id) {
           return candidate;
@@ -1857,6 +1896,17 @@ export default function AdminPage() {
           }),
         };
       });
+      const nextMatches = nameChanged
+        ? matchResults.map((match) => ({
+            ...match,
+            goalScorers: match.goalScorers?.map((scorer) => scorer.player === previousName && scorer.team === team.name
+              ? { ...scorer, player: normalizedName }
+              : scorer),
+          }))
+        : matchResults;
+      const nextSanctions = nameChanged
+        ? cardDocket.map((record) => record.player === previousName && record.team === team.name ? { ...record, player: normalizedName } : record)
+        : cardDocket;
       setStoreTeams(nextTeams);
       setFormError(null);
       resetPlayerForm();
@@ -1865,9 +1915,9 @@ export default function AdminPage() {
         await persistLeagueStore({
           seasons,
           teams: nextTeams,
-          matches: matchResults,
+          matches: nextMatches,
           calendar: calendarRounds,
-          sanctions: cardDocket,
+          sanctions: nextSanctions,
           finances: {
             fees: registrationFees,
             payments: teamPayments,
@@ -2057,6 +2107,17 @@ export default function AdminPage() {
     }));
   };
 
+  const toggleResultFinalized = (home: string, away: string, isFinalized: boolean) => {
+    const key = resultDraftKey(home, away);
+    setResultDrafts((previous) => ({
+      ...previous,
+      [key]: {
+        ...(previous[key] ?? { home: "", away: "", homeScorers: [], awayScorers: [], shootoutHome: "", shootoutAway: "" }),
+        isFinalized,
+      },
+    }));
+  };
+
   const addResultScorer = (home: string, away: string, team: "homeScorers" | "awayScorers", player: string) => {
     if (!player) {
       return;
@@ -2085,8 +2146,7 @@ export default function AdminPage() {
 
   const saveRoundResults = async (
     round: RoundEditor,
-    linkedMatches: Array<(typeof matchResults)[number] | undefined>,
-    finalize: boolean
+    linkedMatches: Array<(typeof matchResults)[number] | undefined>
   ) => {
     try {
       assertAdminAccess();
@@ -2095,7 +2155,7 @@ export default function AdminPage() {
       return;
     }
 
-    const updatedById = new Map<number | string, (typeof matchResults)[number]>();
+    const updatedByFixture = new Map<string, (typeof matchResults)[number]>();
     for (const [index, fixture] of round.matches.entries()) {
       const match = linkedMatches[index];
       const draft = resultDrafts[resultDraftKey(fixture.home, fixture.away)] ?? (match ? resultDraftFromMatch(match) : null);
@@ -2106,18 +2166,28 @@ export default function AdminPage() {
 
       const hasHomeScore = /^\d+$/.test(draft.home.trim());
       const hasAwayScore = /^\d+$/.test(draft.away.trim());
-      if (!hasHomeScore && !hasAwayScore) {
-        if (finalize) {
-          setFormError(`Completa el resultado de ${fixture.home} vs ${fixture.away} antes de finalizar la jornada.`);
-          return;
-        }
-        continue;
+      const isFinalized = draft.isFinalized === true;
+      if (isFinalized && (!hasHomeScore || !hasAwayScore)) {
+        setFormError(`Completa el resultado de ${fixture.home} vs ${fixture.away} antes de marcarlo como finalizado.`);
+        return;
       }
 
       const homeGoals = hasHomeScore ? Number(draft.home) : 0;
       const awayGoals = hasAwayScore ? Number(draft.away) : 0;
       const homeScorers = draft.homeScorers ?? [];
       const awayScorers = draft.awayScorers ?? [];
+      const activeSanctionsForRound = dedupeActiveDisciplineStatus(
+        getDisciplineStatus(cardDocket, calendarRounds, round.id, yellowCardResetRoundId)
+      );
+      const suspendedPlayers = new Set(activeSanctionsForRound.map((record) => `${record.team.toLowerCase()}::${record.player.toLowerCase()}`));
+      const suspendedScorer = [
+        ...homeScorers.map((player) => ({ player, team: fixture.home })),
+        ...awayScorers.map((player) => ({ player, team: fixture.away })),
+      ].find((scorer) => suspendedPlayers.has(`${scorer.team.toLowerCase()}::${scorer.player.toLowerCase()}`));
+      if (suspendedScorer) {
+        setFormError(`${suspendedScorer.player} está cumpliendo sanción y no puede figurar como goleador en ${round.title}.`);
+        return;
+      }
       if (homeScorers.length > 0 && homeScorers.length !== homeGoals) {
         setFormError(`Selecciona exactamente ${homeGoals} goleador${homeGoals === 1 ? "" : "es"} para ${fixture.home}. Puedes seleccionar varias veces al mismo jugador.`);
         return;
@@ -2131,7 +2201,7 @@ export default function AdminPage() {
       if (homeGoals === awayGoals) {
         const hasShootout = /^\d+$/.test(draft.shootoutHome.trim()) && /^\d+$/.test(draft.shootoutAway.trim());
         const hasPartialShootout = draft.shootoutHome.trim() !== "" || draft.shootoutAway.trim() !== "";
-        if ((finalize || hasPartialShootout) && (!hasShootout || Number(draft.shootoutHome) === Number(draft.shootoutAway))) {
+        if ((isFinalized || hasPartialShootout) && (!hasShootout || Number(draft.shootoutHome) === Number(draft.shootoutAway))) {
           setFormError(`Introduce un desempate por penaltis válido para ${fixture.home} vs ${fixture.away}.`);
           return;
         }
@@ -2144,25 +2214,30 @@ export default function AdminPage() {
         ...homeScorers.map((player) => ({ player, team: fixture.home })),
         ...awayScorers.map((player) => ({ player, team: fixture.away })),
       ];
-      updatedById.set(match.id, {
+      updatedByFixture.set(resultDraftKey(fixture.home, fixture.away), {
         ...match,
-        score: `${homeGoals} - ${awayGoals}`,
-        winner: homeGoals > awayGoals ? match.home : awayGoals > homeGoals ? match.away : "Empate",
-        goalScorers,
-        shootoutScore,
+        score: hasHomeScore || hasAwayScore ? `${homeGoals} - ${awayGoals}` : "-",
+        status: isFinalized ? "finished" : hasHomeScore || hasAwayScore ? "in-progress" : "scheduled",
+        winner: hasHomeScore || hasAwayScore ? homeGoals > awayGoals ? match.home : awayGoals > homeGoals ? match.away : "Empate" : undefined,
+        goalScorers: hasHomeScore || hasAwayScore ? goalScorers : [],
+        shootoutScore: hasHomeScore || hasAwayScore ? shootoutScore : undefined,
       });
     }
 
-    if (finalize && updatedById.size !== round.matches.length) {
-      setFormError("Completa todos los resultados antes de finalizar la jornada.");
-      return;
-    }
-
-    const nextMatchResults = matchResults.map((match) => updatedById.get(match.id) ?? match);
+    const nextMatchResults = matchResults.map((match) => updatedByFixture.get(resultDraftKey(match.home, match.away)) ?? match);
+    const roundResults = round.matches.map((fixture) => nextMatchResults.find((match) => resultDraftKey(match.home, match.away) === resultDraftKey(fixture.home, fixture.away)));
+    const finalizedMatches = roundResults.filter((match) => match?.status === "finished").length;
+    const hasResults = roundResults.some((match) => match?.status === "finished" || match?.status === "in-progress");
+    const nextRoundStatus: RoundStatus = finalizedMatches === round.matches.length
+      ? "completed"
+      : hasResults
+        ? "in-progress"
+        : "upcoming";
     const nextCalendar = calendarRounds.map((candidate) => candidate.id === round.id
-      ? { ...candidate, status: finalize ? "completed" as const : "in-progress" as const }
+      ? { ...candidate, status: nextRoundStatus }
       : candidate
     );
+    const nextSanctions = recalculateSuspensionRemaining(cardDocket, nextCalendar);
 
     setIsSavingStore(true);
     try {
@@ -2171,7 +2246,7 @@ export default function AdminPage() {
         teams: storeTeams,
         matches: nextMatchResults,
         calendar: nextCalendar,
-        sanctions: cardDocket,
+        sanctions: nextSanctions,
         finances: {
           fees: registrationFees,
           payments: teamPayments,
@@ -2181,8 +2256,10 @@ export default function AdminPage() {
       });
       setMatchResults(nextMatchResults);
       setCalendarRounds(nextCalendar);
+      setCardDocket(nextSanctions);
       setFormError(null);
-    } catch {
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "No se pudieron guardar los resultados.");
       return;
     } finally {
       setIsSavingStore(false);
@@ -2190,7 +2267,7 @@ export default function AdminPage() {
   };
 
   const reopenRound = async (round: RoundEditor) => {
-    const confirmed = window.confirm(`Vas a quitar el estado finalizado de ${round.title} y de cualquier jornada anterior que también esté finalizada. Los marcadores guardados no se borrarán. ¿Quieres continuar?`);
+    const confirmed = window.confirm(`Vas a quitar el estado finalizado de ${round.title} y de las jornadas posteriores que también estén finalizadas. Las jornadas anteriores mantendrán su estado y los marcadores guardados no se borrarán. ¿Quieres continuar?`);
     if (!confirmed) {
       return;
     }
@@ -2198,10 +2275,11 @@ export default function AdminPage() {
     const targetDate = toIsoDateInput(round.date);
     const nextCalendar = calendarRounds.map((candidate) => {
       const candidateDate = toIsoDateInput(candidate.date);
-      return candidate.status === "completed" && candidateDate <= targetDate
+      return candidate.status === "completed" && candidateDate >= targetDate
         ? { ...candidate, status: "in-progress" as const }
         : candidate;
     });
+      const nextSanctions = recalculateSuspensionRemaining(cardDocket, nextCalendar);
 
     setIsSavingStore(true);
     try {
@@ -2210,7 +2288,7 @@ export default function AdminPage() {
         teams: storeTeams,
         matches: matchResults,
         calendar: nextCalendar,
-        sanctions: cardDocket,
+        sanctions: nextSanctions,
         finances: {
           fees: registrationFees,
           payments: teamPayments,
@@ -2219,6 +2297,7 @@ export default function AdminPage() {
         },
       });
       setCalendarRounds(nextCalendar);
+      setCardDocket(nextSanctions);
       setFormError(null);
     } catch {
       return;
@@ -2257,6 +2336,7 @@ export default function AdminPage() {
       ? { ...candidate, status: "upcoming" as const }
       : candidate
     );
+    const nextSanctions = recalculateSuspensionRemaining(cardDocket, nextCalendar);
 
     setIsSavingStore(true);
     try {
@@ -2265,7 +2345,7 @@ export default function AdminPage() {
         teams: storeTeams,
         matches: nextMatchResults,
         calendar: nextCalendar,
-        sanctions: cardDocket,
+        sanctions: nextSanctions,
         finances: {
           fees: registrationFees,
           payments: teamPayments,
@@ -2274,8 +2354,8 @@ export default function AdminPage() {
         },
       });
       setMatchResults(nextMatchResults);
-      setResultDrafts(nextDrafts);
       setCalendarRounds(nextCalendar);
+      setCardDocket(nextSanctions);
       setFormError(null);
     } catch {
       return;
@@ -2342,17 +2422,33 @@ export default function AdminPage() {
       return;
     }
 
+    const selectedRound = calendarRounds.find((round) => round.title === effectiveSanctionJornada);
+    if (!selectedRound || selectedRound.status === "upcoming") {
+      setFormError("Solo puedes registrar sanciones de jornadas finalizadas o en curso.");
+      return;
+    }
+
+    const linkedMatch = matchResults.find((match) =>
+      match.jornada === effectiveSanctionJornada
+      && (match.home === teamName || match.away === teamName)
+      && Boolean(match.score && match.score !== "-")
+    );
+    if (!linkedMatch) {
+      setFormError(`No hay un partido de ${teamName} en ${effectiveSanctionJornada} para vincular esta sanción.`);
+      return;
+    }
+
     if (cardForm.card === "Amarilla") {
       const yellowAlreadyRegistered = cardDocket.some((record) =>
         record.id !== editingCardId
         && record.card === "Amarilla"
         && record.team.toLowerCase() === teamName.toLowerCase()
         && record.player.toLowerCase() === playerName.toLowerCase()
-        && record.jornada === cardForm.jornada
+        && record.jornada === effectiveSanctionJornada
       );
 
       if (yellowAlreadyRegistered) {
-        setFormError(`${playerName} ya tiene una tarjeta amarilla registrada en ${cardForm.jornada}. No se puede añadir otra en la misma jornada.`);
+        setFormError(`${playerName} ya tiene una tarjeta amarilla registrada en ${effectiveSanctionJornada}. No se puede añadir otra en la misma jornada.`);
         return;
       }
     }
@@ -2362,8 +2458,10 @@ export default function AdminPage() {
       ? cardForm.suspensionReason === "Encararse con otro jugador" ? 2 : cardForm.suspensionReason === "Insultar o faltar al respeto al árbitro" ? 3 : cardForm.suspensionReason === "Motivo deportivo violento" ? 4 : Number(cardForm.suspensionMatches) || 0
       : Number(cardForm.suspensionMatches) || 0;
 
+    const sanctionAmount = getSanctionPoints(cardForm.card, cardForm.reason, cardForm.manualAmount);
     const nextRecord = {
       id: editingCardId ?? Date.now(),
+      matchId: linkedMatch.id,
       player: playerName,
       team: teamName,
       playerId: selectedTeam.players.find((player) => player.name.toLowerCase() === playerName.toLowerCase())?.id ?? undefined,
@@ -2373,14 +2471,14 @@ export default function AdminPage() {
       matches: 1,
       remaining: 1,
       reason: (["Amarilla", "Doble amarilla"] as CardType[]).includes(cardForm.card) ? "Motivos deportivos" : cardForm.reason.trim() || "Registrada por el administrador",
-      jornada: cardForm.jornada,
+      jornada: effectiveSanctionJornada,
       suspensionReason: cardForm.card === "Roja" && cardForm.reason === "Motivos antideportivos" ? cardForm.suspensionReason : undefined,
       suspensionMatches: automaticSuspension,
       suspensionRemaining: automaticSuspension,
-      costAmount: getCardCost(cardForm.card, cardForm.reason, cardForm.manualAmount),
-      cost_amount: getCardCost(cardForm.card, cardForm.reason, cardForm.manualAmount),
-      points: getSanctionPoints(cardForm.card, cardForm.reason, cardForm.manualAmount),
-      pointsAmount: getSanctionPoints(cardForm.card, cardForm.reason, cardForm.manualAmount),
+      costAmount: sanctionAmount,
+      cost_amount: sanctionAmount,
+      points: sanctionAmount,
+      pointsAmount: sanctionAmount,
     };
 
     const nextSanctions = editingCardId !== null
@@ -2576,13 +2674,48 @@ export default function AdminPage() {
       ? calendarRounds.map((round) => round.id === editingRoundId ? { ...round, ...nextRound } : round)
       : [nextRound, ...calendarRounds];
 
+    const previousRound = editingRoundId !== null ? calendarRounds.find((round) => round.id === editingRoundId) : undefined;
+    const nextMatchResults = editingRoundId !== null
+      ? matchResults.map((match) => {
+          const previousIndex = previousRound?.matches.findIndex((fixture) => fixture.home === match.home && fixture.away === match.away) ?? -1;
+          const replacement = previousIndex >= 0 ? nextRound.matches[previousIndex] : undefined;
+          return replacement
+            ? {
+                ...match,
+                jornada: nextRound.title,
+                date: nextRound.date,
+                time: replacement.time,
+                home: replacement.home,
+                away: replacement.away,
+                scheduledAt: `${nextRound.date}T${replacement.time}:00`,
+              }
+            : match;
+        })
+      : [
+          ...matchResults,
+          ...nextRound.matches.map((fixture, index) => ({
+            id: `match-${nextRound.id}-${index}`,
+            jornada: nextRound.title,
+            date: nextRound.date,
+            time: fixture.time,
+            home: fixture.home,
+            away: fixture.away,
+            score: "-",
+            stadium: fixture.stadium ?? "Tabira",
+            events: { home: "", away: "" },
+            goalScorers: [],
+            seasonId: activeSeason.id,
+            status: "scheduled" as const,
+          })),
+        ];
+
     setCalendarRounds(nextCalendar);
 
     try {
       await persistLeagueStore({
         seasons,
         teams: storeTeams,
-        matches: matchResults,
+        matches: nextMatchResults,
         calendar: nextCalendar,
         sanctions: cardDocket,
         finances: {
@@ -2593,6 +2726,7 @@ export default function AdminPage() {
         },
       });
       setFormError(null);
+      setIsRoundDialogOpen(false);
       resetRoundForm();
     } catch {
       setCalendarRounds(calendarRounds);
@@ -2871,7 +3005,7 @@ export default function AdminPage() {
               <div>
                 <p className="eyebrow" style={{ marginBottom: 6 }}>Centro de resultados</p>
                 <h2 style={{ marginBottom: 6 }}>Resultados por jornada</h2>
-                <p style={{ color: "#9fb2ae", margin: 0 }}>Carga cada partido desde el calendario y finaliza la jornada cuando estén todos los marcadores.</p>
+                <p style={{ color: "#9fb2ae", margin: 0 }}>Marca cada partido como finalizado. La jornada se cerrará automáticamente cuando estén finalizados todos sus partidos.</p>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <span className="pill" style={{ background: "rgba(47,201,138,0.1)", color: "#a9f0d0" }}>{resultRounds.filter((entry) => entry.isFinalized).length} finalizadas</span>
@@ -2915,6 +3049,8 @@ export default function AdminPage() {
                           const homeScorers = draft.homeScorers ?? [];
                           const awayScorers = draft.awayScorers ?? [];
                           const isDraw = /^\d+$/.test(draft.home) && /^\d+$/.test(draft.away) && draft.home === draft.away;
+                          const isMatchFinalized = draft.isFinalized === true;
+                          const matchStatusLabel = isMatchFinalized ? "Finalizado" : round.status === "in-progress" ? "En curso" : "Próximo";
 
                           const scorerPicker = (team: "homeScorers" | "awayScorers", players: string[], selected: string[]) => (
                             <div style={{ display: "grid", gap: 8 }}>
@@ -2929,7 +3065,7 @@ export default function AdminPage() {
                           );
 
                           return (
-                            <div key={`${round.id}-${fixture.home}-${fixture.away}`} className="results-match-card" style={{ display: "grid", gap: 14, padding: 16, borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(0,0,0,0.14)" }}>
+                            <div key={`${round.id}-${fixtureIndex}-${fixture.home}-${fixture.away}`} className="results-match-card" style={{ display: "grid", gap: 14, padding: 16, borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(0,0,0,0.14)" }}>
                               <div className="results-match-top" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 150px minmax(0, 1fr)", gap: 14, alignItems: "center" }}>
                                 <div className="results-team-name" style={{ justifyContent: "flex-end", textAlign: "right", fontWeight: 800, color: "#edf3f1" }}><span className="results-match-time">{fixture.time}</span><TeamIdentity name={fixture.home} compact /></div>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "6px 0" }}>
@@ -2939,6 +3075,19 @@ export default function AdminPage() {
                                 </div>
                                 <div className="results-team-name" style={{ fontWeight: 800, color: "#edf3f1" }}><TeamIdentity name={fixture.away} compact /></div>
                               </div>
+
+                              <label className={`result-finalization-control ${isMatchFinalized ? "is-finalized" : ""}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={isMatchFinalized}
+                                  onChange={(event) => toggleResultFinalized(fixture.home, fixture.away, event.target.checked)}
+                                />
+                                <span className="result-finalization-switch" aria-hidden="true"><span /></span>
+                                <span>
+                                  <strong>{matchStatusLabel}</strong>
+                                  <small>{isMatchFinalized ? "El resultado queda cerrado" : "Marca cuando el partido haya terminado"}</small>
+                                </span>
+                              </label>
 
                               <div className="result-scorer-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                                 <div style={{ display: "grid", gap: 7 }}>
@@ -2966,21 +3115,8 @@ export default function AdminPage() {
                       </div>
 
                       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-                        {!isFinalized ? (
-                          <button type="button" className="button button-secondary" onClick={() => clearRoundResults(round)} disabled={isSavingStore}>
-                            Vaciar jornada
-                          </button>
-                        ) : null}
-                        <button type="button" className="button button-secondary" onClick={() => saveRoundResults(round, linkedMatches, false)} disabled={isSavingStore}>
-                          Guardar resultados
-                        </button>
-                        {isFinalized ? (
-                          <button type="button" className="button button-secondary" onClick={() => reopenRound(round)} disabled={isSavingStore}>
-                            Quitar finalizado
-                          </button>
-                        ) : null}
-                        <button type="button" className="action-button" onClick={() => saveRoundResults(round, linkedMatches, true)} disabled={isSavingStore || (!isFinalized && !allDraftsComplete)}>
-                          {isSavingStore ? "Guardando…" : isFinalized ? "Guardar cambios" : "Guardar y finalizar jornada"}
+                        <button type="button" className="action-button" onClick={() => saveRoundResults(round, linkedMatches)} disabled={isSavingStore}>
+                          {isSavingStore ? "Guardando…" : "Guardar cambios"}
                         </button>
                       </div>
                       {!isFinalized && !allDraftsComplete ? (
@@ -3030,7 +3166,17 @@ export default function AdminPage() {
                   <select value={cardForm.team} onChange={(event) => {
                     const nextTeam = event.target.value;
                     const nextPlayer = playerRosterByTeam[nextTeam]?.[0] ?? "";
-                    setCardForm((previous) => ({ ...previous, team: nextTeam, player: nextPlayer }));
+                    const nextRound = calendarRounds.find((round) => round.status !== "upcoming" && matchResults.some((match) =>
+                      match.jornada === round.title
+                      && (match.home === nextTeam || match.away === nextTeam)
+                      && Boolean(match.score && match.score !== "-")
+                    ));
+                    setCardForm((previous) => ({
+                      ...previous,
+                      team: nextTeam,
+                      player: nextPlayer,
+                      jornada: nextRound?.title ?? "",
+                    }));
                   }}>
                     {visibleTeams.map((team) => (
                       <option key={team.name} value={team.name}>{team.name}</option>
@@ -3059,10 +3205,10 @@ export default function AdminPage() {
                 </label>
                 <label>
                   Jornada
-                  <select value={cardForm.jornada} onChange={(event) => setCardForm((previous) => ({ ...previous, jornada: event.target.value }))}>
-                    {calendarRounds.map((round) => (
+                  <select value={effectiveSanctionJornada} onChange={(event) => setCardForm((previous) => ({ ...previous, jornada: event.target.value }))}>
+                    {sanctionRounds.length > 0 ? sanctionRounds.map((round) => (
                       <option key={round.id} value={round.title}>{round.title}</option>
-                    ))}
+                    )) : <option value="">Sin partidos finalizados</option>}
                   </select>
                 </label>
                 <label>
@@ -3070,7 +3216,10 @@ export default function AdminPage() {
                   <select value={cardForm.card} onChange={(event) => setCardForm((previous) => ({
                     ...previous,
                     card: event.target.value as CardType,
-                    reason: (["Amarilla", "Doble amarilla"] as CardType[]).includes(event.target.value as CardType) ? "Motivos deportivos" : previous.reason,
+                    reason: (["Amarilla", "Doble amarilla", "Roja"] as CardType[]).includes(event.target.value as CardType)
+                      && !(["Motivos deportivos", "Motivos antideportivos", "Otros motivos"] as SanctionReason[]).includes(previous.reason)
+                      ? "Motivos deportivos"
+                      : (["Amarilla", "Doble amarilla"] as CardType[]).includes(event.target.value as CardType) ? "Motivos deportivos" : previous.reason,
                   }))}>
                     <option value="Amarilla">Amarilla</option>
                     <option value="Doble amarilla">Doble amarilla</option>
@@ -3091,7 +3240,7 @@ export default function AdminPage() {
                   >
                     <option value="Motivos deportivos">Motivos deportivos</option>
                     <option value="Motivos antideportivos">Motivos antideportivos</option>
-                    <option value="Motivos de vestimenta/indumentaria no oficial">Motivos de vestimenta/indumentaria no oficial</option>
+                    {cardForm.card !== "Roja" ? <option value="Motivos de vestimenta/indumentaria no oficial">Motivos de vestimenta/indumentaria no oficial</option> : null}
                     <option value="Otros motivos">Otros motivos</option>
                   </select>
                 </label>
@@ -3115,10 +3264,18 @@ export default function AdminPage() {
                   </>
                 ) : null}
                 {(cardForm.card === "Otra" || cardForm.reason === "Otros motivos") ? (
-                  <label>
-                    Puntos / importe manual
-                    <input type="number" min="0" value={cardForm.manualAmount} onChange={(event) => setCardForm((previous) => ({ ...previous, manualAmount: event.target.value }))} placeholder="Introduce el valor" />
-                  </label>
+                  <>
+                    <label>
+                      Puntos / importe manual
+                      <input type="number" min="0" value={cardForm.manualAmount} onChange={(event) => setCardForm((previous) => ({ ...previous, manualAmount: event.target.value }))} placeholder="Introduce el valor" />
+                    </label>
+                    {cardForm.card === "Otra" ? (
+                      <label>
+                        Partidos de suspensión
+                        <input type="number" min="0" step="1" value={cardForm.suspensionMatches} onChange={(event) => setCardForm((previous) => ({ ...previous, suspensionMatches: event.target.value }))} />
+                      </label>
+                    ) : null}
+                  </>
                 ) : null}
                 <div className="form-actions" style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}>
                   <button type="submit" className="action-button">{editingCardId ? "Guardar cambios" : "Registrar sanción"}</button>
@@ -3187,7 +3344,7 @@ export default function AdminPage() {
               <div className="team-points-list" style={{ marginBottom: 20 }}>
                 {teamSanctionPoints.map(([team, points]) => (
                   <div key={team} className="team-points-row">
-                    <span>{team}</span>
+                    <TeamIdentity name={team} compact />
                     <strong className={points <= 0 ? "low" : points <= 4 ? "medium" : points <= 8 ? "high" : "critical"}>{points}</strong>
                   </div>
                 ))}

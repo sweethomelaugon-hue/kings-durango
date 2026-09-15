@@ -18,6 +18,28 @@ function roundIdForRecord(record: DisciplinaryRecord, rounds: CalendarRound[]): 
   return round?.id ?? null;
 }
 
+export function recalculateSuspensionRemaining(records: DisciplinaryRecord[], rounds: CalendarRound[]): DisciplinaryRecord[] {
+  const latestCompletedRoundId = rounds
+    .filter((round) => round.status === "completed")
+    .reduce((latest, round) => Math.max(latest, round.id), 0);
+  const currentRoundId = latestCompletedRoundId + 1;
+
+  return records.map((record) => {
+    const explicitMatches = Math.max(0, Number(record.suspensionMatches ?? 0));
+    const sanctionRoundId = roundIdForRecord(record, rounds);
+    if (explicitMatches === 0 || sanctionRoundId === null) {
+      return { ...record, suspensionRemaining: 0 };
+    }
+
+    const roundsSinceSanction = currentRoundId - sanctionRoundId;
+    const suspensionRemaining = roundsSinceSanction >= 1 && roundsSinceSanction <= explicitMatches
+      ? explicitMatches - roundsSinceSanction + 1
+      : 0;
+
+    return { ...record, suspensionRemaining };
+  });
+}
+
 function orderedRecords(records: DisciplinaryRecord[], rounds: CalendarRound[]) {
   return records
     .map((record, index) => ({ record, index, roundId: roundIdForRecord(record, rounds) }))
