@@ -10,7 +10,6 @@ type TeamRow = {
   name: string;
   shortName?: string;
   primaryColor?: string;
-  players: Array<{ name: string; dorsal?: number | string }>;
   players: Array<{ name: string; dorsal?: number | string; isGoalkeeper?: boolean }>;
 };
 
