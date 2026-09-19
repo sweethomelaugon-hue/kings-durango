@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Capacitor } from "@capacitor/core";
 import { useEffect, useRef, useState } from "react";
 
 const navLinks = [
@@ -15,8 +16,13 @@ const navLinks = [
 
 export default function MainNav() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isIosApp, setIsIosApp] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setIsIosApp(Capacitor.getPlatform() === "ios");
+  }, []);
 
   // Close the dropdown on outside click, Escape key, or window resize back to desktop.
   useEffect(() => {
@@ -85,6 +91,11 @@ export default function MainNav() {
             {link.label}
           </Link>
         ))}
+        {isIosApp ? (
+          <Link href="/admin" className="nav-link nav-admin" onClick={() => setIsOpen(false)}>
+            Administración
+          </Link>
+        ) : null}
       </nav>
     </>
   );

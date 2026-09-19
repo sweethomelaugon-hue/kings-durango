@@ -93,6 +93,7 @@ textarea {
   background: rgba(10, 15, 16, 0.76);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding-top: env(safe-area-inset-top);
 }
 
 .topbar-inner {

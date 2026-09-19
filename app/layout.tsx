@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import MainNav from "./components/MainNav";
@@ -24,6 +24,12 @@ const resolveSupabaseAssetUrl = (fileName: string) => {
 export const metadata: Metadata = {
   title: "Kings Durango | Tabira",
   description: "Aplicación web de Kings Durango con clasificación, Pitxitxi, jornadas y gestión administrativa.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
