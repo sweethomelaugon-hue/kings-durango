@@ -20,6 +20,7 @@ type TeamRow = { name: string; primaryColor?: string };
 export default function ZamoraPage() {
   const [zamora, setZamora] = useState<ZamoraRow[]>([]);
   const [teams, setTeams] = useState<TeamRow[]>([]);
+  const [standings, setStandings] = useState<Array<{ team: string; position?: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +45,7 @@ export default function ZamoraPage() {
         const incoming = Array.isArray(payload.data.zamora) ? payload.data.zamora : [];
         setZamora(incoming);
         setTeams(Array.isArray(payload.data.teams) ? payload.data.teams : []);
+        setStandings(Array.isArray(payload.data.standings) ? payload.data.standings : []);
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : "No se pudo cargar el ranking de Zamora.";
         setError(message);
@@ -64,6 +66,31 @@ export default function ZamoraPage() {
   const leader = useMemo(() => zamora[0], [zamora]);
   const leaderPalette = leader ? getTeamPalette(leader.team, teams.find((team) => team.name === leader.team)?.primaryColor) : getTeamPalette("Aston Birras");
   const configuredLeaderColor = leaderPalette.primary;
+  const standingsPositionByTeam = useMemo(() => new Map(standings.map((entry, index) => [entry.team.trim(), entry.position ?? index + 1])), [standings]);
+  const orderedZamora = useMemo(() => [...zamora].sort((a, b) => {
+    const aPosition = standingsPositionByTeam.get(a.team.trim()) ?? Number.MAX_SAFE_INTEGER;
+    const bPosition = standingsPositionByTeam.get(b.team.trim()) ?? Number.MAX_SAFE_INTEGER;
+    const averageComparison = a.average - b.average;
+    if (averageComparison !== 0) {
+      return averageComparison;
+    }
+
+    const cleanSheetsDifference = b.cleanSheets - a.cleanSheets;
+    if (cleanSheetsDifference !== 0) {
+      return cleanSheetsDifference;
+    }
+
+    const goalsDifference = a.goalsAgainst - b.goalsAgainst;
+    if (goalsDifference !== 0) {
+      return goalsDifference;
+    }
+
+    if (aPosition !== bPosition) {
+      return aPosition - bPosition;
+    }
+
+    return a.team.localeCompare(b.team);
+  }), [standingsPositionByTeam, zamora]);
 
   return (
     <main className="page-shell">
@@ -104,7 +131,7 @@ export default function ZamoraPage() {
             </div>
 
             <div className="stat-rank-list">
-              {zamora.length > 0 ? zamora.slice(0, 5).map((keeper, index) => {
+              {orderedZamora.length > 0 ? orderedZamora.slice(0, 5).map((keeper, index) => {
                 const palette = getTeamPalette(keeper.team, teams.find((team) => team.name === keeper.team)?.primaryColor);
                 const configuredColor = palette.primary;
                 return (
@@ -135,7 +162,7 @@ export default function ZamoraPage() {
               <h2>Clasificación completa</h2>
               <span>Datos por partido</span>
             </div>
-            {zamora.length > 0 ? (
+            {orderedZamora.length > 0 ? (
               <table className="league-table keepers-table">
                 <thead>
                   <tr>
@@ -149,7 +176,7 @@ export default function ZamoraPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {zamora.map((keeper, index) => (
+                  {orderedZamora.map((keeper, index) => (
                     <tr key={`${keeper.name}-${keeper.team}`}>
                       <td>{index + 1}</td>
                       <td>{keeper.name}</td>

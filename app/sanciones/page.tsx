@@ -42,6 +42,7 @@ export default function SancionesPage() {
   const [sanctions, setSanctions] = useState<SanctionRow[]>([]);
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [calendar, setCalendar] = useState<CalendarRound[]>([]);
+  const [standings, setStandings] = useState<Array<{ team: string; position?: number }>>([]);
   const [yellowCardResetRoundId, setYellowCardResetRoundId] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +68,7 @@ export default function SancionesPage() {
         setSanctions(Array.isArray(payload.data.sanctions) ? payload.data.sanctions : []);
         setTeams(Array.isArray(payload.data.teams) ? payload.data.teams : []);
         setCalendar(Array.isArray(payload.data.calendar) ? payload.data.calendar : []);
+        setStandings(Array.isArray(payload.data.standings) ? payload.data.standings : []);
         setYellowCardResetRoundId(payload.data.finances?.yellowCardResetRoundId);
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : "No se pudo cargar el detalle de sanciones.";
@@ -89,6 +91,7 @@ export default function SancionesPage() {
   const totalDobles = useMemo(() => sanctions.filter((item) => item.card === "Doble amarilla").length, [sanctions]);
   const totalRojas = useMemo(() => sanctions.filter((item) => item.card === "Roja").length, [sanctions]);
   const totalOtras = useMemo(() => sanctions.filter((item) => item.card === "Otra").length, [sanctions]);
+  const standingsPositionByTeam = useMemo(() => new Map(standings.map((entry, index) => [entry.team.trim(), entry.position ?? index + 1])), [standings]);
   const fairPlayRanking = useMemo(() => {
     const points = new Map<string, number>(teams.map((team) => [team.name, 0]));
     sanctions.forEach((item) => { points.set(item.team, (points.get(item.team) ?? 0) + Number(item.points ?? item.pointsAmount ?? 0)); });
@@ -97,8 +100,21 @@ export default function SancionesPage() {
         points.set(item.team, Number(item.points ?? item.pointsAmount ?? 0));
       }
     });
-    return Array.from(points.entries()).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]));
-  }, [sanctions, teams]);
+    return Array.from(points.entries()).sort((a, b) => {
+      const pointsDifference = a[1] - b[1];
+      if (pointsDifference !== 0) {
+        return pointsDifference;
+      }
+
+      const aPosition = standingsPositionByTeam.get(a[0].trim()) ?? Number.MAX_SAFE_INTEGER;
+      const bPosition = standingsPositionByTeam.get(b[0].trim()) ?? Number.MAX_SAFE_INTEGER;
+      if (aPosition !== bPosition) {
+        return aPosition - bPosition;
+      }
+
+      return a[0].localeCompare(b[0]);
+    });
+  }, [sanctions, standingsPositionByTeam, teams]);
   const fairPlayLeader = fairPlayRanking[0];
   const fairPlayPalette = fairPlayLeader ? getTeamPalette(fairPlayLeader[0], teams.find((team) => team.name === fairPlayLeader[0])?.primaryColor) : getTeamPalette("Aston Birras");
   const fairPlayConfiguredColor = fairPlayPalette.primary;

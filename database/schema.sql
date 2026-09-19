@@ -113,14 +113,24 @@ CREATE TABLE IF NOT EXISTS financial_movements (
   pending_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
   movement_kind VARCHAR(20) NOT NULL DEFAULT 'otro',
   category VARCHAR(120),
-  entity VARCHAR(180),
   movement_date DATE,
   status VARCHAR(20) NOT NULL DEFAULT 'pendiente',
   previous_paid NUMERIC(10,2),
   settlement_only BOOLEAN NOT NULL DEFAULT FALSE,
-  notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS finance_entities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  season_id UUID NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+  name VARCHAR(180) NOT NULL,
+  entity_type VARCHAR(30) NOT NULL CHECK (entity_type IN ('patrocinador', 'entidad')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (season_id, name, entity_type)
+);
+
+ALTER TABLE financial_movements
+  ADD COLUMN IF NOT EXISTS entity_id UUID REFERENCES finance_entities(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS league_standings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -142,5 +152,7 @@ CREATE INDEX IF NOT EXISTS idx_players_team_id ON players(team_id);
 CREATE INDEX IF NOT EXISTS idx_matches_round_id ON matches(round_id);
 CREATE INDEX IF NOT EXISTS idx_matches_season_id ON matches(season_id);
 CREATE INDEX IF NOT EXISTS idx_financial_movements_season_id ON financial_movements(season_id);
+CREATE INDEX IF NOT EXISTS idx_financial_movements_entity_id ON financial_movements(entity_id);
+CREATE INDEX IF NOT EXISTS idx_finance_entities_season_id ON finance_entities(season_id);
 CREATE INDEX IF NOT EXISTS idx_disciplinary_records_player_id ON disciplinary_records(player_id);
 CREATE INDEX IF NOT EXISTS idx_league_standings_season_team ON league_standings(season_id, team_id);

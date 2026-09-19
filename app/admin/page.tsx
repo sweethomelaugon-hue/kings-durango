@@ -9,11 +9,14 @@ import {
   matches as initialMatches,
   sanctions as initialSanctions,
   teams,
+  type CalendarRound,
+  type Match,
 } from "@/lib/league-data";
 import { teamColors } from "@/lib/league-data";
 import { dedupeActiveDisciplineStatus, getDisciplineStatus, getNextTeamRound, getYellowCardsForPlayer, recalculateSuspensionRemaining } from "@/lib/discipline";
-import type { SeasonRecord, TeamRecord } from "@/lib/league-store";
+import type { FinanceEntity, SeasonRecord, TeamRecord } from "@/lib/league-store";
 import { clearAuthSession, isAdminSession, readAuthSession } from "@/lib/auth";
+import { getMovementConceptLabel, getMovementTypeLabel, MOVEMENT_CONCEPT_OPTIONS, normalizeFinanceKind } from "@/lib/finance-movements";
 import { buildAdminHeaders } from "@/lib/supabase";
 import { TeamIdentity } from "@/lib/team-identity";
 
@@ -142,7 +145,55 @@ const resultDraftFromMatch = (match: { home: string; away: string; score: string
   };
 };
 
-type FinanceKind = "cuota" | "patrocinio" | "premio" | "sancion" | "otro";
+const clearResultsForRoundAndLater = ({
+  calendar,
+  matches,
+  targetRoundId,
+}: {
+  calendar: CalendarRound[];
+  matches: Match[];
+  targetRoundId: number | string;
+}) => {
+  const targetNumber = Number(targetRoundId);
+  if (!Number.isFinite(targetNumber)) {
+    return { calendar, matches };
+  }
+
+  const affectedRoundIds = new Set(
+    calendar
+      .filter((round) => Number(round.id) >= targetNumber)
+      .map((round) => Number(round.id))
+  );
+
+  const nextMatches: Match[] = matches.map((match) => {
+    const round = calendar.find((candidate) =>
+      Array.isArray(candidate.matches)
+      && candidate.matches.some((fixture) => fixture.home === match.home && fixture.away === match.away)
+    );
+
+    if (!round || !affectedRoundIds.has(Number(round.id))) {
+      return match;
+    }
+
+    return {
+      ...match,
+      score: "-",
+      winner: undefined,
+      goalScorers: [],
+      shootoutScore: undefined,
+      status: "scheduled",
+    } satisfies Match;
+  });
+
+  const nextCalendar: CalendarRound[] = calendar.map((round) => affectedRoundIds.has(Number(round.id))
+    ? { ...round, status: "upcoming" }
+    : round
+  );
+
+  return { calendar: nextCalendar, matches: nextMatches };
+};
+
+type FinanceKind = "cuota" | "patrocinio" | "premio" | "sancion" | "arbitros" | "campo" | "material" | "eventos" | "otro";
 
 type ExpenseItem = {
   id: number;
@@ -152,6 +203,7 @@ type ExpenseItem = {
   kind?: FinanceKind;
   category?: string;
   entity?: string;
+  entityId?: string;
   paid?: number;
   pending?: number;
   date?: string;
@@ -363,11 +415,6 @@ export default function AdminPage() {
     [activeSeason, storeTeams]
   );
 
-  const currentRound = useMemo(
-    () => orderedCalendar.find((round) => round.status === "in-progress") ?? orderedCalendar[0],
-    []
-  );
-
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoadingStore, setIsLoadingStore] = useState(true);
   const [isSavingStore, setIsSavingStore] = useState(false);
@@ -404,6 +451,7 @@ export default function AdminPage() {
       fees: Record<string, number>;
       payments: Record<string, number>;
       expenses: ExpenseItem[];
+      entities?: FinanceEntity[];
       costs: {
         yellow: number;
         doubleYellow: number;
@@ -438,6 +486,7 @@ export default function AdminPage() {
           ...nextPayload,
           finances: {
             ...nextPayload.finances,
+            entities: nextPayload.finances.entities ?? financeEntities,
             points: penaltyPoints,
           },
         }),
@@ -524,10 +573,18 @@ export default function AdminPage() {
       .sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor || a.team.localeCompare(b.team));
   }, [matchResults, storeTeams]);
   const [calendarRounds, setCalendarRounds] = useState<RoundEditor[]>(initialCalendar);
+  const currentRound = useMemo(
+    () => calendarRounds.find((round) => round.status === "in-progress")
+      ?? calendarRounds.find((round) => round.status === "upcoming")
+      ?? [...calendarRounds].reverse().find((round) => round.status === "completed")
+      ?? calendarRounds[0],
+    [calendarRounds]
+  );
   const [cardDocket, setCardDocket] = useState(initialSanctions);
   const [registrationFees, setRegistrationFees] = useState<Record<string, number>>(initialRegistrationFees);
   const [teamPayments, setTeamPayments] = useState<Record<string, number>>(initialPayments);
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>(initialExpenses);
+  const [financeEntities, setFinanceEntities] = useState<FinanceEntity[]>([]);
   const [penaltyCosts, setPenaltyCosts] = useState({
     yellow: sanctionPrices.Amarilla,
     doubleYellow: sanctionPrices["Doble amarilla"],
@@ -589,6 +646,19 @@ export default function AdminPage() {
               ? { ...item, kind: "premio" as const, concept: "Pago cuota campeón" }
               : item
         ));
+        const loadedFinanceEntities: FinanceEntity[] = Array.isArray(store.finances?.entities) && store.finances.entities.length > 0
+          ? store.finances.entities
+          : Array.from(new Map(
+            loadedExpenses
+              .filter((item: ExpenseItem) => item.entity && (item.kind === "patrocinio" || item.kind === "otro"))
+              .map((item: ExpenseItem) => [`${item.kind}:${item.entity?.trim().toLowerCase()}`, {
+                id: `finance-entity-${item.kind}-${item.entity?.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+                name: item.entity?.trim() ?? "",
+                type: item.kind === "patrocinio" ? "patrocinador" as const : "entidad" as const,
+                seasonId: nextActiveSeason.id,
+              }])
+          ).values());
+        setFinanceEntities(loadedFinanceEntities);
         const loadedFees = store.finances?.fees ?? initialRegistrationFees;
         const loadedPayments = store.finances?.payments ?? initialPayments;
         const championTeam = loadedExpenses.find((item: ExpenseItem) => item.category === "Premio campeón")?.entity;
@@ -639,6 +709,7 @@ export default function AdminPage() {
               payments: loadedPayments,
               expenses: reconciledExpenses,
               costs: store.finances?.costs ?? penaltyCosts,
+              entities: loadedFinanceEntities,
             },
           });
         }
@@ -1008,14 +1079,13 @@ export default function AdminPage() {
     date: new Date().toISOString().slice(0, 10),
   });
   const [expenseForm, setExpenseForm] = useState({
-    concept: "Balones",
-    entity: "Material",
+    concept: "otro" as FinanceKind,
+    customConcept: "",
+    entity: "",
     amount: "120",
     paid: "0",
     type: "gasto" as ExpenseType,
-    category: "Gasto",
     date: new Date().toISOString().slice(0, 10),
-    status: "pendiente" as "planificado" | "pendiente" | "pagado",
   });
   const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
   const [movementFilter, setMovementFilter] = useState<"todos" | FinanceKind>("todos");
@@ -1124,8 +1194,23 @@ export default function AdminPage() {
   }, [penaltyBalance, registrationFees, teamPayments, storeTeams]);
 
   const allSponsors = useMemo(
-    () => Array.from(new Set(expenseItems.filter((item) => item.kind === "patrocinio" && (item.entity || item.sponsorName)).map((item) => item.entity ?? item.sponsorName ?? "Sin patrocinador"))).sort((a, b) => a.localeCompare(b)),
-    [expenseItems]
+    () => Array.from(new Set([
+      ...financeEntities.filter((entity) => entity.type === "patrocinador").map((entity) => entity.name),
+      ...expenseItems.filter((item) => item.kind === "patrocinio" && (item.entity || item.sponsorName)).map((item) => item.entity ?? item.sponsorName ?? "Sin patrocinador"),
+    ])).sort((a, b) => a.localeCompare(b)),
+    [expenseItems, financeEntities]
+  );
+
+  const financeEntityOptions = useMemo(
+    () => Array.from(new Set([
+      ...visibleTeams.map((team) => team.name),
+      ...allSponsors,
+      ...financeEntities.filter((entity) => entity.type === "entidad").map((entity) => entity.name),
+      ...expenseItems
+        .filter((item) => item.kind === "otro" && item.entity)
+        .map((item) => item.entity as string),
+    ])).sort((a, b) => a.localeCompare(b)),
+    [allSponsors, expenseItems, financeEntities, visibleTeams]
   );
 
   const sponsorTotalsByEntity = useMemo(() => {
@@ -1393,6 +1478,58 @@ export default function AdminPage() {
     } catch {
       setExpenseItems(expenseItems);
       setTeamPayments(teamPayments);
+    }
+  };
+
+  const deleteFinanceEntity = async (entity: string, kind: FinanceKind) => {
+    const normalizedEntity = entity.trim();
+    const entityType = kind === "patrocinio" ? "patrocinador" : "entidad";
+    const catalogEntity = financeEntities.find((entry) => entry.type === entityType && entry.name.trim().toLowerCase() === normalizedEntity.toLowerCase());
+    const relatedMovements = expenseItems.filter((item) =>
+      (catalogEntity?.id && item.entityId === catalogEntity.id) || (item.kind === kind && item.entity?.trim().toLowerCase() === normalizedEntity.toLowerCase())
+    );
+    if (!normalizedEntity || relatedMovements.length === 0) {
+      return;
+    }
+
+    const entityLabel = getMovementConceptLabel(kind) === "patrocinio" ? "patrocinador" : "entidad";
+    const confirmed = window.confirm(
+      `Vas a eliminar el ${entityLabel} "${normalizedEntity}" y sus ${relatedMovements.length} movimiento${relatedMovements.length === 1 ? "" : "s"}. ¿Quieres continuar?`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      assertAdminAccess();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "No tienes permisos para modificar la liga.");
+      return;
+    }
+
+    const nextExpenses = expenseItems.filter((item) => !(
+      (catalogEntity?.id && item.entityId === catalogEntity.id) || (item.kind === kind && item.entity?.trim().toLowerCase() === normalizedEntity.toLowerCase())
+    ));
+    const nextEntities = financeEntities.filter((entry) => entry.id !== catalogEntity?.id);
+    setExpenseItems(nextExpenses);
+    setFinanceEntities(nextEntities);
+    if (kind === "patrocinio") {
+      setSponsorForm((previous) => ({ ...previous, suggestedSponsor: "", sponsorName: "" }));
+    }
+    setExpenseForm((previous) => ({ ...previous, entity: "" }));
+
+    try {
+      await persistLeagueStore({
+        seasons,
+        teams: storeTeams,
+        matches: matchResults,
+        calendar: calendarRounds,
+        sanctions: cardDocket,
+        finances: { fees: registrationFees, payments: teamPayments, expenses: nextExpenses, costs: penaltyCosts, entities: nextEntities },
+      });
+    } catch {
+      setExpenseItems(expenseItems);
+      setFinanceEntities(financeEntities);
     }
   };
 
@@ -2386,35 +2523,40 @@ export default function AdminPage() {
   };
 
   const clearRoundResults = async (round: RoundEditor) => {
-    if (round.status === "completed") {
-      return;
-    }
-
-    const confirmed = window.confirm(`Vas a vaciar todos los resultados, goleadores y penaltis de ${round.title}. Los partidos y horarios del calendario no se borrarán. ¿Quieres continuar?`);
+    const confirmed = window.confirm(`Vas a borrar los resultados, goleadores y penaltis de ${round.title} y de todas las jornadas posteriores con resultados. Los partidos y horarios del calendario no se borrarán. ¿Quieres continuar?`);
     if (!confirmed) {
       return;
     }
 
-    const roundFixtures = new Set(round.matches.map((fixture) => resultDraftKey(fixture.home, fixture.away)));
-    const nextMatchResults = matchResults.map((match) => roundFixtures.has(resultDraftKey(match.home, match.away))
-      ? { ...match, score: "-", winner: undefined, goalScorers: [], shootoutScore: undefined }
-      : match
+    const affectedRoundIds = new Set(
+      calendarRounds
+        .filter((candidate) => Number(candidate.id) >= Number(round.id))
+        .map((candidate) => Number(candidate.id))
     );
+
     const nextDrafts = { ...resultDrafts };
-    round.matches.forEach((fixture) => {
-      nextDrafts[resultDraftKey(fixture.home, fixture.away)] = {
-        home: "",
-        away: "",
-        homeScorers: [],
-        awayScorers: [],
-        shootoutHome: "",
-        shootoutAway: "",
-      };
+    calendarRounds.forEach((candidate) => {
+      if (!affectedRoundIds.has(Number(candidate.id))) {
+        return;
+      }
+
+      candidate.matches.forEach((fixture) => {
+        nextDrafts[resultDraftKey(fixture.home, fixture.away)] = {
+          home: "",
+          away: "",
+          homeScorers: [],
+          awayScorers: [],
+          shootoutHome: "",
+          shootoutAway: "",
+        };
+      });
     });
-    const nextCalendar = calendarRounds.map((candidate) => candidate.id === round.id
-      ? { ...candidate, status: "upcoming" as const }
-      : candidate
-    );
+
+    const { calendar: nextCalendar, matches: nextMatchResults } = clearResultsForRoundAndLater({
+      calendar: calendarRounds,
+      matches: matchResults,
+      targetRoundId: round.id,
+    });
     const nextSanctions = recalculateSuspensionRemaining(cardDocket, nextCalendar);
 
     setIsSavingStore(true);
@@ -2433,6 +2575,7 @@ export default function AdminPage() {
         },
       });
       setMatchResults(nextMatchResults);
+      setResultDrafts(nextDrafts);
       setCalendarRounds(nextCalendar);
       setCardDocket(nextSanctions);
       setFormError(null);
@@ -2829,14 +2972,13 @@ export default function AdminPage() {
   const resetExpenseForm = () => {
     setEditingExpenseId(null);
     setExpenseForm({
-      concept: "Balones",
-      entity: "Material",
+      concept: "otro",
+      customConcept: "",
+      entity: "",
       amount: "120",
       paid: "0",
       type: "gasto",
-      category: "Gasto",
       date: new Date().toISOString().slice(0, 10),
-      status: "pendiente",
     });
   };
 
@@ -2852,8 +2994,9 @@ export default function AdminPage() {
     }
 
     const formValues = { ...expenseForm, ...overrides };
-    const concept = economyTab === "patrocinadores" ? "Abono patrocinio" : formValues.concept.trim();
-    if (!concept) {
+    const movementKind = economyTab === "patrocinadores" ? "patrocinio" : normalizeFinanceKind(formValues.concept);
+    const movementConcept = movementKind === "otro" ? formValues.customConcept.trim() : getMovementConceptLabel(movementKind);
+    if (!movementConcept) {
       setFormError("El concepto del movimiento es obligatorio.");
       return;
     }
@@ -2865,18 +3008,33 @@ export default function AdminPage() {
       return;
     }
 
+    const entityName = formValues.entity.trim() || "Sin entidad";
+    const existingEntity = financeEntities.find((entity) => entity.name.trim().toLowerCase() === entityName.toLowerCase());
+    const isTeamEntity = storeTeams.some((team) => team.name.trim().toLowerCase() === entityName.toLowerCase());
+    const entityType = existingEntity?.type ?? (economyTab === "patrocinadores" ? "patrocinador" : "entidad");
+    const nextEntity = !existingEntity && !isTeamEntity && entityName !== "Sin entidad"
+      ? {
+          id: `finance-entity-${Date.now()}`,
+          name: entityName,
+          type: entityType,
+          seasonId: activeSeason.id,
+        } satisfies FinanceEntity
+      : undefined;
+    const nextEntities = nextEntity ? [...financeEntities, nextEntity] : financeEntities;
+
     const nextEntry: ExpenseItem = {
       id: editingExpenseId ?? Date.now(),
-      concept,
+      concept: movementConcept,
       amount,
       type: formValues.type,
-      kind: economyTab === "cuotas" ? "cuota" : economyTab === "patrocinadores" ? "patrocinio" : "otro",
-      category: formValues.category || (formValues.type === "cobro" ? "Patrocinio" : "Gasto"),
-      entity: formValues.entity.trim() || "Sin entidad",
+      kind: movementKind,
+      category: getMovementConceptLabel(movementKind),
+      entity: entityName,
+      entityId: existingEntity?.id ?? nextEntity?.id,
       paid: Math.min(paid, amount),
       pending: Math.max(amount - paid, 0),
       date: formValues.date || new Date().toISOString().slice(0, 10),
-      status: paid >= amount ? "pagado" : formValues.status === "planificado" ? "planificado" : "pendiente",
+      status: paid >= amount ? "pagado" : "pendiente",
       settlementOnly: overrides.settlementOnly === true,
     };
 
@@ -2885,6 +3043,7 @@ export default function AdminPage() {
       : [nextEntry, ...expenseItems];
 
     setExpenseItems(nextExpenses);
+    setFinanceEntities(nextEntities);
     setFormError(null);
     resetExpenseForm();
 
@@ -2895,10 +3054,11 @@ export default function AdminPage() {
         matches: matchResults,
         calendar: calendarRounds,
         sanctions: cardDocket,
-        finances: { fees: registrationFees, payments: teamPayments, expenses: nextExpenses, costs: penaltyCosts },
+        finances: { fees: registrationFees, payments: teamPayments, expenses: nextExpenses, costs: penaltyCosts, entities: nextEntities },
       });
     } catch {
       setExpenseItems(expenseItems);
+      setFinanceEntities(financeEntities);
     }
   };
 
@@ -3194,6 +3354,9 @@ export default function AdminPage() {
                       </div>
 
                       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+                        <button type="button" className="button button-secondary" onClick={() => clearRoundResults(round)} disabled={isSavingStore}>
+                          Borrar resultados
+                        </button>
                         <button type="button" className="action-button" onClick={() => saveRoundResults(round, linkedMatches)} disabled={isSavingStore}>
                           {isSavingStore ? "Guardando…" : "Guardar cambios"}
                         </button>
@@ -3532,311 +3695,361 @@ export default function AdminPage() {
         );
       case "economia":
         return (
-          <section className="two-column">
-            <div className="content-card economy-panel">
-              <div className="economy-heading">
-                <div>
-                  <p className="eyebrow">Control financiero</p>
-                  <h2>Economía de la liga</h2>
+          <>
+            <section className="two-column">
+              <div className="content-card economy-panel">
+                <div className="economy-heading">
+                  <div>
+                    <p className="eyebrow">Control financiero</p>
+                    <h2>Economía de la liga</h2>
+                  </div>
                 </div>
-              </div>
 
-              <div className="tabs" role="tablist" aria-label="Tipos de movimiento económico" style={{ marginTop: 18, marginBottom: 18 }}>
-                <button type="button" className={`tab ${economyTab === "cuotas" ? "active" : ""}`} onClick={() => setEconomyTab("cuotas")}>Cuotas</button>
-                <button type="button" className={`tab ${economyTab === "patrocinadores" ? "active" : ""}`} onClick={() => setEconomyTab("patrocinadores")}>Patrocinadores</button>
-                <button type="button" className={`tab ${economyTab === "otros" ? "active" : ""}`} onClick={() => setEconomyTab("otros")}>Otros movimientos</button>
-              </div>
+                <div className="tabs" role="tablist" aria-label="Tipos de movimiento económico" style={{ marginTop: 18, marginBottom: 18 }}>
+                  <button type="button" className={`tab ${economyTab === "cuotas" ? "active" : ""}`} onClick={() => setEconomyTab("cuotas")}>Cuotas</button>
+                  <button type="button" className={`tab ${economyTab === "patrocinadores" ? "active" : ""}`} onClick={() => setEconomyTab("patrocinadores")}>Patrocinadores</button>
+                  <button type="button" className={`tab ${economyTab === "otros" ? "active" : ""}`} onClick={() => setEconomyTab("otros")}>Otros movimientos</button>
+                </div>
 
-              {economyTab === "cuotas" ? (
-                <form onSubmit={payPreviousChampionPrize} className="quota-single-form">
-                  <div className="admin-form-grid" style={{ marginBottom: 16 }}>
-                    <label>
-                      Cuota base por equipo
-                      <div className="quota-global-input-row">
-                        <input
-                          type="number"
-                          min={0}
-                          value={quotaForm.cuotaBase}
-                          onChange={(event) => setQuotaForm((previous) => ({ ...previous, cuotaBase: Number(event.target.value) || 0 }))}
-                        />
-                        <button type="button" className="button button-secondary table-action" onClick={() => void saveGlobalQuota()}>
-                          Aplicar a todos
-                        </button>
+                {economyTab === "cuotas" ? (
+                  <form onSubmit={payPreviousChampionPrize} className="quota-single-form">
+                    <div className="admin-form-grid" style={{ marginBottom: 16 }}>
+                      <label>
+                        Cuota base por equipo
+                        <div className="quota-global-input-row">
+                          <input
+                            type="number"
+                            min={0}
+                            value={quotaForm.cuotaBase}
+                            onChange={(event) => setQuotaForm((previous) => ({ ...previous, cuotaBase: Number(event.target.value) || 0 }))}
+                          />
+                          <button type="button" className="button button-secondary table-action" onClick={() => void saveGlobalQuota()}>
+                            Aplicar a todos
+                          </button>
+                        </div>
+                      </label>
+                      <label>
+                        Campeón temporada anterior
+                        <select
+                          value={selectedQuotaTeam?.name ?? ""}
+                          onChange={(event) => setQuotaForm((previous) => ({ ...previous, teamName: event.target.value }))}
+                        >
+                          {storeTeams.map((team) => (
+                            <option key={team.id} value={team.name}>{team.name}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    <div className="quota-selected-team">
+                      <div>
+                        <span className="eyebrow">Premio a pagar</span>
+                        <strong>{selectedQuotaTeam?.name ?? "Sin equipos"}</strong>
                       </div>
+                      <strong className="money">€{quotaForm.cuotaBase}</strong>
+                    </div>
+
+                    <div className="form-actions" style={{ marginTop: 16 }}>
+                      <button type="submit" className="action-button">Pagar cuota al campeón</button>
+                    </div>
+
+                    <div className="quota-pending-summary">
+                      <div className="quota-pending-heading">
+                        <div>
+                          <span className="eyebrow">Seguimiento por equipo</span>
+                          <strong>Cuotas pendientes</strong>
+                        </div>
+                        <span>{quotaPendingSummary.length} equipos</span>
+                      </div>
+                      <div className="quota-pending-list">
+                        {quotaPendingSummary.map((entry) => (
+                          <div key={entry.team} className="quota-pending-row">
+                            <div>
+                              <strong><TeamIdentity name={entry.team} compact /></strong>
+                              <small>Pagado: €{entry.paid} de €{entry.expected}</small>
+                            </div>
+                            <div className="quota-pending-amount">
+                              <input
+                                type="number"
+                                min={0}
+                                max={entry.pending}
+                                aria-label={`Nuevo abono de ${entry.team}`}
+                                placeholder="Importe"
+                                value={quotaPaidDrafts[entry.team] ?? ""}
+                                onChange={(event) => setQuotaPaidDrafts((previous) => ({ ...previous, [entry.team]: event.target.value }))}
+                              />
+                              <strong className={entry.pending > 0 ? "money" : "quota-paid"}>€{entry.pending}</strong>
+                              <span className={`status status-${entry.status.toLowerCase()}`}>{entry.status}</span>
+                              <button type="button" className="button button-secondary table-action" onClick={() => void saveQuotaInstallment(entry.team)}>
+                                Pagar
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </form>
+                ) : null}
+
+                {economyTab === "patrocinadores" ? (
+                  <form onSubmit={addExpense} className="admin-form-grid" style={{ marginTop: 6 }}>
+                    <label>
+                      Patrocinador
+                      <select
+                        value={sponsorForm.suggestedSponsor}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setSponsorForm((previous) => ({ ...previous, suggestedSponsor: value, sponsorName: value }));
+                          setExpenseForm((current) => ({ ...current, entity: value }));
+                        }}
+                      >
+                        <option value="">Añadir nuevo patrocinador</option>
+                        {allSponsors.map((sponsor) => (
+                          <option key={sponsor} value={sponsor}>{sponsor}</option>
+                        ))}
+                      </select>
+                      {sponsorForm.suggestedSponsor ? (
+                        <button
+                          type="button"
+                          className="button button-secondary danger-action"
+                          onClick={() => void deleteFinanceEntity(sponsorForm.suggestedSponsor, "patrocinio")}
+                        >
+                          Eliminar patrocinador
+                        </button>
+                      ) : null}
+                    </label>
+
+                    <label style={sponsorForm.suggestedSponsor ? { visibility: "hidden" } : undefined} aria-hidden={sponsorForm.suggestedSponsor ? true : undefined}>
+                        Nombre del patrocinador
+                        <input
+                          value={sponsorForm.sponsorName}
+                          placeholder="Escribe el nombre del patrocinador"
+                          aria-label="Nombre del nuevo patrocinador"
+                          style={{ borderColor: "rgba(212, 173, 77, 0.75)", boxShadow: "0 0 0 3px rgba(212, 173, 77, 0.12)" }}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setSponsorForm((previous) => ({ ...previous, sponsorName: value }));
+                            setExpenseForm((current) => ({ ...current, entity: value }));
+                          }}
+                        />
+                    </label>
+
+                    <label>
+                      Importe previsto
+                      <input type="number" value={sponsorForm.expectedAmount} onChange={(event) => setSponsorForm((previous) => ({ ...previous, expectedAmount: event.target.value }))} />
                     </label>
                     <label>
-                      Campeón temporada anterior
-                      <select
-                        value={selectedQuotaTeam?.name ?? ""}
-                        onChange={(event) => setQuotaForm((previous) => ({ ...previous, teamName: event.target.value }))}
+                      Importe recibido
+                      <input type="number" value={sponsorForm.receivedAmount} onChange={(event) => setSponsorForm((previous) => ({
+                        ...previous,
+                        receivedAmount: event.target.value,
+                        expectedAmount: previous.expectedAmount,
+                      }))} />
+                    </label>
+                    <label>
+                      Fecha
+                      <input type="date" value={sponsorForm.date} onChange={(event) => setSponsorForm((previous) => ({ ...previous, date: event.target.value }))} />
+                    </label>
+
+                    <div className="form-actions" style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}>
+                      <button
+                        type="button"
+                        className="action-button"
+                        onClick={() => {
+                          const paid = Number(sponsorForm.receivedAmount) || 0;
+                          const entity = (sponsorForm.sponsorName || sponsorForm.suggestedSponsor || "Patrocinador").trim();
+                          const existingSponsorTotals = expenseItems
+                            .filter((item) => item.kind === "patrocinio" && (item.entity ?? item.sponsorName ?? "Sin patrocinador").trim() === entity)
+                            .reduce((totals, item) => ({
+                              amount: totals.amount + (item.settlementOnly ? 0 : Number(item.amount) || 0),
+                              paid: totals.paid + (Number(item.paid ?? 0) || 0),
+                            }), { amount: 0, paid: 0 });
+                          const hasExpectedAmount = Number(sponsorForm.expectedAmount) > 0;
+                          const pendingBeforePayment = Math.max(existingSponsorTotals.amount - existingSponsorTotals.paid, 0);
+                          const settlementOnly = !hasExpectedAmount && paid > 0 && pendingBeforePayment > 0;
+                          const value = hasExpectedAmount ? Number(sponsorForm.expectedAmount) : paid;
+                          const sponsorValues: Partial<typeof expenseForm> & { settlementOnly?: boolean } = {
+                            concept: "patrocinio",
+                            entity,
+                            amount: String(value),
+                            paid: String(paid),
+                            type: "cobro" as ExpenseType,
+                            date: sponsorForm.date,
+                            settlementOnly,
+                          };
+                          setExpenseForm((previous) => ({ ...previous, ...sponsorValues }));
+                          void addExpense({ preventDefault: () => undefined } as React.FormEvent<HTMLFormElement>, sponsorValues);
+                        }}
                       >
-                        {storeTeams.map((team) => (
-                          <option key={team.id} value={team.name}>{team.name}</option>
+                        Guardar patrocinio
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
+
+                {economyTab === "otros" ? (
+                  <form onSubmit={addExpense} className="admin-form-grid" style={{ marginTop: 6 }}>
+                    <label>
+                      Concepto
+                      <select value={expenseForm.concept} onChange={(event) => setExpenseForm((previous) => ({
+                        ...previous,
+                        concept: event.target.value as FinanceKind,
+                        customConcept: event.target.value === "otro" ? previous.customConcept : "",
+                      }))}>
+                        {MOVEMENT_CONCEPT_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
                       </select>
                     </label>
-                  </div>
-
-                  <div className="quota-selected-team">
-                    <div>
-                      <span className="eyebrow">Premio a pagar</span>
-                      <strong>{selectedQuotaTeam?.name ?? "Sin equipos"}</strong>
-                    </div>
-                    <strong className="money">€{quotaForm.cuotaBase}</strong>
-                  </div>
-
-                  <div className="form-actions" style={{ marginTop: 16 }}>
-                    <button type="submit" className="action-button">Pagar cuota al campeón</button>
-                  </div>
-
-                  <div className="quota-pending-summary">
-                    <div className="quota-pending-heading">
-                      <div>
-                        <span className="eyebrow">Seguimiento por equipo</span>
-                        <strong>Cuotas pendientes</strong>
-                      </div>
-                      <span>{quotaPendingSummary.length} equipos</span>
-                    </div>
-                    <div className="quota-pending-list">
-                      {quotaPendingSummary.map((entry) => (
-                        <div key={entry.team} className="quota-pending-row">
-                          <div>
-                            <strong><TeamIdentity name={entry.team} compact /></strong>
-                            <small>Pagado: €{entry.paid} de €{entry.expected}</small>
-                          </div>
-                          <div className="quota-pending-amount">
-                            <input
-                              type="number"
-                              min={0}
-                              max={entry.pending}
-                              aria-label={`Nuevo abono de ${entry.team}`}
-                              placeholder="Importe"
-                              value={quotaPaidDrafts[entry.team] ?? ""}
-                              onChange={(event) => setQuotaPaidDrafts((previous) => ({ ...previous, [entry.team]: event.target.value }))}
-                            />
-                            <strong className={entry.pending > 0 ? "money" : "quota-paid"}>€{entry.pending}</strong>
-                            <span className={`status status-${entry.status.toLowerCase()}`}>{entry.status}</span>
-                            <button type="button" className="button button-secondary table-action" onClick={() => void saveQuotaInstallment(entry.team)}>
-                              Pagar
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </form>
-              ) : null}
-
-              {economyTab === "patrocinadores" ? (
-                <form onSubmit={addExpense} className="admin-form-grid" style={{ marginTop: 6 }}>
-                  <label>
-                    Patrocinador
-                    <select
-                      value={sponsorForm.suggestedSponsor}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        setSponsorForm((previous) => ({ ...previous, suggestedSponsor: value, sponsorName: value }));
-                        setExpenseForm((current) => ({ ...current, entity: value }));
-                      }}
-                    >
-                      <option value="">Nuevo patrocinador</option>
-                      {allSponsors.map((sponsor) => (
-                        <option key={sponsor} value={sponsor}>{sponsor}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label>
-                    Nombre del patrocinador
-                    <input
-                      value={sponsorForm.sponsorName || sponsorForm.suggestedSponsor}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        setSponsorForm((previous) => ({ ...previous, sponsorName: value }));
-                        setExpenseForm((current) => ({ ...current, entity: value }));
-                      }}
-                    />
-                  </label>
-
-                  <label>
-                    Importe previsto
-                    <input type="number" value={sponsorForm.expectedAmount} onChange={(event) => setSponsorForm((previous) => ({ ...previous, expectedAmount: event.target.value }))} />
-                  </label>
-                  <label>
-                    Importe recibido
-                    <input type="number" value={sponsorForm.receivedAmount} onChange={(event) => setSponsorForm((previous) => ({
-                      ...previous,
-                      receivedAmount: event.target.value,
-                      expectedAmount: previous.expectedAmount,
-                    }))} />
-                  </label>
-                  <label>
-                    Fecha
-                    <input type="date" value={sponsorForm.date} onChange={(event) => setSponsorForm((previous) => ({ ...previous, date: event.target.value }))} />
-                  </label>
-
-                  <div className="form-actions" style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}>
-                    <button
-                      type="button"
-                      className="action-button"
-                      onClick={() => {
-                        const paid = Number(sponsorForm.receivedAmount) || 0;
-                        const entity = (sponsorForm.sponsorName || sponsorForm.suggestedSponsor || "Patrocinador").trim();
-                        const existingSponsorTotals = expenseItems
-                          .filter((item) => item.kind === "patrocinio" && (item.entity ?? item.sponsorName ?? "Sin patrocinador").trim() === entity)
-                          .reduce((totals, item) => ({
-                            amount: totals.amount + (item.settlementOnly ? 0 : Number(item.amount) || 0),
-                            paid: totals.paid + (Number(item.paid ?? 0) || 0),
-                          }), { amount: 0, paid: 0 });
-                        const hasExpectedAmount = Number(sponsorForm.expectedAmount) > 0;
-                        const pendingBeforePayment = Math.max(existingSponsorTotals.amount - existingSponsorTotals.paid, 0);
-                        const settlementOnly = !hasExpectedAmount && paid > 0 && pendingBeforePayment > 0;
-                        const value = hasExpectedAmount ? Number(sponsorForm.expectedAmount) : paid;
-                        const sponsorValues = {
-                          concept: "Abono patrocinio",
-                          entity,
-                          amount: String(value),
-                          paid: String(paid),
-                          type: "cobro" as ExpenseType,
-                          category: "Patrocinio",
-                          date: sponsorForm.date,
-                          status: paid >= value ? "pagado" as const : "pendiente" as const,
-                          settlementOnly,
-                        };
-                        setExpenseForm((previous) => ({ ...previous, ...sponsorValues }));
-                        void addExpense({ preventDefault: () => undefined } as React.FormEvent<HTMLFormElement>, sponsorValues);
-                      }}
-                    >
-                      Guardar patrocinio
-                    </button>
-                  </div>
-                </form>
-              ) : null}
-
-              {economyTab === "otros" ? (
-                <form onSubmit={addExpense} className="admin-form-grid" style={{ marginTop: 6 }}>
-                  <label>
-                    Concepto
-                    <input value={expenseForm.concept} onChange={(event) => setExpenseForm((previous) => ({ ...previous, concept: event.target.value }))} />
-                  </label>
-                  <label>
-                    Entidad / proveedor
-                    <input value={expenseForm.entity} onChange={(event) => setExpenseForm((previous) => ({ ...previous, entity: event.target.value }))} />
-                  </label>
-                  <label>
-                    Tipo
-                    <select value={expenseForm.type} onChange={(event) => setExpenseForm((previous) => ({ ...previous, type: event.target.value as ExpenseType, category: event.target.value === "cobro" ? "Otros" : "Gasto" }))}>
-                      <option value="gasto">Gasto</option>
-                      <option value="cobro">Cobro</option>
-                    </select>
-                  </label>
-                  <label>
-                    Categoria
-                    <select value={expenseForm.category} onChange={(event) => setExpenseForm((previous) => ({ ...previous, category: event.target.value }))}>
-                      <option value="Gasto">Gasto</option>
-                      <option value="Otros">Otros</option>
-                    </select>
-                  </label>
-                  <label>
-                    Importe total
-                    <input type="number" value={expenseForm.amount} onChange={(event) => setExpenseForm((previous) => ({ ...previous, amount: event.target.value }))} />
-                  </label>
-                  <label>
-                    Pagado / recibido
-                    <input type="number" value={expenseForm.paid} onChange={(event) => setExpenseForm((previous) => ({ ...previous, paid: event.target.value }))} />
-                  </label>
-                  <label>
-                    Fecha
-                    <input type="date" value={expenseForm.date} onChange={(event) => setExpenseForm((previous) => ({ ...previous, date: event.target.value }))} />
-                  </label>
-                  <label>
-                    Estado
-                    <select value={expenseForm.status} onChange={(event) => setExpenseForm((previous) => ({ ...previous, status: event.target.value as "planificado" | "pendiente" | "pagado" }))}>
-                      <option value="planificado">Planificado</option>
-                      <option value="pendiente">Pendiente</option>
-                      <option value="pagado">Pagado</option>
-                    </select>
-                  </label>
-
-                  <div className="form-actions" style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}>
-                    <button type="submit" className="action-button">Guardar movimiento</button>
-                    {editingExpenseId !== null ? (
-                      <button type="button" className="button button-secondary" onClick={resetExpenseForm}>Cancelar</button>
-                    ) : null}
-                  </div>
-                </form>
-              ) : null}
-
-            </div>
-
-            <div className="content-card economy-panel economy-history-panel">
-              <div className="content-card cash-summary" style={{ marginBottom: 18 }}>
-                <div className="cash-summary-heading">
-                  <div>
-                    <p className="eyebrow">Balance de la liga</p>
-                    <strong>Caja</strong>
-                  </div>
-                  <strong className={`cash-balance ${cashAvailable >= 0 ? "positive" : "negative"}`}>€{cashAvailable}</strong>
-                </div>
-
-                <div className="cash-summary-grid">
-                  <div className="cash-metric income">
-                    <span>Ingresos reales</span>
-                    <strong>€{totalIncome}</strong>
-                    <small>Cuotas €{currentQuotaIncome} · Patrocinios €{currentSponsorIncome} · Otros €{currentOtherIncome}</small>
-                  </div>
-                  <div className="cash-metric expense">
-                    <span>Gastos reales</span>
-                    <strong>€{totalExpense}</strong>
-                    <small>Movimientos pagados y sanciones</small>
-                  </div>
-                  <div className="cash-metric projected">
-                    <span>Ingresos previstos</span>
-                    <strong>€{projectedIncome}</strong>
-                    <small>Si se cobran todos los pendientes</small>
-                  </div>
-                  <div className="cash-metric projected">
-                    <span>Gastos previstos</span>
-                    <strong>€{projectedExpense}</strong>
-                    <small>Si se pagan todos los pendientes</small>
-                  </div>
-                </div>
-
-                <div className="cash-projection-row">
-                  <span>Saldo previsto</span>
-                  <strong>€{projectedCash}</strong>
-                </div>
-
-                <div className="cash-pending-list">
-                  <div><span>Pendiente cuotas</span><strong>€{pendingQuotaIncome}</strong></div>
-                  <div><span>Pendiente patrocinadores</span><strong>€{pendingSponsorDebt}</strong></div>
-                  <div><span>Pendiente otros</span><strong>€{pendingOtherMovements}</strong></div>
-                </div>
-              </div>
-
-              <div className="content-card team-sanction-costs-card" style={{ marginBottom: 18 }}>
-                <div className="section-header compact-header">
-                  <h2>Costes pendientes de sanciones</h2>
-                  <span>Coste</span>
-                </div>
-                <div className="team-points-list team-sanction-costs-list">
-                  {pendingSanctionCostsByTeam.map(({ team, pending }) => (
-                    <div key={team.id} className="team-points-row">
-                      <TeamIdentity name={team.name} imageFile={team.shieldImage} compact />
-                      <strong className={pending > 0 ? "critical" : "low"}>€{pending}</strong>
-                      <button
-                        type="button"
-                        className="button button-secondary table-action"
-                        onClick={() => void settleSanctionCosts(team.name)}
-                        disabled={isSavingStore || pending <= 0}
+                    <label style={expenseForm.concept !== "otro" ? { visibility: "hidden" } : undefined} aria-hidden={expenseForm.concept !== "otro" ? true : undefined}>
+                      ¿Cuál es?
+                      <input
+                        value={expenseForm.customConcept}
+                        placeholder="Escribe el concepto"
+                        aria-label="Concepto personalizado"
+                        style={{ borderColor: "rgba(212, 173, 77, 0.75)", boxShadow: "0 0 0 3px rgba(212, 173, 77, 0.12)" }}
+                        onChange={(event) => setExpenseForm((previous) => ({ ...previous, customConcept: event.target.value }))}
+                      />
+                    </label>
+                    <label>
+                      Entidad
+                      <select
+                        value={financeEntityOptions.includes(expenseForm.entity) ? expenseForm.entity : "__new__"}
+                        onChange={(event) => setExpenseForm((previous) => ({
+                          ...previous,
+                          entity: event.target.value === "__new__" ? "" : event.target.value,
+                        }))}
                       >
-                        Saldar
-                      </button>
+                        <option value="__new__">Añadir nueva entidad</option>
+                        {financeEntityOptions.map((entity) => (
+                          <option key={entity} value={entity}>{entity}</option>
+                        ))}
+                      </select>
+                      {expenseForm.entity && !visibleTeams.some((team) => team.name === expenseForm.entity) && expenseItems.some((item) => item.entity?.trim() === expenseForm.entity.trim() && item.kind !== "cuota") ? (
+                        <button
+                          type="button"
+                          className="button button-secondary danger-action"
+                          onClick={() => void deleteFinanceEntity(expenseForm.entity, allSponsors.includes(expenseForm.entity) ? "patrocinio" : "otro")}
+                        >
+                          Eliminar entidad
+                        </button>
+                      ) : null}
+                      {!financeEntityOptions.includes(expenseForm.entity) ? (
+                        <input
+                          value={expenseForm.entity}
+                          placeholder="Escribe el nombre de la entidad"
+                          aria-label="Nombre de la nueva entidad"
+                          style={{ borderColor: "rgba(212, 173, 77, 0.75)", boxShadow: "0 0 0 3px rgba(212, 173, 77, 0.12)" }}
+                          onChange={(event) => setExpenseForm((previous) => ({ ...previous, entity: event.target.value }))}
+                        />
+                      ) : null}
+                    </label>
+                    <label>
+                      Tipo
+                      <select value={expenseForm.type} onChange={(event) => setExpenseForm((previous) => ({ ...previous, type: event.target.value as ExpenseType }))}>
+                        <option value="gasto">Gasto</option>
+                        <option value="cobro">Abono</option>
+                      </select>
+                    </label>
+                    <label>
+                      Importe total
+                      <input type="number" value={expenseForm.amount} onChange={(event) => setExpenseForm((previous) => ({ ...previous, amount: event.target.value }))} />
+                    </label>
+                    <label>
+                      Pagado / recibido
+                      <input type="number" value={expenseForm.paid} onChange={(event) => setExpenseForm((previous) => ({ ...previous, paid: event.target.value }))} />
+                    </label>
+                    <label>
+                      Pendiente
+                      <input type="number" value={Math.max(Number(expenseForm.amount || 0) - Number(expenseForm.paid || 0), 0)} readOnly />
+                    </label>
+                    <label>
+                      Fecha
+                      <input type="date" value={expenseForm.date} onChange={(event) => setExpenseForm((previous) => ({ ...previous, date: event.target.value }))} />
+                    </label>
+
+                    <div className="form-actions" style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}>
+                      <button type="submit" className="action-button">Guardar movimiento</button>
+                      {editingExpenseId !== null ? (
+                        <button type="button" className="button button-secondary" onClick={resetExpenseForm}>Cancelar</button>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
+                  </form>
+                ) : null}
+
               </div>
 
+              <div className="content-card economy-panel">
+                <div className="content-card cash-summary" style={{ marginBottom: 18 }}>
+                  <div className="cash-summary-heading">
+                    <div>
+                      <p className="eyebrow">Balance de la liga</p>
+                      <strong>Caja</strong>
+                    </div>
+                    <strong className={`cash-balance ${cashAvailable >= 0 ? "positive" : "negative"}`}>€{cashAvailable}</strong>
+                  </div>
+
+                  <div className="cash-summary-grid">
+                    <div className="cash-metric income">
+                      <span>Ingresos reales</span>
+                      <strong>€{totalIncome}</strong>
+                      <small>Cuotas €{currentQuotaIncome} · Patrocinios €{currentSponsorIncome} · Otros €{currentOtherIncome}</small>
+                    </div>
+                    <div className="cash-metric expense">
+                      <span>Gastos reales</span>
+                      <strong>€{totalExpense}</strong>
+                      <small>Movimientos pagados y sanciones</small>
+                    </div>
+                    <div className="cash-metric projected">
+                      <span>Ingresos previstos</span>
+                      <strong>€{projectedIncome}</strong>
+                      <small>Si se cobran todos los pendientes</small>
+                    </div>
+                    <div className="cash-metric projected">
+                      <span>Gastos previstos</span>
+                      <strong>€{projectedExpense}</strong>
+                      <small>Si se pagan todos los pendientes</small>
+                    </div>
+                  </div>
+
+                  <div className="cash-projection-row">
+                    <span>Saldo previsto</span>
+                    <strong>€{projectedCash}</strong>
+                  </div>
+
+                  <div className="cash-pending-list">
+                    <div><span>Pendiente cuotas</span><strong>€{pendingQuotaIncome}</strong></div>
+                    <div><span>Pendiente patrocinadores</span><strong>€{pendingSponsorDebt}</strong></div>
+                    <div><span>Pendiente otros</span><strong>€{pendingOtherMovements}</strong></div>
+                  </div>
+                </div>
+
+                <div className="content-card team-sanction-costs-card" style={{ marginBottom: 18 }}>
+                  <div className="section-header compact-header">
+                    <h2>Costes pendientes de sanciones</h2>
+                    <span>Coste</span>
+                  </div>
+                  <div className="team-points-list team-sanction-costs-list">
+                    {pendingSanctionCostsByTeam.map(({ team, pending }) => (
+                      <div key={team.id} className="team-points-row">
+                        <TeamIdentity name={team.name} imageFile={team.shieldImage} compact />
+                        <strong className={pending > 0 ? "critical" : "low"}>€{pending}</strong>
+                        <button
+                          type="button"
+                          className="button button-secondary table-action"
+                          onClick={() => void settleSanctionCosts(team.name)}
+                          disabled={isSavingStore || pending <= 0}
+                        >
+                          Saldar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="content-card economy-panel economy-history-panel" style={{ marginTop: 18 }}>
               <div className="economy-heading">
                 <div>
                   <p className="eyebrow">Seguimiento</p>
@@ -3899,22 +4112,33 @@ export default function AdminPage() {
                       return (
                         <tr key={item.id}>
                           <td>
-                            <select
-                              value={String(current.kind ?? item.kind ?? "otro")}
-                              onChange={(event) => setInlineMovementDrafts((previous) => ({ ...previous, [item.id]: { ...item, ...previous[item.id], kind: event.target.value as FinanceKind } }))}
-                            >
-                              <option value="cuota">Cuota</option>
-                              <option value="patrocinio">Patrocinio</option>
-                              <option value="premio">Premio</option>
-                              <option value="sancion">Sanción</option>
-                              <option value="otro">Otro</option>
-                            </select>
+                            <span className={`movement-type-chip ${current.type === "cobro" ? "income" : "expense"}`}>
+                              {getMovementTypeLabel(current.type)}
+                            </span>
                           </td>
                           <td>
-                            <input
-                              value={current.concept ?? ""}
-                              onChange={(event) => setInlineMovementDrafts((previous) => ({ ...previous, [item.id]: { ...item, ...previous[item.id], concept: event.target.value } }))}
-                            />
+                            <select
+                              value={String(current.kind ?? item.kind ?? "otro")}
+                              onChange={(event) => {
+                                const nextKind = event.target.value as FinanceKind;
+                                const nextConcept = getMovementConceptLabel(nextKind);
+                                setInlineMovementDrafts((previous) => ({
+                                  ...previous,
+                                  [item.id]: {
+                                    ...item,
+                                    ...previous[item.id],
+                                    kind: nextKind,
+                                    type: nextKind === "cuota" || nextKind === "patrocinio" ? "cobro" : current.type,
+                                    concept: nextConcept,
+                                    category: nextConcept,
+                                  },
+                                }));
+                              }}
+                            >
+                              {MOVEMENT_CONCEPT_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                              ))}
+                            </select>
                           </td>
                           <td>
                             <input
@@ -3969,9 +4193,8 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-
-            </div>
-          </section>
+            </section>
+          </>
         );
       default:
         return (

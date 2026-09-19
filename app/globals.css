@@ -2901,6 +2901,31 @@ select option {
   border-bottom: 0;
 }
 
+.movement-type-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.movement-type-chip.expense {
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.32);
+  background: rgba(239, 68, 68, 0.14);
+}
+
+.movement-type-chip.income {
+  color: #bbf7d0;
+  border-color: rgba(34, 197, 94, 0.32);
+  background: rgba(34, 197, 94, 0.14);
+}
+
 .economy-movement-table tbody tr:hover {
   background: rgba(47, 201, 138, 0.06);
 }

@@ -357,6 +357,47 @@ test("buildScorersFromMatches calcula goleadores reales por partido y equipo", (
   assert.equal(scorers[2].name, "Mikel");
 });
 
+test("buildScorersFromMatches desempata por posición en la clasificación general", () => {
+  const teams = [
+    { name: "Aston Birras", players: [{ name: "Aito" }, { name: "Iker" }] },
+    { name: "Inter Panda", players: [{ name: "Leo" }] },
+    { name: "Kalekantoi", players: [{ name: "Mikel" }] },
+  ];
+
+  const standings = [
+    { team: "Aston Birras", position: 1 },
+    { team: "Inter Panda", position: 2 },
+    { team: "Kalekantoi", position: 3 },
+  ];
+
+  const matches = [
+    {
+      home: "Aston Birras",
+      away: "Kalekantoi",
+      score: "2 - 1",
+      goalScorers: [
+        { player: "Aito", team: "Aston Birras", minute: 12 },
+        { player: "Mikel", team: "Kalekantoi", minute: 38 },
+      ],
+    },
+    {
+      home: "Inter Panda",
+      away: "Aston Birras",
+      score: "1 - 2",
+      goalScorers: [
+        { player: "Leo", team: "Inter Panda", minute: 58 },
+        { player: "Aito", team: "Aston Birras", minute: 71 },
+      ],
+    },
+  ];
+
+  const scorers = buildScorersFromMatches(teams, matches, standings);
+  assert.equal(scorers[0].team, "Aston Birras");
+  assert.equal(scorers[0].name, "Aito");
+  assert.equal(scorers[1].team, "Inter Panda");
+  assert.equal(scorers[2].team, "Kalekantoi");
+});
+
 test("buildZamoraFromMatches calcula porterías a cero y promedio por equipo", () => {
   const teams = [
     { name: "Aston Birras", players: [{ name: "Aitor", dorsal: 1 }] },
@@ -379,4 +420,27 @@ test("buildZamoraFromMatches calcula porterías a cero y promedio por equipo", (
   assert.equal(zamora[1].team, "Inter Panda");
   assert.equal(zamora[1].average, 1);
   assert.equal(zamora[2].team, "Kalekantoi");
+});
+
+test("buildZamoraFromMatches desempata por posición en la clasificación general", () => {
+  const teams = [
+    { name: "Aston Birras", players: [{ name: "Aitor", dorsal: 1 }] },
+    { name: "Inter Panda", players: [{ name: "Alex", dorsal: 1 }] },
+    { name: "Kalekantoi", players: [{ name: "Ander", dorsal: 1 }] },
+  ];
+
+  const standings = [
+    { team: "Aston Birras", position: 1 },
+    { team: "Inter Panda", position: 2 },
+    { team: "Kalekantoi", position: 3 },
+  ];
+
+  const matches = [
+    { home: "Aston Birras", away: "Inter Panda", score: "1 - 0" },
+    { home: "Kalekantoi", away: "Aston Birras", score: "0 - 1" },
+    { home: "Inter Panda", away: "Kalekantoi", score: "1 - 0" },
+  ];
+
+  const zamora = buildZamoraFromMatches(teams, matches, standings);
+  assert.deepEqual(zamora.filter((entry) => entry.goalsAgainst === 1).map((entry) => entry.team), ["Aston Birras", "Inter Panda"]);
 });

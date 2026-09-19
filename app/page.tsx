@@ -17,7 +17,7 @@ type ZamoraSummary = { name: string; team: string; goalsAgainst: number; matches
 
 type PublicLeagueState = {
   teams: Array<{ name: string; shortName?: string; primaryColor?: string; players?: Array<{ name: string; dorsal?: number | string }> }>;
-  matches: Array<{ id: number; home: string; away: string; score: string; shootoutScore?: string; winner?: string; jornada: string; goalScorers?: GoalScorerSummary[]; events?: { home: string; away: string } }>;
+  matches: Array<{ id: number; home: string; away: string; score: string; shootoutScore?: string; winner?: string; jornada: string; status?: "scheduled" | "finished" | "in-progress" | "cancelled"; goalScorers?: GoalScorerSummary[]; events?: { home: string; away: string } }>;
   calendar: Array<{ id: number; title: string; date: string; status: "completed" | "in-progress" | "upcoming"; matches: Array<{ home: string; away: string; time: string }>; descansan?: string[] }>;
   sanctions: Array<{ team: string; card: string; player: string; reason: string }>;
   scorers: ScorerSummary[];
@@ -99,6 +99,10 @@ export default function Home() {
         return result;
       }
 
+      if (result.status !== "finished") {
+        return result;
+      }
+
       const [homeGoals, awayGoals] = result.score.split("-").map((value) => Number(value.trim()));
       let winner: string | undefined;
       if (homeGoals > awayGoals) {
@@ -115,6 +119,9 @@ export default function Home() {
   })) ?? [], [currentRound, league.matches]);
 
   const currentRoundHasResults = currentRoundMatches.some((fixture) => fixture.result?.score && fixture.result.score !== "-");
+  const currentRoundStatusLabel = currentRound?.status === "in-progress"
+    ? "Jornada en curso"
+    : currentRoundHasResults ? "Jornada actual" : "Próxima jornada";
   const teamColorByName = useMemo(() => Object.fromEntries(league.teams.map((team) => [team.name, team.primaryColor])), [league.teams]);
 
   const sanctionCounts = useMemo(() => {
@@ -146,6 +153,21 @@ export default function Home() {
   const zamoraLeader = useMemo(() => {
     return league.zamora[0] ?? { name: "Sin datos", team: "-", average: 0, goalsAgainst: 0, matches: 0 };
   }, [league.zamora]);
+
+  const formatVisibleDate = (value?: string) => {
+    if (!value) {
+      return "Sin fecha";
+    }
+
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    const day = date.getDate();
+    const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    return `${day} ${monthNames[date.getMonth()]}`;
+  };
 
   const kpiTeamColor = (teamName: string) => teamColorByName[teamName] ?? teamColors[teamName]?.primary ?? "#117d5f";
 
@@ -283,19 +305,43 @@ export default function Home() {
           aria-label={currentRound?.title ? `Ver ${currentRound.title}` : "Ver jornadas"}
         >
           <div className="hero-ticket-heading">
-            <span className="ticket-label">{currentRoundHasResults ? "Jornada actual" : "Próxima jornada"}</span>
-            <small>{currentRound?.date ?? "Sin fecha"}</small>
+            <span className="ticket-label">{currentRoundStatusLabel}</span>
+            <small style={{ fontSize: 16, letterSpacing: 0.4, color: "#d9e2df", fontWeight: 700 }}>{formatVisibleDate(currentRound?.date)}</small>
           </div>
           <strong>{currentRound?.title ?? "Sin jornada"}</strong>
+          {currentRound?.status === "in-progress" ? (
+            <div style={{
+              marginTop: 10,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              alignSelf: "flex-start",
+              padding: "4px 10px",
+              borderRadius: 999,
+              border: "1px solid rgba(245, 158, 11, 0.35)",
+              background: "rgba(245, 158, 11, 0.12)",
+              color: "#f4d78d",
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: 0.7,
+              textTransform: "uppercase",
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#f4d78d", display: "inline-block" }} />
+              En curso
+            </div>
+          ) : null}
           <div className="hero-fixture-list">
-            {currentRoundMatches.length > 0 ? currentRoundMatches.map((fixture) => (
-              <div key={`${fixture.home}-${fixture.away}`} className="hero-fixture-row">
-                <span>{fixture.time}</span>
-                <b className={fixture.result?.winner === fixture.home ? "hero-winning-team" : undefined} style={fixture.result?.winner === fixture.home ? { "--team-color": teamColorByName[fixture.home] } as React.CSSProperties : undefined}><TeamIdentity name={fixture.home} compact /></b>
-                <em>{fixture.result?.score && fixture.result.score !== "-" ? fixture.result.score : "-"}</em>
-                <b className={fixture.result?.winner === fixture.away ? "hero-winning-team" : undefined} style={fixture.result?.winner === fixture.away ? { "--team-color": teamColorByName[fixture.away] } as React.CSSProperties : undefined}><TeamIdentity name={fixture.away} compact /></b>
-              </div>
-            )) : <small>Sin partidos definidos</small>}
+            {currentRoundMatches.length > 0 ? currentRoundMatches.map((fixture) => {
+              const isMatchInProgress = fixture.result?.status === "in-progress" || fixture.result?.status === "scheduled";
+              return (
+                <div key={`${fixture.home}-${fixture.away}`} className="hero-fixture-row">
+                  <span>{fixture.time}</span>
+                  <b className={fixture.result?.winner === fixture.home ? "hero-winning-team" : undefined} style={fixture.result?.winner === fixture.home ? { "--team-color": teamColorByName[fixture.home] } as React.CSSProperties : undefined}><TeamIdentity name={fixture.home} compact /></b>
+                  <em style={isMatchInProgress ? { color: "#f4d78d", fontWeight: 900 } : undefined}>{fixture.result?.score && fixture.result.score !== "-" ? fixture.result.score : "-"}</em>
+                  <b className={fixture.result?.winner === fixture.away ? "hero-winning-team" : undefined} style={fixture.result?.winner === fixture.away ? { "--team-color": teamColorByName[fixture.away] } as React.CSSProperties : undefined}><TeamIdentity name={fixture.away} compact /></b>
+                </div>
+              );
+            }) : <small>Sin partidos definidos</small>}
           </div>
           {currentRound?.descansan?.length ? (
             <div className="hero-resting"><span>Descansan</span>{currentRound.descansan.join(" · ")}</div>
@@ -343,7 +389,15 @@ export default function Home() {
             </div>
 
             <div className="content-card home-panel">
-              <div className="section-header"><h2>Jornada {lastCompletedRound?.id ?? ""} · Últimos resultados</h2><Link href="/jornadas">Ver jornada</Link></div>
+              <div className="section-header">
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <h2>Jornada {lastCompletedRound?.id ?? ""} · Últimos resultados</h2>
+                  {lastCompletedRound?.date ? (
+                    <small style={{ color: "#a9b9b5", fontWeight: 700, letterSpacing: 0.3 }}>{formatVisibleDate(lastCompletedRound.date)}</small>
+                  ) : null}
+                </div>
+                <Link href="/jornadas">Ver jornada</Link>
+              </div>
               <ul className="match-list compact">
                 {lastCompletedMatches.length > 0 ? lastCompletedMatches.map((match) => <li key={match.id} className="home-result-row"><span><b><TeamIdentity name={match.home} compact /></b><strong>{match.score || "-"}</strong><b><TeamIdentity name={match.away} compact /></b></span><small>Finalizado</small></li>) : <li><span>Sin resultados</span><small>--</small></li>}
               </ul>

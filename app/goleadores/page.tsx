@@ -18,6 +18,7 @@ type TeamRow = { name: string; primaryColor?: string };
 export default function GoleadoresPage() {
   const [scorers, setScorers] = useState<ScorerRow[]>([]);
   const [teams, setTeams] = useState<TeamRow[]>([]);
+  const [standings, setStandings] = useState<Array<{ team: string; position?: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +43,7 @@ export default function GoleadoresPage() {
         const incoming = Array.isArray(payload.data.scorers) ? payload.data.scorers : [];
         setScorers(incoming);
         setTeams(Array.isArray(payload.data.teams) ? payload.data.teams : []);
+        setStandings(Array.isArray(payload.data.standings) ? payload.data.standings : []);
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : "No se pudo cargar la estadística de goleadores.";
         setError(message);
@@ -62,6 +64,21 @@ export default function GoleadoresPage() {
   const featured = useMemo(() => scorers[0], [scorers]);
   const configuredFeaturedColor = featured ? teams.find((team) => team.name === featured.team)?.primaryColor ?? getTeamPalette(featured.team).primary : getTeamPalette("Aston Birras").primary;
   const teamPalette = featured ? getTeamPalette(featured.team, teams.find((team) => team.name === featured.team)?.primaryColor) : getTeamPalette("Aston Birras");
+  const standingsPositionByTeam = useMemo(() => new Map(standings.map((entry, index) => [entry.team.trim(), entry.position ?? index + 1])), [standings]);
+  const orderedScorers = useMemo(() => [...scorers].sort((a, b) => {
+    const goalsDifference = b.goals - a.goals;
+    if (goalsDifference !== 0) {
+      return goalsDifference;
+    }
+
+    const aPosition = standingsPositionByTeam.get(a.team.trim()) ?? Number.MAX_SAFE_INTEGER;
+    const bPosition = standingsPositionByTeam.get(b.team.trim()) ?? Number.MAX_SAFE_INTEGER;
+    if (aPosition !== bPosition) {
+      return aPosition - bPosition;
+    }
+
+    return a.name.localeCompare(b.name) || a.team.localeCompare(b.team);
+  }), [scorers, standingsPositionByTeam]);
 
   return (
     <main className="page-shell">
@@ -104,7 +121,7 @@ export default function GoleadoresPage() {
             </div>
 
             <div className="stat-rank-list">
-              {scorers.length > 0 ? scorers.slice(0, 5).map((player, index) => {
+              {orderedScorers.length > 0 ? orderedScorers.slice(0, 5).map((player, index) => {
                 const palette = getTeamPalette(player.team, teams.find((team) => team.name === player.team)?.primaryColor);
                 const configuredColor = palette.primary;
                 return (
@@ -135,7 +152,7 @@ export default function GoleadoresPage() {
               <h2>Todos los jugadores</h2>
               <span>{scorers.length} registros</span>
             </div>
-            {scorers.length > 0 ? (
+            {orderedScorers.length > 0 ? (
               <table className="league-table scorers-table">
                 <thead>
                   <tr>
@@ -147,7 +164,7 @@ export default function GoleadoresPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {scorers.map((player, index) => (
+                  {orderedScorers.map((player, index) => (
                     <tr key={`${player.name}-${player.team}`}>
                       <td>{index + 1}</td>
                       <td>{player.name}</td>

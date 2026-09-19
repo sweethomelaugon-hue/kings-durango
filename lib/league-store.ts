@@ -19,15 +19,23 @@ export type FinancialMovement = {
   concept: string;
   amount: number;
   type: "gasto" | "cobro";
-  kind?: "cuota" | "patrocinio" | "premio" | "sancion" | "otro";
+  kind?: "cuota" | "patrocinio" | "premio" | "sancion" | "arbitros" | "campo" | "material" | "eventos" | "otro";
   category?: string;
   entity?: string;
+  entityId?: string;
   paid?: number;
   pending?: number;
   date?: string;
   status?: "planificado" | "pendiente" | "pagado";
   previousPaid?: number;
   settlementOnly?: boolean;
+};
+
+export type FinanceEntity = {
+  id: string;
+  name: string;
+  type: "patrocinador" | "entidad";
+  seasonId?: string;
 };
 
 export type SeasonRecord = {
@@ -89,6 +97,7 @@ export type LeagueStore = {
     fees: Record<string, number>;
     payments: Record<string, number>;
     expenses: FinancialMovement[];
+    entities?: FinanceEntity[];
     costs: {
       yellow: number;
       doubleYellow: number;
@@ -153,6 +162,7 @@ const defaultStore: LeagueStore = {
       { id: 2, concept: "Fichas de arbitraje", amount: 180, type: "gasto", category: "Gasto", entity: "Arbitraje", paid: 180, pending: 0, date: "2026-09-01", status: "pagado" },
       { id: 3, concept: "Inscripción inicial", amount: 700, type: "cobro", category: "Inscripción", entity: "Aston Birras", paid: 150, pending: 550, date: "2026-09-01", status: "pendiente" },
     ],
+    entities: [],
     costs: {
       yellow: 30,
       doubleYellow: 60,
@@ -168,6 +178,54 @@ const defaultStore: LeagueStore = {
       yellowCardResetRoundId: undefined,
   },
 };
+
+export function clearResultsForRoundAndLater({
+  calendar,
+  matches,
+  targetRoundId,
+}: {
+  calendar: Array<{ id: number | string; title?: string; date?: string; status?: string; matches?: Array<{ time?: string; home?: string; away?: string; stadium?: string; result?: string }> }>;
+  matches: Array<{ id?: number | string; jornada?: string; date?: string; time?: string; home?: string; away?: string; score?: string; status?: string; winner?: string; goalScorers?: Array<{ player: string; team: string; minute?: number }> ; shootoutScore?: string }>;
+  targetRoundId: number | string;
+}) {
+  const targetId = Number(targetRoundId);
+  if (!Number.isFinite(targetId)) {
+    return { calendar, matches };
+  }
+
+  const affectedRoundIds = new Set(
+    calendar
+      .filter((round) => Number(round.id) >= targetId)
+      .map((round) => Number(round.id))
+  );
+
+  const nextMatches = matches.map((match) => {
+    const round = calendar.find((candidate) =>
+      Array.isArray(candidate.matches)
+      && candidate.matches.some((fixture) => fixture.home === match.home && fixture.away === match.away)
+    );
+
+    if (!round || !affectedRoundIds.has(Number(round.id))) {
+      return match;
+    }
+
+    return {
+      ...match,
+      score: "-",
+      winner: undefined,
+      goalScorers: [],
+      shootoutScore: undefined,
+      status: "scheduled",
+    };
+  });
+
+  const nextCalendar = calendar.map((round) => affectedRoundIds.has(Number(round.id))
+    ? { ...round, status: "upcoming" as const }
+    : round
+  );
+
+  return { calendar: nextCalendar, matches: nextMatches };
+}
 
 function normalizeSupabaseStatus(value: unknown, fallback: "completed" | "in-progress" | "upcoming" = "upcoming"): "completed" | "in-progress" | "upcoming" {
   const candidate = typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -410,6 +468,18 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
     };
   }).filter((row): row is NonNullable<typeof row> => row !== null);
 
+  const financeEntityIds = new Map<string, string>();
+  const financeEntityRows = (store.finances?.entities ?? []).map((entity) => {
+    const entityId = toUuid(entity.id, "finance-entity");
+    financeEntityIds.set(`${entity.type}:${entity.name.trim().toLowerCase()}`, entityId);
+    return {
+      id: entityId,
+      season_id: entity.seasonId ?? seasonId,
+      name: entity.name.trim(),
+      entity_type: entity.type,
+    };
+  });
+
   const manualFinancialMovementRows = (store.finances?.expenses ?? [])
     .filter((entry) => entry.category !== "Sanción")
     .map((entry) => {
@@ -426,13 +496,14 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
       paid_amount: Number(entry.paid ?? 0),
       pending_amount: Number(entry.pending ?? Math.max(Number(entry.amount ?? 0) - Number(entry.paid ?? 0), 0)),
       movement_kind: entry.kind ?? "otro",
+      entity_id: entry.entityId
+        ? toUuid(entry.entityId, "finance-entity")
+        : financeEntityIds.get(`${entry.kind === "patrocinio" ? "patrocinador" : "entidad"}:${teamName.toLowerCase()}`) ?? null,
       category: entry.category ?? null,
-      entity: entry.entity ?? null,
       movement_date: entry.date ?? null,
       status: entry.status ?? (Number(entry.paid ?? 0) >= Number(entry.amount ?? 0) ? "pagado" : "pendiente"),
       previous_paid: entry.previousPaid ?? null,
       settlement_only: entry.settlementOnly === true,
-      notes: entry.category ? `${entry.category}` : undefined,
     };
   });
 
@@ -458,7 +529,6 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
       status: paid >= amount ? "pagado" : "pendiente",
       previous_paid: null,
       settlement_only: false,
-      notes: `${sanction.card ?? "Sanción"} · ${sanction.reason ?? ""}`.trim(),
     };
   });
 
@@ -473,6 +543,7 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
     match_events: eventRows,
     disciplinary_records: sanctionRows,
     team_fees: feeRows,
+    finance_entities: financeEntityRows,
     financial_movements: financialMovementRows,
   };
 }
@@ -540,7 +611,7 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
   const movementsQuery = async () => {
     const detailed = await client
       .from("financial_movements")
-      .select("id, concept, amount, movement_type, team_id, entity, notes, paid_amount, pending_amount, movement_kind, category, movement_date, status, previous_paid, settlement_only, created_at")
+      .select("id, concept, amount, movement_type, team_id, entity_id, paid_amount, pending_amount, movement_kind, category, movement_date, status, previous_paid, settlement_only, created_at")
       .order("created_at", { ascending: false });
 
     if (!detailed.error || !/column|schema cache/i.test(detailed.error.message)) {
@@ -549,22 +620,36 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
 
     return client
       .from("financial_movements")
-      .select("id, concept, amount, movement_type, team_id, notes, created_at")
+      .select("id, concept, amount, movement_type, team_id, created_at")
       .order("created_at", { ascending: false });
   };
 
-  const [{ data: seasonsData, error: seasonsError }, { data: teamsData, error: teamsError }, { data: roundsData, error: roundsError }, { data: matchesData, error: matchesError }, { data: feesData, error: feesError }, { data: movementsData, error: movementsError }, { data: sanctionsData, error: sanctionsError }, { data: eventsData, error: eventsError }] = await Promise.all([
+  const financeEntitiesQuery = async () => {
+    const result = await client
+      .from("finance_entities")
+      .select("id, season_id, name, entity_type")
+      .order("name", { ascending: true });
+
+    if (result.error && /relation|table|schema cache/i.test(result.error.message)) {
+      return { data: [], error: null };
+    }
+
+    return result;
+  };
+
+  const [{ data: seasonsData, error: seasonsError }, { data: teamsData, error: teamsError }, { data: roundsData, error: roundsError }, { data: matchesData, error: matchesError }, { data: feesData, error: feesError }, { data: movementsData, error: movementsError }, { data: financeEntitiesData, error: financeEntitiesError }, { data: sanctionsData, error: sanctionsError }, { data: eventsData, error: eventsError }] = await Promise.all([
     client.from("seasons").select("id, name, year_start, year_end, is_active").order("year_start", { ascending: true }),
     client.from("teams").select("id, name, short_name, stadium_name, primary_color, shield_image, season_id, players:players(id, name, dorsal, is_goalkeeper)").order("name"),
     client.from("rounds").select("id, title, round_number, date, status, season_id").order("round_number", { ascending: true }),
     client.from("matches").select("id, season_id, round_id, home_team_id, away_team_id, scheduled_at, stadium_name, home_goals, away_goals, shootout_home_goals, shootout_away_goals, status, created_at, home_team:teams!matches_home_team_id_fkey(name), away_team:teams!matches_away_team_id_fkey(name)").order("scheduled_at", { ascending: true }),
     client.from("team_fees").select("team_id, fee_amount, paid_amount, status").order("team_id", { ascending: true }),
     movementsQuery(),
+    financeEntitiesQuery(),
     sanctionsQuery(),
     client.from("match_events").select("id, match_id, minute, event_type, player:players!match_events_player_id_fkey(name), team:teams!match_events_team_id_fkey(name)").order("minute", { ascending: true }),
   ]);
 
-  if (seasonsError || teamsError || roundsError || matchesError || feesError || movementsError || sanctionsError || eventsError) {
+  if (seasonsError || teamsError || roundsError || matchesError || feesError || movementsError || financeEntitiesError || sanctionsError || eventsError) {
     console.error("No se pudo leer el store completo desde Supabase", {
       seasons: seasonsError?.message,
       teams: teamsError?.message,
@@ -572,6 +657,7 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
       matches: matchesError?.message,
       fees: feesError?.message,
       movements: movementsError?.message,
+      financeEntities: financeEntitiesError?.message,
       sanctions: sanctionsError?.message,
       events: eventsError?.message,
     });
@@ -780,8 +866,8 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
         const amount = normalizeSupabaseMoney(entry.amount, 0);
         const paid = normalizeSupabaseMoney((entry as { paid_amount?: number }).paid_amount, movementType === "gasto" ? 0 : amount);
         const pending = normalizeSupabaseMoney((entry as { pending_amount?: number }).pending_amount, Math.max(amount - paid, 0));
-        const kind = ["cuota", "patrocinio", "premio", "sancion", "otro"].includes(String((entry as { movement_kind?: string }).movement_kind))
-          ? String((entry as { movement_kind?: string }).movement_kind) as "cuota" | "patrocinio" | "premio" | "sancion" | "otro"
+        const kind = ["cuota", "patrocinio", "premio", "sancion", "arbitros", "campo", "material", "eventos", "otro"].includes(String((entry as { movement_kind?: string }).movement_kind))
+          ? String((entry as { movement_kind?: string }).movement_kind) as "cuota" | "patrocinio" | "premio" | "sancion" | "arbitros" | "campo" | "material" | "eventos" | "otro"
           : "otro";
 
         return {
@@ -790,8 +876,10 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
           amount,
           type: movementType as FinancialMovement["type"],
           kind,
-          category: typeof (entry as { category?: string }).category === "string" ? (entry as { category?: string }).category : typeof entry.notes === "string" ? entry.notes : undefined,
-          entity: typeof (entry as { entity?: string }).entity === "string" ? (entry as { entity?: string }).entity : typeof entry.team_id === "string" ? teams.find((team) => team.id === entry.team_id)?.name ?? "Equipo" : "Liga",
+          entityId: typeof (entry as { entity_id?: string }).entity_id === "string" ? (entry as { entity_id?: string }).entity_id : undefined,
+          category: typeof (entry as { category?: string }).category === "string" ? (entry as { category?: string }).category : undefined,
+          entity: financeEntitiesData.find((entity) => String((entity as { id?: string }).id) === String((entry as { entity_id?: string }).entity_id))?.name
+            ?? (typeof entry.team_id === "string" ? teams.find((team) => team.id === entry.team_id)?.name ?? "Equipo" : "Liga"),
           paid,
           pending,
           date: typeof (entry as { movement_date?: string }).movement_date === "string" ? (entry as { movement_date?: string }).movement_date : typeof entry.created_at === "string" ? entry.created_at.slice(0, 10) : undefined,
@@ -801,6 +889,17 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
         } satisfies FinancialMovement;
       })
     : defaultStore.finances.expenses;
+
+  const financeEntities = Array.isArray(financeEntitiesData)
+    ? financeEntitiesData
+        .map((entry) => ({
+          id: String((entry as { id?: string }).id ?? ""),
+          seasonId: String((entry as { season_id?: string }).season_id ?? ""),
+          name: String((entry as { name?: string }).name ?? "").trim(),
+          type: String((entry as { entity_type?: string }).entity_type) === "patrocinador" ? "patrocinador" as const : "entidad" as const,
+        }))
+        .filter((entry) => entry.id.length > 0 && entry.name.length > 0)
+    : defaultStore.finances.entities;
 
   const calendar = Array.isArray(roundsData)
     ? rounds.map((round) => ({
@@ -884,6 +983,7 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
       fees,
       payments,
       expenses,
+      entities: financeEntities,
       costs: defaultStore.finances.costs,
       points: defaultStore.finances.points,
       yellowCardResetRoundId: undefined,
@@ -1230,6 +1330,7 @@ export function normalizeLeagueStore(value: unknown): LeagueStore {
   const fees = isRecord(finances.fees) ? finances.fees : defaultStore.finances.fees;
   const payments = isRecord(finances.payments) ? finances.payments : defaultStore.finances.payments;
   const expenses = Array.isArray(finances.expenses) ? finances.expenses : defaultStore.finances.expenses;
+  const financeEntities = Array.isArray(finances.entities) ? finances.entities : (defaultStore.finances.entities ?? []);
   const costs = isRecord(finances.costs) ? finances.costs : defaultStore.finances.costs;
   const points = isRecord(finances.points) ? finances.points : { yellow: 2, doubleYellow: 4, red: 5, other: 0 };
 
@@ -1257,9 +1358,10 @@ export function normalizeLeagueStore(value: unknown): LeagueStore {
           concept: normalizeString(entry.concept, "Movimiento sin nombre"),
           amount,
           type: entry.type === "cobro" ? "cobro" : "gasto",
-          kind: entry.kind === "cuota" || entry.kind === "patrocinio" || entry.kind === "premio" || entry.kind === "sancion" || entry.kind === "otro" ? entry.kind : undefined,
+          kind: entry.kind === "cuota" || entry.kind === "patrocinio" || entry.kind === "premio" || entry.kind === "sancion" || entry.kind === "arbitros" || entry.kind === "campo" || entry.kind === "material" || entry.kind === "eventos" || entry.kind === "otro" ? entry.kind : undefined,
           category: typeof entry.category === "string" ? entry.category : undefined,
           entity: typeof entry.entity === "string" ? entry.entity : undefined,
+          entityId: typeof entry.entityId === "string" ? entry.entityId : undefined,
           paid,
           pending,
           date: typeof entry.date === "string" ? entry.date : undefined,
@@ -1270,6 +1372,14 @@ export function normalizeLeagueStore(value: unknown): LeagueStore {
           settlementOnly: entry.settlementOnly === true,
         };
       }),
+      entities: financeEntities
+        .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+        .map((entry) => ({
+          id: normalizeString(entry.id, `finance-entity-${Date.now()}`),
+          name: normalizeString(entry.name, "Entidad sin nombre"),
+          type: entry.type === "patrocinador" ? "patrocinador" as const : "entidad" as const,
+          seasonId: typeof entry.seasonId === "string" ? entry.seasonId : activeSeasonId,
+        })),
       costs: {
         yellow: Number(costs.yellow) || 0,
         doubleYellow: Number(costs.doubleYellow) || 0,
@@ -1455,6 +1565,21 @@ async function syncLeagueStoreToSupabase(nextStore: LeagueStore) {
   const { error: feesError } = await client.from("team_fees").upsert(syncRows.team_fees, { onConflict: "team_id,season_id" });
   if (feesError) {
     throw new Error(`No se pudo guardar las cuotas en Supabase: ${feesError.message}`);
+  }
+
+  const { error: deleteFinanceEntitiesError } = await client
+    .from("finance_entities")
+    .delete()
+    .eq("season_id", seasonIds[0]);
+  if (deleteFinanceEntitiesError && !/relation|table|schema cache/i.test(deleteFinanceEntitiesError.message)) {
+    throw new Error(`No se pudieron actualizar las entidades financieras en Supabase: ${deleteFinanceEntitiesError.message}`);
+  }
+
+  const { error: financeEntitiesError } = syncRows.finance_entities.length > 0
+    ? await client.from("finance_entities").insert(syncRows.finance_entities)
+    : { error: null };
+  if (financeEntitiesError) {
+    throw new Error(`No se pudieron guardar las entidades financieras en Supabase: ${financeEntitiesError.message}`);
   }
 
   const { error: deleteMovementsError } = await client

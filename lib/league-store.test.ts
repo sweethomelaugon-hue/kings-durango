@@ -1,8 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { getMovementConceptLabel, getMovementTypeLabel } from "@/lib/finance-movements";
 import { teamColors } from "@/lib/league-data";
-import { buildGoalScorersFromEvents, buildSupabaseSyncRows, validateLeagueStore, validateLeagueStorePayload } from "@/lib/league-store";
+import { buildGoalScorersFromEvents, buildSupabaseSyncRows, clearResultsForRoundAndLater, validateLeagueStore, validateLeagueStorePayload } from "@/lib/league-store";
+
+test("getMovementTypeLabel y getMovementConceptLabel usan el vocabulario del modelo financiero persistido", () => {
+  assert.equal(getMovementTypeLabel("cobro"), "Abono");
+  assert.equal(getMovementTypeLabel("gasto"), "Gasto");
+  assert.equal(getMovementConceptLabel("sancion"), "sanción");
+  assert.equal(getMovementConceptLabel("patrocinio"), "patrocinio");
+  assert.equal(getMovementConceptLabel("otro"), "otros");
+});
 
 test("buildGoalScorersFromEvents convierte eventos de gol del match_events en goleadores", () => {
   const events = [
@@ -145,6 +154,35 @@ test("buildSupabaseSyncRows prepara las filas para sincronizar la liga en Supaba
   assert.equal(rows.team_fees[0].team_id, rows.teams[0].id);
   assert.equal(rows.match_events[0].player_id, rows.players[0].id);
   assert.equal(rows.disciplinary_records[0].player_id, rows.players[0].id);
+});
+
+test("clearResultsForRoundAndLater borra resultados y goleadores desde la jornada elegida y las posteriores", () => {
+  const calendar = [
+    { id: 1, title: "Jornada 1", date: "2026-09-10", status: "completed", matches: [{ time: "19:00", home: "A", away: "B" }], descansan: [] },
+    { id: 2, title: "Jornada 2", date: "2026-09-17", status: "completed", matches: [{ time: "19:00", home: "C", away: "D" }], descansan: [] },
+    { id: 3, title: "Jornada 3", date: "2026-09-24", status: "completed", matches: [{ time: "19:00", home: "E", away: "F" }], descansan: [] },
+    { id: 4, title: "Jornada 4", date: "2026-10-01", status: "completed", matches: [{ time: "19:00", home: "G", away: "H" }], descansan: [] },
+  ];
+
+  const matches = [
+    { id: 1, jornada: "Jornada 1", date: "2026-09-10", time: "19:00", home: "A", away: "B", score: "1 - 0", status: "finished", goalScorers: [{ player: "Aitor", team: "A" }] },
+    { id: 2, jornada: "Jornada 2", date: "2026-09-17", time: "19:00", home: "C", away: "D", score: "2 - 1", status: "finished", goalScorers: [{ player: "Beto", team: "C" }] },
+    { id: 3, jornada: "Jornada 3", date: "2026-09-24", time: "19:00", home: "E", away: "F", score: "3 - 2", status: "finished", goalScorers: [{ player: "Carlos", team: "E" }] },
+    { id: 4, jornada: "Jornada 4", date: "2026-10-01", time: "19:00", home: "G", away: "H", score: "0 - 0", status: "finished", goalScorers: [{ player: "Diego", team: "G" }], shootoutScore: "4 - 2" },
+  ] as any;
+
+  const next = clearResultsForRoundAndLater({ calendar, matches, targetRoundId: 3 });
+
+  assert.equal(next.matches[0].score, "1 - 0");
+  assert.equal(next.matches[1].score, "2 - 1");
+  assert.equal(next.matches[2].score, "-");
+  assert.deepEqual(next.matches[2].goalScorers, []);
+  assert.equal(next.matches[3].score, "-");
+  assert.deepEqual(next.matches[3].goalScorers, []);
+  assert.equal(next.calendar[0].status, "completed");
+  assert.equal(next.calendar[1].status, "completed");
+  assert.equal(next.calendar[2].status, "upcoming");
+  assert.equal(next.calendar[3].status, "upcoming");
 });
 
 test("validateLeagueStorePayload lanza error si falta el bloque finances", () => {

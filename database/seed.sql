@@ -98,7 +98,6 @@ CREATE TABLE IF NOT EXISTS financial_movements (
   concept VARCHAR(180) NOT NULL,
   movement_type VARCHAR(20) NOT NULL CHECK (movement_type IN ('income', 'expense')),
   amount NUMERIC(10,2) NOT NULL DEFAULT 0,
-  notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -194,12 +193,12 @@ VALUES
   ('30000000-0000-0000-0000-000000000006', '66666666-6666-6666-6666-666666666666', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 250, 210, 'pending')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO financial_movements (id, season_id, team_id, concept, movement_type, amount, notes)
+INSERT INTO financial_movements (id, season_id, team_id, concept, movement_type, amount)
 VALUES
-  ('40000000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 'Cuota equipo', 'income', 250, 'Cuota de la temporada'),
-  ('40000000-0000-0000-0000-000000000002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', NULL, 'Balones', 'expense', 160, 'Material de la liga'),
-  ('40000000-0000-0000-0000-000000000003', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', NULL, 'Arbitraje', 'expense', 180, 'Fichas de arbitraje'),
-  ('40000000-0000-0000-0000-000000000004', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '22222222-2222-2222-2222-222222222222', 'Patrocinio', 'income', 500, 'Aportación del patrocinador')
+  ('40000000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 'Cuota equipo', 'income', 250),
+  ('40000000-0000-0000-0000-000000000002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', NULL, 'Balones', 'expense', 160),
+  ('40000000-0000-0000-0000-000000000003', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', NULL, 'Arbitraje', 'expense', 180),
+  ('40000000-0000-0000-0000-000000000004', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '22222222-2222-2222-2222-222222222222', 'Patrocinio', 'income', 500)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO league_standings (id, season_id, team_id, played, wins, draws, losses, goals_for, goals_against, goal_difference, points)

@@ -198,9 +198,27 @@ export function buildStandingsFromMatches(
     .map((team, index) => ({ ...team, position: index + 1 }));
 }
 
+function getTeamPositionMap(standings?: Array<{ team: string; position?: number }>) {
+  const positionByTeam = new Map<string, number>();
+  if (!Array.isArray(standings)) {
+    return positionByTeam;
+  }
+
+  standings.forEach((entry, index) => {
+    if (!entry || typeof entry.team !== "string") {
+      return;
+    }
+
+    positionByTeam.set(entry.team.trim(), entry.position ?? index + 1);
+  });
+
+  return positionByTeam;
+}
+
 export function buildScorersFromMatches(
   teams: Array<{ name: string; players?: Array<{ name: string }> }>,
-  matches: Array<Record<string, unknown>>
+  matches: Array<Record<string, unknown>>,
+  standings?: Array<{ team: string; position?: number }>
 ) {
   const playerStats = new Map<string, { name: string; team: string; goals: number; matches: Set<number> }>();
 
@@ -256,6 +274,8 @@ export function buildScorersFromMatches(
     }
   }
 
+  const standingsPositionByTeam = getTeamPositionMap(standings);
+
   return Array.from(playerStats.values())
     .filter((entry) => entry.goals > 0)
     .map((entry) => ({
@@ -264,12 +284,26 @@ export function buildScorersFromMatches(
       goals: entry.goals,
       matches: entry.matches.size,
     }))
-    .sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name) || a.team.localeCompare(b.team));
+    .sort((a, b) => {
+      const goalsDifference = b.goals - a.goals;
+      if (goalsDifference !== 0) {
+        return goalsDifference;
+      }
+
+      const aPosition = standingsPositionByTeam.get(a.team) ?? Number.MAX_SAFE_INTEGER;
+      const bPosition = standingsPositionByTeam.get(b.team) ?? Number.MAX_SAFE_INTEGER;
+      if (aPosition !== bPosition) {
+        return aPosition - bPosition;
+      }
+
+      return a.name.localeCompare(b.name) || a.team.localeCompare(b.team);
+    });
 }
 
 export function buildZamoraFromMatches(
   teams: Array<{ name: string; players?: Array<{ name: string; isGoalkeeper?: boolean }> }>,
-  matches: Array<Record<string, unknown>>
+  matches: Array<Record<string, unknown>>,
+  standings?: Array<{ team: string; position?: number }>
 ) {
   const entries = new Map<string, { name: string; team: string; matches: number; goalsAgainst: number; cleanSheets: number }>();
 
@@ -324,6 +358,8 @@ export function buildZamoraFromMatches(
     if (homeGoals === 0) awayKeeper.cleanSheets += 1;
   }
 
+  const standingsPositionByTeam = getTeamPositionMap(standings);
+
   return Array.from(entries.values())
     .map((entry) => ({
       name: entry.name,
@@ -334,7 +370,30 @@ export function buildZamoraFromMatches(
       average: entry.matches > 0 ? Number((entry.goalsAgainst / entry.matches).toFixed(2)) : 0,
     }))
     .filter((entry) => entry.matches > 0)
-    .sort((a, b) => a.average - b.average || b.cleanSheets - a.cleanSheets || a.goalsAgainst - b.goalsAgainst || a.team.localeCompare(b.team));
+    .sort((a, b) => {
+      const averageDifference = a.average - b.average;
+      if (averageDifference !== 0) {
+        return averageDifference;
+      }
+
+      const cleanSheetsDifference = b.cleanSheets - a.cleanSheets;
+      if (cleanSheetsDifference !== 0) {
+        return cleanSheetsDifference;
+      }
+
+      const goalsAgainstDifference = a.goalsAgainst - b.goalsAgainst;
+      if (goalsAgainstDifference !== 0) {
+        return goalsAgainstDifference;
+      }
+
+      const aPosition = standingsPositionByTeam.get(a.team) ?? Number.MAX_SAFE_INTEGER;
+      const bPosition = standingsPositionByTeam.get(b.team) ?? Number.MAX_SAFE_INTEGER;
+      if (aPosition !== bPosition) {
+        return aPosition - bPosition;
+      }
+
+      return a.team.localeCompare(b.team);
+    });
 }
 
 function validateGoalScorers(store: Awaited<ReturnType<typeof readLeagueStore>>, match: Record<string, unknown>, matchIndex: number) {
@@ -503,8 +562,8 @@ export async function GET() {
   try {
     const store = await ensurePublicSeed();
     const standings = buildStandingsFromMatches(store.teams, store.matches as Array<Record<string, unknown>>);
-    const scorers = buildScorersFromMatches(store.teams, store.matches as Array<Record<string, unknown>>);
-    const zamora = buildZamoraFromMatches(store.teams, store.matches as Array<Record<string, unknown>>);
+    const scorers = buildScorersFromMatches(store.teams, store.matches as Array<Record<string, unknown>>, standings);
+    const zamora = buildZamoraFromMatches(store.teams, store.matches as Array<Record<string, unknown>>, standings);
     return NextResponse.json({ data: { ...store, standings, scorers, zamora } }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo leer el store de la liga.";
@@ -571,8 +630,8 @@ export async function POST(request: Request) {
     nextStore.sanctions = recalculateSuspensionRemaining(nextStore.sanctions, nextStore.calendar);
 
     const standings = buildStandingsFromMatches(nextStore.teams, nextStore.matches as Array<Record<string, unknown>>);
-    const scorers = buildScorersFromMatches(nextStore.teams, nextStore.matches as Array<Record<string, unknown>>);
-    const zamora = buildZamoraFromMatches(nextStore.teams, nextStore.matches as Array<Record<string, unknown>>);
+    const scorers = buildScorersFromMatches(nextStore.teams, nextStore.matches as Array<Record<string, unknown>>, standings);
+    const zamora = buildZamoraFromMatches(nextStore.teams, nextStore.matches as Array<Record<string, unknown>>, standings);
     const saved = await writeLeagueStore(nextStore);
     return NextResponse.json({ data: { ...saved, standings, scorers, zamora } }, { status: 200 });
   } catch (error) {
