@@ -154,6 +154,12 @@ export default function Home() {
     return league.zamora[0] ?? { name: "Sin datos", team: "-", average: 0, goalsAgainst: 0, matches: 0 };
   }, [league.zamora]);
 
+  const lastCompletedRound = useMemo(
+    () => [...league.calendar].filter((round) => round.status === "completed").sort((a, b) => b.id - a.id)[0],
+    [league.calendar]
+  );
+  const hasCompletedRound = Boolean(lastCompletedRound);
+
   const formatVisibleDate = (value?: string) => {
     if (!value) {
       return "Sin fecha";
@@ -244,10 +250,6 @@ export default function Home() {
     }));
   }, [league.matches, league.teams]);
 
-  const lastCompletedRound = useMemo(
-    () => [...league.calendar].filter((round) => round.status === "completed").sort((a, b) => b.id - a.id)[0],
-    [league.calendar]
-  );
   const lastCompletedMatches = useMemo(
     () => lastCompletedRound ? league.matches.filter((match) => match.jornada === lastCompletedRound.title) : [],
     [lastCompletedRound, league.matches]
@@ -356,20 +358,20 @@ export default function Home() {
         <>
           <section className="stats-grid homepage-kpi-grid">
             <Link href="/clasificacion" className="stat-card highlight kpi-card" aria-label="Ver clasificación de la liga" style={{ "--kpi-team-color": kpiTeamColor(homepageStandings[0]?.team ?? "") } as React.CSSProperties}>
-              <div className="kpi-copy"><span className="kpi-label">Líder liga</span><strong>{homepageStandings[0]?.team ?? "Sin datos"}</strong><small>{homepageStandings[0] ? `${homepageStandings[0].points} puntos` : "Clasificación pendiente"}</small></div>
-              <TeamShield name={homepageStandings[0]?.team ?? ""} className="kpi-shield" size={72} />
+              <div className="kpi-copy"><span className="kpi-label">Líder liga</span><strong>{hasCompletedRound ? homepageStandings[0]?.team ?? "Sin datos" : "Sin datos"}</strong><small>{hasCompletedRound && homepageStandings[0] ? `${homepageStandings[0].points} puntos` : "Clasificación pendiente"}</small></div>
+              <TeamShield name={hasCompletedRound ? homepageStandings[0]?.team ?? "" : ""} className="kpi-shield" size={72} />
             </Link>
             <Link href="/goleadores" className="stat-card highlight kpi-card" aria-label="Ver clasificación de goleadores" style={{ "--kpi-team-color": kpiTeamColor(topScorer.team) } as React.CSSProperties}>
-              <div className="kpi-copy"><span className="kpi-label">Pitxitxi</span><strong>{topScorer.name}</strong><small>{topScorer.team}</small></div>
-              <TeamShield name={topScorer.team} className="kpi-shield" size={72} />
+              <div className="kpi-copy"><span className="kpi-label">Pitxitxi</span><strong>{hasCompletedRound ? topScorer.name : "Sin datos"}</strong><small>{hasCompletedRound ? topScorer.team : "Clasificación pendiente"}</small></div>
+              <TeamShield name={hasCompletedRound ? topScorer.team : ""} className="kpi-shield" size={72} />
             </Link>
             <Link href="/zamora" className="stat-card highlight kpi-card" aria-label="Ver clasificación de porteros Zamora" style={{ "--kpi-team-color": kpiTeamColor(zamoraLeader.team) } as React.CSSProperties}>
-              <div className="kpi-copy"><span className="kpi-label">Zamora</span><strong>{zamoraLeader.name}</strong><small>{zamoraLeader.team}</small></div>
-              <TeamShield name={zamoraLeader.team} className="kpi-shield" size={72} />
+              <div className="kpi-copy"><span className="kpi-label">Zamora</span><strong>{hasCompletedRound ? zamoraLeader.name : "Sin datos"}</strong><small>{hasCompletedRound ? zamoraLeader.team : "Clasificación pendiente"}</small></div>
+              <TeamShield name={hasCompletedRound ? zamoraLeader.team : ""} className="kpi-shield" size={72} />
             </Link>
             <Link href="/sanciones" className="stat-card highlight kpi-card" aria-label="Ver clasificación Fair Play" style={{ "--kpi-team-color": kpiTeamColor(fairPlayTeam) } as React.CSSProperties}>
-              <div className="kpi-copy"><span className="kpi-label">Fair Play</span><strong>{fairPlayTeam}</strong><small>{sanctionCounts[fairPlayTeam] ?? 0} puntos</small></div>
-              <TeamShield name={fairPlayTeam} className="kpi-shield" size={72} />
+              <div className="kpi-copy"><span className="kpi-label">Fair Play</span><strong>{hasCompletedRound ? fairPlayTeam : "Sin datos"}</strong><small>{hasCompletedRound ? `${sanctionCounts[fairPlayTeam] ?? 0} puntos` : "Clasificación pendiente"}</small></div>
+              <TeamShield name={hasCompletedRound ? fairPlayTeam : ""} className="kpi-shield" size={72} />
             </Link>
           </section>
 
