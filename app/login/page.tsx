@@ -10,7 +10,7 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState(DEFAULT_ADMIN_EMAIL || "admin@kingsdurango.local");
-  const [password, setPassword] = useState(DEFAULT_ADMIN_PASSWORD || "KingsDurango2026!");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,8 +28,10 @@ function LoginPageContent() {
 
     try {
       loginWithCredentials(email, password);
+      setPassword("");
       const nextPath = searchParams.get("next") ?? "/admin";
-      router.replace(nextPath);
+      window.dispatchEvent(new Event("auth:updated"));
+      window.location.assign(nextPath);
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "No se pudo iniciar sesión.";
       setError(message);
@@ -44,14 +46,14 @@ function LoginPageContent() {
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 24 }}>
           <p className="eyebrow">Administración</p>
           <h1 style={{ marginTop: 8, marginBottom: 20 }}>Iniciar sesión</h1>
-          <form onSubmit={handleSubmit} className="admin-form-grid">
+          <form onSubmit={handleSubmit} className="admin-form-grid" autoComplete="off">
             <label>
               Email
-              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+              <input type="email" name="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required />
             </label>
             <label>
               Contraseña
-              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+              <input type="password" name="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
             </label>
             {error ? <p style={{ color: "#ffb4b4", margin: 0 }}>{error}</p> : null}
             <button type="submit" className="button" disabled={loading}>

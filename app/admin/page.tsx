@@ -2468,7 +2468,6 @@ export default function AdminPage() {
           payments: teamPayments,
           expenses: expenseItems,
           costs: penaltyCosts,
-          entities: financeEntities,
         },
       });
       setMatchResults(nextMatchResults);

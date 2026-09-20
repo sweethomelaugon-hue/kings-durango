@@ -20,6 +20,11 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=xxxxx
 SUPABASE_SERVICE_ROLE_KEY=xxxxx
 LEAGUE_STORE_PATH=/tmp/league-store.json
+IOS_APP_BUNDLE_ID=com.kingsdurango.app
+APNS_KEY_ID=tu-key-id
+APNS_TEAM_ID=tu-team-id
+APNS_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----"
+APNS_ENVIRONMENT=production
 ```
 
 Importante:
@@ -27,6 +32,9 @@ Importante:
 - Usa una contraseña fuerte y exclusiva.
 - `ADMIN_ACCESS_TOKEN` sirve para proteger APIs administrativas.
 - `SUPABASE_SERVICE_ROLE_KEY` solo debe existir en el entorno del servidor; nunca lo expongas al navegador.
+- Ejecuta `database/migrate-ios-push-tokens.sql` en Supabase para guardar los dispositivos iOS.
+- Crea una clave APNs de tipo `Apple Push Notifications service (APNs)` en Apple Developer y configura sus valores en Vercel.
+- Activa `Push Notifications` en el target principal de Xcode y vuelve a instalar la app para aceptar los permisos.
 
 ## 3. Recomendación de despliegue
 
