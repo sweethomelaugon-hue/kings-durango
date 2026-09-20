@@ -875,6 +875,10 @@ textarea {
   min-width: 48px;
   padding: 5px 7px;
   border-radius: 8px;
+  background: rgba(47, 201, 138, 0.1);
+  color: var(--green-soft);
+  text-align: center;
+}
 
 .team-player-name {
   display: inline-flex;
@@ -886,9 +890,69 @@ textarea {
   font-size: 0.95rem;
   line-height: 1;
 }
-  background: rgba(47, 201, 138, 0.1);
-  color: var(--green-soft);
+
+.goal-ranking {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 6px;
+  margin-left: 16px;
+  padding: 4px 7px 4px 9px;
+  border: 1px solid rgba(244, 215, 141, 0.16);
+  border-radius: 999px;
+  background: rgba(244, 215, 141, 0.055);
+  color: var(--gold-soft);
+  font-size: 0.82rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.goal-medal {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #101719;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.goal-medal-1 { background: linear-gradient(145deg, #fff0a8, #d5a936); box-shadow: 0 2px 8px rgba(213, 169, 54, 0.35); }
+.goal-medal-2 { background: linear-gradient(145deg, #f1f5f5, #9da9ad); box-shadow: 0 2px 8px rgba(157, 169, 173, 0.3); }
+.goal-medal-3 { background: linear-gradient(145deg, #f0b27d, #a65f34); box-shadow: 0 2px 8px rgba(166, 95, 52, 0.3); }
+
+.goal-ball {
+  color: #f4d78d;
+  font-size: 0.9rem;
+}
+
+.goal-count {
+  min-width: 22px;
+  padding: 3px 6px;
+  border: 1px solid rgba(244, 215, 141, 0.22);
+  border-radius: 999px;
+  background: rgba(244, 215, 141, 0.1);
   text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+}
+
+@media (max-width: 520px) {
+  .goal-ranking {
+    gap: 4px;
+    margin-left: 10px;
+    padding-left: 7px;
+    font-size: 0.76rem;
+  }
+
+  .goal-medal {
+    width: 17px;
+    height: 17px;
+    font-size: 0.64rem;
+  }
 }
 
 .position-with-change {
@@ -2143,6 +2207,18 @@ select option {
 .standings-table th:nth-child(11), .standings-table td:nth-child(11) { width: 7%; }
 .standings-table th:nth-child(12), .standings-table td:nth-child(12) { width: 16%; }
 
+.standings-table thead {
+  position: static;
+}
+
+.standings-table thead th {
+  position: sticky;
+  top: 74px;
+  z-index: 5;
+  background: rgba(12, 20, 22, 0.98);
+  box-shadow: 0 8px 16px rgba(4, 9, 10, 0.24);
+}
+
 .mobile-column-heading {
   display: none;
 }
@@ -2155,12 +2231,33 @@ select option {
   display: none;
 }
 
+.standings-mobile-sticky-header {
+  display: none;
+}
+
+.standings-mobile-header-spacer {
+  display: none;
+}
+
 .standings-table tbody tr.group-champions {
   background: linear-gradient(90deg, rgba(47, 201, 138, 0.04), rgba(255, 255, 255, 0));
 }
 
 .standings-table tbody tr.group-hoyo {
   background: linear-gradient(90deg, rgba(245, 119, 93, 0.05), rgba(255, 255, 255, 0));
+}
+
+.standings-table tbody tr.team-row-clickable {
+  cursor: pointer;
+}
+
+.standings-table tbody tr.team-row-clickable:focus-visible {
+  outline: 2px solid rgba(244, 215, 141, 0.8);
+  outline-offset: 2px;
+}
+
+.content-card.table-wrap:hover {
+  transform: none;
 }
 
 .standings-table tbody tr.league-divider-row td {
@@ -2178,6 +2275,10 @@ select option {
 
 /* Mobile: keep the standings as a compact, aligned column table. */
 @media (max-width: 640px) {
+  .table-wrap {
+    overflow: visible;
+  }
+
   .standings-table {
     min-width: 0;
     display: block;
@@ -2185,15 +2286,69 @@ select option {
     border-spacing: 0;
   }
 
-  .standings-table thead {
+  .standings-mobile-sticky-header {
+    position: relative;
+    top: auto;
+    z-index: 6;
     display: grid;
-    grid-template-columns: 20px minmax(106px, 1fr) repeat(7, 22px);
+    grid-template-columns: 28px minmax(98px, 1fr) repeat(7, 22px);
     gap: 3px;
     padding: 0 5px 8px;
     color: rgba(194, 204, 204, 0.72);
     font-size: 0.52rem;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+    background: linear-gradient(180deg, rgba(18, 28, 31, 0.95), rgba(12, 19, 20, 0.94));
+    border-bottom: 1px solid rgba(126, 170, 157, 0.2);
+    box-shadow: none;
+  }
+
+  .standings-mobile-sticky-header.is-fixed {
+    position: fixed;
+    z-index: 20;
+    padding-left: 24px;
+    padding-right: 24px;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    background: linear-gradient(180deg, rgba(18, 28, 31, 0.95), rgba(12, 19, 20, 0.94));
+    box-shadow: none;
+  }
+
+  .standings-mobile-header-spacer {
+    display: block;
+    height: 40px;
+  }
+
+  .standings-mobile-sticky-header span,
+  .standings-mobile-sticky-header strong {
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .standings-mobile-sticky-header span:first-child {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .standings-mobile-sticky-header span:nth-child(2) { grid-column: 3; }
+  .standings-mobile-sticky-header span:nth-child(3) { grid-column: 4; }
+  .standings-mobile-sticky-header span:nth-child(4) { grid-column: 5; }
+  .standings-mobile-sticky-header span:nth-child(5) { grid-column: 6; }
+  .standings-mobile-sticky-header span:nth-child(6) { grid-column: 7; }
+  .standings-mobile-sticky-header span:nth-child(7) { grid-column: 8; }
+  .standings-mobile-sticky-header strong { grid-column: 9; }
+
+  .standings-table thead {
+    display: none;
+  }
+
+  .standings-table thead th {
+    position: static;
+    z-index: auto;
+    background: transparent;
+    box-shadow: none;
   }
 
   .standings-table thead tr {
@@ -2246,29 +2401,51 @@ select option {
 
   .standings-table tbody {
     display: grid;
-    gap: 0;
+    gap: 6px;
   }
 
   .standings-table tbody tr {
     display: grid;
-    grid-template-columns: 20px minmax(106px, 1fr) repeat(7, 22px);
+    grid-template-columns: 28px minmax(98px, 1fr) repeat(7, 22px);
     align-items: center;
     gap: 3px;
     min-height: 50px;
     height: auto;
-    padding: 0 5px;
-    border: 0;
-    border-bottom: 1px solid rgba(255,255,255,0.055);
-    background: transparent;
+    padding: 0 8px;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.028), rgba(255,255,255,0.012));
     box-shadow: none;
     overflow: hidden;
   }
 
+  .standings-table tbody tr.group-champions {
+    background: linear-gradient(90deg, rgba(47, 201, 138, 0.08), rgba(255, 255, 255, 0.018));
+    border-color: rgba(47, 201, 138, 0.18);
+  }
+
+  .standings-table tbody tr.group-hoyo {
+    background: linear-gradient(90deg, rgba(245, 119, 93, 0.07), rgba(255, 255, 255, 0.018));
+    border-color: rgba(245, 119, 93, 0.16);
+  }
+
   .standings-table tbody tr.league-divider-row {
-    margin-top: 6px;
-    border-top: 2px solid rgba(132, 168, 168, 0.5);
-    padding-top: 6px;
+    position: relative;
+    margin-top: 14px;
+    border-top: 0;
+    padding-top: 0;
     box-shadow: none;
+    overflow: visible;
+  }
+
+  .standings-table tbody tr.league-divider-row::before {
+    content: "";
+    position: absolute;
+    top: -9px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    border-top: 1px dotted rgba(184, 202, 198, 0.38);
   }
 
   .standings-table tbody tr.league-divider-row td {
@@ -2296,9 +2473,24 @@ select option {
   }
 
   .standings-table tbody td:nth-child(1) {
+    width: auto;
     font-weight: 800;
     color: var(--gold-soft);
     font-size: 0.88rem;
+  }
+
+  .standings-table tbody td:nth-child(1) .position-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: auto;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    text-align: center;
+    font-size: 1rem;
+    letter-spacing: 0;
   }
 
   .standings-table tbody td:nth-child(2) {
@@ -2308,7 +2500,7 @@ select option {
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    gap: 6px;
+    gap: 8px;
     padding-right: 0;
     overflow: visible;
   }
@@ -2374,7 +2566,9 @@ select option {
   .standings-table .position-with-change {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
+    width: 100%;
     min-width: 0;
   }
 
@@ -2388,9 +2582,9 @@ select option {
 /* Very small phones need even more of the row given to the team name, so
    the numeric columns shrink to their tightest readable width. */
 @media (max-width: 380px) {
-  .standings-table thead,
+  .standings-mobile-sticky-header,
   .standings-table tbody tr {
-    grid-template-columns: 18px minmax(88px, 1fr) repeat(7, 18px);
+    grid-template-columns: 22px minmax(84px, 1fr) repeat(7, 18px);
     gap: 2px;
     padding-left: 3px;
     padding-right: 3px;

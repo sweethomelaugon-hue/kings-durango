@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { TeamIdentity, TeamShield } from "@/lib/team-identity";
 import { teamColors } from "@/lib/league-data";
+import { getPlayerGoalSummary } from "@/lib/player-goal-balls";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type GoalScorerSummary = {
@@ -16,7 +17,7 @@ type ScorerSummary = { name: string; team: string; goals: number; matches: numbe
 type ZamoraSummary = { name: string; team: string; goalsAgainst: number; matches: number; average: number };
 
 type PublicLeagueState = {
-  teams: Array<{ name: string; shortName?: string; primaryColor?: string; players?: Array<{ name: string; dorsal?: number | string }> }>;
+  teams: Array<{ name: string; shortName?: string; primaryColor?: string; players?: Array<{ name: string; dorsal?: number | string; isGoalkeeper?: boolean }> }>;
   matches: Array<{ id: number; home: string; away: string; score: string; shootoutScore?: string; winner?: string; jornada: string; status?: "scheduled" | "finished" | "in-progress" | "cancelled"; goalScorers?: GoalScorerSummary[]; events?: { home: string; away: string } }>;
   calendar: Array<{ id: number; title: string; date: string; status: "completed" | "in-progress" | "upcoming"; matches: Array<{ home: string; away: string; time: string }>; descansan?: string[] }>;
   sanctions: Array<{ team: string; card: string; player: string; reason: string }>;
@@ -32,6 +33,20 @@ const emptyLeague: PublicLeagueState = {
   scorers: [],
   zamora: [],
 };
+
+function sortPlayersByDorsal<T extends { name: string; dorsal?: number | string }>(players: T[]) {
+  return [...players].sort((a, b) => {
+    const dorsalA = String(a.dorsal ?? "").trim();
+    const dorsalB = String(b.dorsal ?? "").trim();
+    const numberA = Number(dorsalA);
+    const numberB = Number(dorsalB);
+    const hasDorsalA = dorsalA !== "" && Number.isFinite(numberA);
+    const hasDorsalB = dorsalB !== "" && Number.isFinite(numberB);
+    if (hasDorsalA && hasDorsalB && numberA !== numberB) return numberA - numberB;
+    if (hasDorsalA !== hasDorsalB) return hasDorsalA ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+}
 
 export default function Home() {
   const [league, setLeague] = useState<PublicLeagueState>(emptyLeague);
@@ -429,12 +444,13 @@ export default function Home() {
                   <button type="button" className="team-modal-close" onClick={() => setSelectedTeam(null)} aria-label="Cerrar información del equipo">×</button>
                 </div>
                 <div className="team-modal-body">
-                  {selectedTeamData.players?.length ? selectedTeamData.players.map((player) => (
-                    <div key={`${selectedTeamData.name}-${player.name}`} className="team-player-row">
+                  {selectedTeamData.players?.length ? sortPlayersByDorsal(selectedTeamData.players).map((player) => {
+                    const goalSummary = getPlayerGoalSummary(league.matches, selectedTeamData.name, player.name);
+                    return <div key={`${selectedTeamData.name}-${player.name}`} className="team-player-row">
                       <span className="player-dorsal">{player.dorsal ?? "-"}</span>
-                      <span className="team-player-name">{player.name}</span>
-                    </div>
-                  )) : <p className="team-empty-state">No hay jugadores disponibles.</p>}
+                      <span className="team-player-name">{player.name}{player.isGoalkeeper ? <span className="goalkeeper-mark" title="Portero" aria-label="Portero">🧤</span> : null}{goalSummary.goals > 0 ? <span className="goal-ranking" aria-label={`${goalSummary.rank ? `Puesto ${goalSummary.rank}, ` : ""}${goalSummary.goals} goles`}>{goalSummary.rank && goalSummary.rank <= 3 ? <span className={`goal-medal goal-medal-${goalSummary.rank}`}>{goalSummary.rank}</span> : null}<span className="goal-ball">⚽</span><span className="goal-count">{goalSummary.goals}</span></span> : null}</span>
+                    </div>;
+                  }) : <p className="team-empty-state">No hay jugadores disponibles.</p>}
                 </div>
               </div>
             </div>

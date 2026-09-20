@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { TeamIdentity, TeamShield } from "@/lib/team-identity";
+import { getPlayerGoalSummary } from "@/lib/player-goal-balls";
 import { useEffect, useState } from "react";
 
 type TeamRow = {
@@ -12,6 +13,8 @@ type TeamRow = {
   shieldImage?: string;
   players: Array<{ name: string; dorsal?: number | string; isGoalkeeper?: boolean }>;
 };
+
+type MatchRow = { goalScorers?: Array<{ player: string; team: string }> };
 
 function sortPlayersByDorsal(players: TeamRow["players"]) {
   return [...players].sort((left, right) => {
@@ -26,6 +29,7 @@ function sortPlayersByDorsal(players: TeamRow["players"]) {
 
 export default function EquiposPage() {
   const [teams, setTeams] = useState<TeamRow[]>([]);
+  const [matches, setMatches] = useState<MatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +52,7 @@ export default function EquiposPage() {
         }
 
         setTeams(Array.isArray(payload.data.teams) ? payload.data.teams : []);
+        setMatches(Array.isArray(payload.data.matches) ? payload.data.matches : []);
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : "No se pudo cargar la plantilla.";
         setError(message);
@@ -93,7 +98,7 @@ export default function EquiposPage() {
               <ul className="players-list">
                 {sortPlayersByDorsal(team.players).map((player) => (
                   <li key={`${team.id}-${player.name}`}>
-                    <span>{player.name}{player.isGoalkeeper ? <span className="goalkeeper-mark" title="Portero" aria-label="Portero">🧤</span> : null}</span>
+                    <span>{player.name}{player.isGoalkeeper ? <span className="goalkeeper-mark" title="Portero" aria-label="Portero">🧤</span> : null}{(() => { const goalSummary = getPlayerGoalSummary(matches, team.name, player.name); return goalSummary.goals > 0 ? <span className="goal-ranking" aria-label={`${goalSummary.rank ? `Puesto ${goalSummary.rank}, ` : ""}${goalSummary.goals} goles`}>{goalSummary.rank && goalSummary.rank <= 3 ? <span className={`goal-medal goal-medal-${goalSummary.rank}`}>{goalSummary.rank}</span> : null}<span className="goal-ball">⚽</span><span className="goal-count">{goalSummary.goals}</span></span> : null; })()}</span>
                     <strong>#{player.dorsal ?? "-"}</strong>
                   </li>
                 ))}

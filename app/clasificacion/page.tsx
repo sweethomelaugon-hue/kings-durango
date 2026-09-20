@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getTeamPalette } from "@/lib/league-data";
 import { TeamIdentity } from "@/lib/team-identity";
+import { getPlayerGoalSummary } from "@/lib/player-goal-balls";
 
 type TeamRow = {
   id?: string;
@@ -20,6 +21,7 @@ type MatchRow = {
   score: string;
   shootoutScore?: string;
   jornada?: string;
+  goalScorers?: Array<{ player: string; team: string }>;
 };
 
 type CalendarRow = { id: number; title: string; status: "completed" | "in-progress" | "upcoming" };
@@ -38,6 +40,20 @@ type StandingRow = {
   form: string[];
   position?: number;
 };
+
+function sortPlayersByDorsal<T extends { name: string; dorsal?: number | string }>(players: T[]) {
+  return [...players].sort((a, b) => {
+    const dorsalA = String(a.dorsal ?? "").trim();
+    const dorsalB = String(b.dorsal ?? "").trim();
+    const numberA = Number(dorsalA);
+    const numberB = Number(dorsalB);
+    const hasDorsalA = dorsalA !== "" && Number.isFinite(numberA);
+    const hasDorsalB = dorsalB !== "" && Number.isFinite(numberB);
+    if (hasDorsalA && hasDorsalB && numberA !== numberB) return numberA - numberB;
+    if (hasDorsalA !== hasDorsalB) return hasDorsalA ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+}
 
 function buildStandings(teams: TeamRow[], matches: MatchRow[]): StandingRow[] {
   const table = teams.map((team) => ({
@@ -114,12 +130,16 @@ function buildStandings(teams: TeamRow[], matches: MatchRow[]): StandingRow[] {
 
 export default function ClasificacionPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [isMobileHeaderFixed, setIsMobileHeaderFixed] = useState(false);
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [calendar, setCalendar] = useState<CalendarRow[]>([]);
   const [standings, setStandings] = useState<StandingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mobileHeaderRef = useRef<HTMLDivElement>(null);
+  const mobileHeaderTopRef = useRef<number | null>(null);
+  const mobileHeaderMetricsRef = useRef({ left: 0, width: 0, top: 0 });
 
   useEffect(() => {
     let active = true;
@@ -166,6 +186,41 @@ export default function ClasificacionPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const updateMobileHeader = () => {
+      const header = mobileHeaderRef.current;
+      if (!header || window.innerWidth > 640) {
+        return;
+      }
+
+      if (mobileHeaderTopRef.current === null || !isMobileHeaderFixed) {
+        const bounds = header.getBoundingClientRect();
+        const panel = header.closest<HTMLElement>(".table-wrap");
+        const panelBounds = panel?.getBoundingClientRect();
+        mobileHeaderTopRef.current = bounds.top + window.scrollY;
+        const topbar = document.querySelector<HTMLElement>(".topbar");
+        mobileHeaderMetricsRef.current = {
+          left: panelBounds?.left ?? bounds.left,
+          width: panelBounds?.width ?? bounds.width,
+          top: topbar?.getBoundingClientRect().bottom ?? 0,
+        };
+      }
+
+      const shouldFix = window.scrollY > (mobileHeaderTopRef.current ?? 0);
+      if (shouldFix !== isMobileHeaderFixed) {
+        setIsMobileHeaderFixed(shouldFix);
+      }
+    };
+
+    updateMobileHeader();
+    window.addEventListener("scroll", updateMobileHeader, { passive: true });
+    window.addEventListener("resize", updateMobileHeader);
+    return () => {
+      window.removeEventListener("scroll", updateMobileHeader);
+      window.removeEventListener("resize", updateMobileHeader);
+    };
+  }, [isMobileHeaderFixed]);
+
   const resolvedStandings = useMemo(() => standings.length > 0 ? standings : buildStandings(teams, matches), [matches, standings, teams]);
   const positionChanges = useMemo(() => {
     const lastCompletedRound = [...calendar].filter((round) => round.status === "completed").sort((a, b) => b.id - a.id)[0];
@@ -183,7 +238,7 @@ export default function ClasificacionPage() {
     return new Map(resolvedStandings.map((team, index) => [team.team, (previousPositions.get(team.team) ?? index + 1) - (team.position ?? index + 1)]));
   }, [calendar, matches, resolvedStandings, teams]);
   const teamRoster = useMemo(() => Object.fromEntries(teams.map((team) => [team.name, team.players])), [teams]);
-  const selectedRoster = selectedTeam ? teamRoster[selectedTeam] ?? [] : [];
+  const selectedRoster = selectedTeam ? sortPlayersByDorsal(teamRoster[selectedTeam] ?? []) : [];
 
   return (
     <main className="page-shell">
@@ -202,7 +257,21 @@ export default function ClasificacionPage() {
         <>
           <section className="content-card table-wrap">
             {resolvedStandings.length > 0 ? (
-              <table className="league-table standings-table">
+              <>
+                <div
+                  ref={mobileHeaderRef}
+                  className={`standings-mobile-sticky-header ${isMobileHeaderFixed ? "is-fixed" : ""}`}
+                  style={isMobileHeaderFixed ? {
+                    left: mobileHeaderMetricsRef.current.left,
+                    width: mobileHeaderMetricsRef.current.width,
+                    top: mobileHeaderMetricsRef.current.top,
+                  } : undefined}
+                  aria-hidden="true"
+                >
+                  <span>Equipo</span><span>PJ</span><span>V</span><span>EV</span><span>ED</span><span>D</span><span>DG</span><strong>PTS</strong>
+                </div>
+                {isMobileHeaderFixed ? <div className="standings-mobile-header-spacer" aria-hidden="true" /> : null}
+                <table className="league-table standings-table">
                 <thead>
                   <tr>
                     <th><span className="desktop-column-heading">Pos</span></th>
@@ -226,12 +295,25 @@ export default function ClasificacionPage() {
                     const isLeagueDivider = team.position === 7;
 
                     return (
-                      <tr key={team.team} className={`${team.position && team.position <= 6 ? "group-champions" : "group-hoyo"} ${isLeagueDivider ? "league-divider-row" : ""}`}>
+                      <tr
+                        key={team.team}
+                        className={`team-row-clickable ${team.position && team.position <= 6 ? "group-champions" : "group-hoyo"} ${isLeagueDivider ? "league-divider-row" : ""}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Ver jugadores de ${team.team}`}
+                        onClick={() => setSelectedTeam(team.team)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedTeam(team.team);
+                          }
+                        }}
+                      >
                         <td data-label="Pos"><span className="position-with-change"><span className="position-number">{team.position}</span><span className={`trend-badge ${positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "up" : "down") : "neutral"}`} aria-label={positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "Sube posiciones" : "Baja posiciones") : "Sin cambios"}>{positionChanges.get(team.team) ? (positionChanges.get(team.team)! > 0 ? "↑" : "↓") : "•"}</span></span></td>
                         <td className="team-name-cell" data-label="Equipo">
-                          <button type="button" className="team-cell team-detail-trigger" style={{ "--team-color": configuredColor, color: "#edf3f1" } as React.CSSProperties} onClick={() => setSelectedTeam(team.team)}>
+                          <div className="team-cell team-detail-trigger" style={{ "--team-color": configuredColor, color: "#edf3f1" } as React.CSSProperties}>
                             <TeamIdentity name={team.team} className="team-name-label" compact />
-                          </button>
+                          </div>
                           <span className="mobile-team-name">{team.team}</span>
                         </td>
                         <td className="mobile-standing-stat" data-label="PJ">{team.played}</td>
@@ -255,7 +337,8 @@ export default function ClasificacionPage() {
                     );
                   })}
                 </tbody>
-              </table>
+                </table>
+              </>
             ) : (
               <p className="empty-state">Todavía no hay resultados para generar la clasificación.</p>
             )}
@@ -269,7 +352,10 @@ export default function ClasificacionPage() {
                   <button type="button" className="team-modal-close" onClick={() => setSelectedTeam(null)} aria-label="Cerrar información del equipo">×</button>
                 </div>
                 <div className="team-modal-body">
-                  {selectedRoster.length > 0 ? selectedRoster.map((player) => <div key={`${selectedTeam}-${player.name}`} className="team-player-row"><span className="player-dorsal">{player.dorsal}</span><span className="team-player-name">{player.name}{player.isGoalkeeper ? <span className="goalkeeper-mark" title="Portero" aria-label="Portero">🧤</span> : null}</span></div>) : <p className="team-empty-state">No hay jugadores disponibles.</p>}
+                  {selectedRoster.length > 0 ? selectedRoster.map((player) => {
+                    const goalSummary = getPlayerGoalSummary(matches, selectedTeam ?? "", player.name);
+                    return <div key={`${selectedTeam}-${player.name}`} className="team-player-row"><span className="player-dorsal">{player.dorsal}</span><span className="team-player-name">{player.name}{player.isGoalkeeper ? <span className="goalkeeper-mark" title="Portero" aria-label="Portero">🧤</span> : null}{goalSummary.goals > 0 ? <span className="goal-ranking" aria-label={`${goalSummary.rank ? `Puesto ${goalSummary.rank}, ` : ""}${goalSummary.goals} goles`}>{goalSummary.rank && goalSummary.rank <= 3 ? <span className={`goal-medal goal-medal-${goalSummary.rank}`}>{goalSummary.rank}</span> : null}<span className="goal-ball">⚽</span><span className="goal-count">{goalSummary.goals}</span></span> : null}</span></div>;
+                  }) : <p className="team-empty-state">No hay jugadores disponibles.</p>}
                 </div>
               </div>
             </div>
