@@ -78,48 +78,6 @@ export default function Home() {
     void loadLeague();
   }, [loadLeague]);
 
-  useEffect(() => {
-    const handleRefresh = () => {
-      if (!loadingRef.current) {
-        void loadLeague();
-      }
-    };
-
-    const handleScroll = () => {
-      const scrollReachedEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 120;
-      if (scrollReachedEnd) {
-        handleRefresh();
-      }
-    };
-
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        handleRefresh();
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("focus", handleRefresh);
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    if (typeof window !== "undefined" && "addEventListener" in window) {
-      const appResumeHandler = () => handleRefresh();
-      window.addEventListener("resume", appResumeHandler);
-      return () => {
-        window.removeEventListener("scroll", handleScroll);
-        window.removeEventListener("focus", handleRefresh);
-        window.removeEventListener("resume", appResumeHandler);
-        document.removeEventListener("visibilitychange", handleVisibility);
-      };
-    }
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("focus", handleRefresh);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [loadLeague]);
-
   const orderedCalendar = useMemo(() => [...league.calendar].sort((a, b) => a.id - b.id), [league.calendar]);
 
   const currentRound = useMemo(() => {
