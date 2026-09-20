@@ -433,6 +433,24 @@ export default function AdminPage() {
     setAuthError(null);
   }, []);
 
+  useEffect(() => {
+    const handleResume = () => {
+      if (document.visibilityState === "visible") {
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener("focus", handleResume);
+    window.addEventListener("resume", handleResume);
+    document.addEventListener("visibilitychange", handleResume);
+
+    return () => {
+      window.removeEventListener("focus", handleResume);
+      window.removeEventListener("resume", handleResume);
+      document.removeEventListener("visibilitychange", handleResume);
+    };
+  }, []);
+
   const hasAdminAccess = useMemo(() => isAuthenticated && adminToken.trim().length > 0, [adminToken, isAuthenticated]);
 
   const assertAdminAccess = () => {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { TeamIdentity, TeamShield } from "@/lib/team-identity";
 import { teamColors } from "@/lib/league-data";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type GoalScorerSummary = {
   player: string;
@@ -37,50 +37,88 @@ export default function Home() {
   const [league, setLeague] = useState<PublicLeagueState>(emptyLeague);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loadingRef = useRef(false);
 
-  useEffect(() => {
-    let active = true;
-
-    async function loadLeague() {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch("/api/league", { cache: "no-store" });
-        const payload = response.ok ? await response.json() : null;
-
-        if (!active) {
-          return;
-        }
-
-        if (!payload?.data) {
-          throw new Error("No hay datos disponibles en la liga.");
-        }
-
-        setLeague({
-          teams: Array.isArray(payload.data.teams) ? payload.data.teams : [],
-          matches: Array.isArray(payload.data.matches) ? payload.data.matches : [],
-          calendar: Array.isArray(payload.data.calendar) ? payload.data.calendar : [],
-          sanctions: Array.isArray(payload.data.sanctions) ? payload.data.sanctions : [],
-          scorers: Array.isArray(payload.data.scorers) ? payload.data.scorers : [],
-          zamora: Array.isArray(payload.data.zamora) ? payload.data.zamora : [],
-        });
-      } catch (fetchError) {
-        const message = fetchError instanceof Error ? fetchError.message : "No se pudo cargar la liga.";
-        setError(message);
-        setLeague(emptyLeague);
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
+  const loadLeague = useCallback(async () => {
+    if (loadingRef.current) {
+      return;
     }
 
+    loadingRef.current = true;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch("/api/league", { cache: "no-store" });
+      const payload = response.ok ? await response.json() : null;
+
+      if (!payload?.data) {
+        throw new Error("No hay datos disponibles en la liga.");
+      }
+
+      setLeague({
+        teams: Array.isArray(payload.data.teams) ? payload.data.teams : [],
+        matches: Array.isArray(payload.data.matches) ? payload.data.matches : [],
+        calendar: Array.isArray(payload.data.calendar) ? payload.data.calendar : [],
+        sanctions: Array.isArray(payload.data.sanctions) ? payload.data.sanctions : [],
+        scorers: Array.isArray(payload.data.scorers) ? payload.data.scorers : [],
+        zamora: Array.isArray(payload.data.zamora) ? payload.data.zamora : [],
+      });
+    } catch (fetchError) {
+      const message = fetchError instanceof Error ? fetchError.message : "No se pudo cargar la liga.";
+      setError(message);
+      setLeague(emptyLeague);
+    } finally {
+      loadingRef.current = false;
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
     void loadLeague();
+  }, [loadLeague]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (!loadingRef.current) {
+        void loadLeague();
+      }
+    };
+
+    const handleScroll = () => {
+      const scrollReachedEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 120;
+      if (scrollReachedEnd) {
+        handleRefresh();
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        handleRefresh();
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("focus", handleRefresh);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    if (typeof window !== "undefined" && "addEventListener" in window) {
+      const appResumeHandler = () => handleRefresh();
+      window.addEventListener("resume", appResumeHandler);
+      return () => {
+        window.removeEventListener("scroll", handleScroll);
+        window.removeEventListener("focus", handleRefresh);
+        window.removeEventListener("resume", appResumeHandler);
+        document.removeEventListener("visibilitychange", handleVisibility);
+      };
+    }
 
     return () => {
-      active = false;
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("focus", handleRefresh);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, []);
+  }, [loadLeague]);
 
   const orderedCalendar = useMemo(() => [...league.calendar].sort((a, b) => a.id - b.id), [league.calendar]);
 

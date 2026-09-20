@@ -242,7 +242,7 @@ export default function ClasificacionPage() {
                         <td className="mobile-standing-stat mobile-standing-points" data-label="PTS">{team.points}</td>
                         <td data-label="PJ">{team.played}</td>
                         <td data-label="G">{team.wins}</td>
-                        <td data-label="EG">{team.eg}</td>
+                        <td data-label="EG">{team.eg + team.ep}</td>
                         <td data-label="EP">{team.ep}</td>
                         <td data-label="P">{team.losses}</td>
                         <td data-label="GF">{team.goalsFor}</td>

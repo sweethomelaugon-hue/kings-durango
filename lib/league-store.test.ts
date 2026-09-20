@@ -154,6 +154,7 @@ test("buildSupabaseSyncRows prepara las filas para sincronizar la liga en Supaba
   assert.equal(rows.team_fees[0].team_id, rows.teams[0].id);
   assert.equal(rows.match_events[0].player_id, rows.players[0].id);
   assert.equal(rows.disciplinary_records[0].player_id, rows.players[0].id);
+  assert.ok(rows.financial_movements.every((movement) => !("entity" in movement)), "las sanciones no deben generar la columna entity en financial_movements");
 });
 
 test("clearResultsForRoundAndLater borra resultados y goleadores desde la jornada elegida y las posteriores", () => {
