@@ -35,6 +35,7 @@ const emptyLeague: PublicLeagueState = {
 
 export default function Home() {
   const [league, setLeague] = useState<PublicLeagueState>(emptyLeague);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const loadingRef = useRef(false);
@@ -149,6 +150,8 @@ export default function Home() {
   const zamoraLeader = useMemo(() => {
     return league.zamora[0] ?? { name: "Sin datos", team: "-", average: 0, goalsAgainst: 0, matches: 0 };
   }, [league.zamora]);
+
+  const selectedTeamData = selectedTeam ? league.teams.find((team) => team.name === selectedTeam) : undefined;
 
   const formatVisibleDate = (value?: string) => {
     if (!value) {
@@ -373,12 +376,30 @@ export default function Home() {
             <div className="content-card home-panel">
               <div className="section-header"><h2>Clasificación</h2><Link href="/clasificacion">Ver tabla</Link></div>
               <div className="home-standings">
-                <div className="home-standing-row home-standing-heading"><span># Equipo</span><span>PJ</span><span>Pts</span></div>
+                <div className="home-standing-row home-standing-heading"><span># Equipo</span><span>PJ</span><span>V</span><span>EV</span><span>ED</span><span>D</span><span>DG</span><strong>PTS</strong></div>
                 {homepageStandings.length > 0 ? homepageStandings.map((entry, index) => (
-                  <div key={entry.team} className={`home-standing-row ${index < 6 ? "group-champions" : "group-hoyo"}`}>
+                  <div
+                    key={entry.team}
+                    className={`home-standing-row home-standing-team-trigger ${index < 6 ? "group-champions" : "group-hoyo"}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Ver jugadores de ${entry.team}`}
+                    onClick={() => setSelectedTeam(entry.team)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedTeam(entry.team);
+                      }
+                    }}
+                  >
                     <span><b>{index + 1}</b> <TeamIdentity name={entry.team} compact />{entry.positionDelta !== 0 ? <span className={`trend-badge ${entry.positionDelta > 0 ? "up" : "down"}`} aria-label={entry.positionDelta > 0 ? "Sube posiciones" : "Baja posiciones"}>{entry.positionDelta > 0 ? "▲" : "▼"}</span> : <span className="home-standing-neutral" aria-label="Sin cambios">•</span>}</span>
                     <span>{entry.played}</span>
-                    <strong>{entry.points}</strong>
+                    <span>{entry.wins}</span>
+                    <span>{entry.eg}</span>
+                    <span>{entry.ep}</span>
+                    <span>{entry.losses}</span>
+                    <span>{entry.goalDifference > 0 ? `+${entry.goalDifference}` : entry.goalDifference}</span>
+                    <strong className="home-standing-points">{entry.points}</strong>
                   </div>
                 )) : <div className="empty-state">Sin equipos</div>}
               </div>
@@ -399,6 +420,25 @@ export default function Home() {
               </ul>
             </div>
           </section>
+
+          {selectedTeamData && (
+            <div className="team-modal-backdrop" onClick={() => setSelectedTeam(null)}>
+              <div className="team-modal" onClick={(event) => event.stopPropagation()}>
+                <div className="team-modal-header">
+                  <div><p className="eyebrow">Plantilla</p><h2>{selectedTeamData.name}</h2></div>
+                  <button type="button" className="team-modal-close" onClick={() => setSelectedTeam(null)} aria-label="Cerrar información del equipo">×</button>
+                </div>
+                <div className="team-modal-body">
+                  {selectedTeamData.players?.length ? selectedTeamData.players.map((player) => (
+                    <div key={`${selectedTeamData.name}-${player.name}`} className="team-player-row">
+                      <span className="player-dorsal">{player.dorsal ?? "-"}</span>
+                      <span className="team-player-name">{player.name}</span>
+                    </div>
+                  )) : <p className="team-empty-state">No hay jugadores disponibles.</p>}
+                </div>
+              </div>
+            </div>
+          )}
 
         </>
       )}

@@ -752,8 +752,8 @@ textarea {
 
 .home-standing-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 42px 44px;
-  gap: 8px;
+  grid-template-columns: minmax(150px, 1fr) repeat(7, 32px);
+  gap: 4px;
   align-items: center;
   padding: 9px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -767,6 +767,18 @@ textarea {
   padding-right: 9px;
   background: rgba(255, 255, 255, 0.018);
   border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.home-standing-team-trigger {
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.home-standing-team-trigger:hover,
+.home-standing-team-trigger:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(245, 215, 123, 0.28);
+  outline: none;
 }
 
 .home-standing-row > span:first-child {
@@ -786,7 +798,11 @@ textarea {
 }
 
 .home-standing-row strong {
-  color: var(--green-soft);
+  color: var(--gold-soft);
+}
+
+.home-standing-points {
+  font-variant-numeric: tabular-nums;
 }
 
 .home-standing-row.group-champions {
@@ -805,6 +821,38 @@ textarea {
   font-size: 0.66rem;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+@media (max-width: 640px) {
+  .home-standing-row {
+    grid-template-columns: minmax(102px, 1fr) repeat(7, 22px);
+    gap: 3px;
+    padding: 8px 5px;
+    font-size: 0.68rem;
+  }
+
+  .home-standing-row:not(.home-standing-heading) {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+
+  .home-standing-row .team-identity {
+    gap: 4px;
+  }
+
+  .home-standing-row .team-identity > span:last-child {
+    min-width: 0;
+    font-size: 0.68rem;
+  }
+
+  .home-standing-row .team-shield {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .home-standing-heading {
+    font-size: 0.56rem;
+  }
 }
 
 .home-panel {
@@ -3484,6 +3532,16 @@ select option {
   border-radius: 10px;
   cursor: pointer;
   font-size: 0.78rem;
+}
+
+.result-scorer-dorsal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
 }
 
 .result-scorer-option:hover {

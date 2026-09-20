@@ -49,13 +49,15 @@ const resultDraftKey = (home: string, away: string) => `${home}::${away}`;
 
 type ResultScorerPickerProps = {
   label: string;
-  players: string[];
+  players: Array<{ name: string; dorsal?: number | string }>;
   selected: string[];
   onSelect: (player: string) => void;
   onRemove: (index: number) => void;
+  single?: boolean;
+  selectionLabel?: string;
 };
 
-function ResultScorerPicker({ label, players, selected, onSelect, onRemove }: ResultScorerPickerProps) {
+function ResultScorerPicker({ label, players, selected, onSelect, onRemove, single = false, selectionLabel = "goleador" }: ResultScorerPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -84,7 +86,7 @@ function ResultScorerPicker({ label, players, selected, onSelect, onRemove }: Re
         className={`result-scorer-trigger ${isOpen ? "is-open" : ""}`}
         onClick={() => setIsOpen((previous) => !previous)}
       >
-        <span>{selected.length > 0 ? `${selected.length} goleador${selected.length > 1 ? "es" : ""} seleccionado${selected.length > 1 ? "s" : ""}` : "Añadir goleador..."}</span>
+        <span>{selected.length > 0 ? single ? selected[0] : `${selected.length} ${selectionLabel}${selected.length > 1 ? "es" : ""} seleccionado${selected.length > 1 ? "s" : ""}` : single ? "Seleccionar jugador..." : selectionLabel === "jugador" ? "Añadir jugadores..." : "Añadir goleador..."}</span>
         <span className="result-scorer-caret">▾</span>
       </button>
 
@@ -92,15 +94,16 @@ function ResultScorerPicker({ label, players, selected, onSelect, onRemove }: Re
         <div className="result-scorer-menu" role="listbox" aria-label={label}>
           {players.length > 0 ? players.map((player) => (
             <button
-              key={player}
+              key={player.name}
               type="button"
               className="result-scorer-option"
               onClick={() => {
-                onSelect(player);
+                onSelect(player.name);
                 setIsOpen(false);
               }}
             >
-              {player}
+              <span className="result-scorer-dorsal">{player.dorsal ?? "-"}</span>
+              <span>{player.name}</span>
             </button>
           )) : (
             <span className="result-scorer-empty-option">Sin jugadores disponibles</span>
@@ -798,6 +801,7 @@ export default function AdminPage() {
     suspensionReason: "Encararse con otro jugador" as SuspensionReason,
     suspensionMatches: "",
   });
+  const [selectedSanctionPlayers, setSelectedSanctionPlayers] = useState<string[]>([initialStoreTeams[0]?.players[0]?.name ?? ""]);
   const [editingCardId, setEditingCardId] = useState<number | null>(null);
   const [isSanctionDialogOpen, setIsSanctionDialogOpen] = useState(false);
 
@@ -823,15 +827,34 @@ export default function AdminPage() {
     [storeTeams]
   );
 
+  const resultScorerPlayersByTeam = useMemo(
+    () => Object.fromEntries(
+      storeTeams.map((team) => [team.name, [...team.players].sort((a, b) => {
+        const dorsalA = Number(a.dorsal);
+        const dorsalB = Number(b.dorsal);
+        const hasDorsalA = Number.isFinite(dorsalA);
+        const hasDorsalB = Number.isFinite(dorsalB);
+        if (hasDorsalA && hasDorsalB && dorsalA !== dorsalB) {
+          return dorsalA - dorsalB;
+        }
+        if (hasDorsalA !== hasDorsalB) {
+          return hasDorsalA ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+      })])
+    ) as Record<string, Array<{ name: string; dorsal?: number | string }>>,
+    [storeTeams]
+  );
+
   const selectedTeamPlayers = useMemo(
     () => {
-      const players = playerRosterByTeam[cardForm.team] ?? [];
+      const players = resultScorerPlayersByTeam[cardForm.team] ?? [];
       const normalizedSearch = playerSearch.trim().toLowerCase();
       return normalizedSearch
-        ? players.filter((player) => player.toLowerCase().includes(normalizedSearch))
+        ? players.filter((player) => player.name.toLowerCase().includes(normalizedSearch))
         : players;
     },
-    [cardForm.team, playerSearch, playerRosterByTeam]
+    [cardForm.team, playerSearch, resultScorerPlayersByTeam]
   );
 
   const sanctionRounds = useMemo(
@@ -2422,11 +2445,11 @@ export default function AdminPage() {
         setFormError(`${suspendedScorer.player} está cumpliendo sanción y no puede figurar como goleador en ${round.title}.`);
         return;
       }
-      if (homeScorers.length > 0 && homeScorers.length !== homeGoals) {
+      if (isFinalized && homeScorers.length !== homeGoals) {
         setFormError(`Selecciona exactamente ${homeGoals} goleador${homeGoals === 1 ? "" : "es"} para ${fixture.home}. Puedes seleccionar varias veces al mismo jugador.`);
         return;
       }
-      if (awayScorers.length > 0 && awayScorers.length !== awayGoals) {
+      if (isFinalized && awayScorers.length !== awayGoals) {
         setFormError(`Selecciona exactamente ${awayGoals} goleador${awayGoals === 1 ? "" : "es"} para ${fixture.away}. Puedes seleccionar varias veces al mismo jugador.`);
         return;
       }
@@ -2619,6 +2642,7 @@ export default function AdminPage() {
       suspensionReason: "Encararse con otro jugador",
       suspensionMatches: "",
     });
+    setSelectedSanctionPlayers(fallbackPlayer ? [fallbackPlayer] : []);
   };
 
   const startEditCard = (record: typeof cardDocket[number]) => {
@@ -2634,6 +2658,7 @@ export default function AdminPage() {
       suspensionReason: (record.suspensionReason as SuspensionReason) || "Encararse con otro jugador",
       suspensionMatches: String(record.suspensionMatches ?? record.matches ?? ""),
     });
+    setSelectedSanctionPlayers([record.player]);
     setFormError(null);
   };
 
@@ -2648,17 +2673,19 @@ export default function AdminPage() {
       return;
     }
 
-    const playerName = cardForm.player.trim();
+    const playerNames = (editingCardId !== null ? [cardForm.player] : selectedSanctionPlayers)
+      .map((player) => player.trim())
+      .filter(Boolean);
     const teamName = cardForm.team.trim();
-    if (!playerName || !teamName) {
-      setFormError("Debes seleccionar un equipo y un jugador válidos para la sanción.");
+    if (playerNames.length === 0 || !teamName) {
+      setFormError("Debes seleccionar un equipo y al menos un jugador válido para la sanción.");
       return;
     }
 
     const selectedTeam = storeTeams.find((team) => team.name === teamName);
-    const teamPlayer = selectedTeam?.players.some((player) => player.name.toLowerCase() === playerName.toLowerCase());
-    if (!selectedTeam || !teamPlayer) {
-      setFormError("La sanción debe apuntar a un jugador que pertenezca a ese equipo.");
+    const invalidPlayer = playerNames.find((playerName) => !selectedTeam?.players.some((player) => player.name.toLowerCase() === playerName.toLowerCase()));
+    if (!selectedTeam || invalidPlayer) {
+      setFormError(`${invalidPlayer ?? "La sanción"} debe apuntar a un jugador que pertenezca a ese equipo.`);
       return;
     }
 
@@ -2679,51 +2706,55 @@ export default function AdminPage() {
     }
 
     if (cardForm.card === "Amarilla") {
-      const yellowAlreadyRegistered = cardDocket.some((record) =>
-        record.id !== editingCardId
-        && record.card === "Amarilla"
-        && record.team.toLowerCase() === teamName.toLowerCase()
-        && record.player.toLowerCase() === playerName.toLowerCase()
-        && record.jornada === effectiveSanctionJornada
-      );
+      for (const playerName of playerNames) {
+        const yellowAlreadyRegistered = cardDocket.some((record) =>
+          record.id !== editingCardId
+          && record.card === "Amarilla"
+          && record.team.toLowerCase() === teamName.toLowerCase()
+          && record.player.toLowerCase() === playerName.toLowerCase()
+          && record.jornada === effectiveSanctionJornada
+        );
 
-      if (yellowAlreadyRegistered) {
-        setFormError(`${playerName} ya tiene una tarjeta amarilla registrada en ${effectiveSanctionJornada}. No se puede añadir otra en la misma jornada.`);
-        return;
+        if (yellowAlreadyRegistered) {
+          setFormError(`${playerName} ya tiene una tarjeta amarilla registrada en ${effectiveSanctionJornada}. No se puede añadir otra en la misma jornada.`);
+          return;
+        }
       }
     }
 
-    const previousYellowCount = getYellowCardsForPlayer(cardDocket.filter((record) => record.id !== editingCardId), calendarRounds, teamName, playerName, yellowCardResetRoundId);
-    const automaticSuspension = cardForm.card === "Amarilla" && previousYellowCount >= 2 ? 1 : cardForm.card === "Doble amarilla" || (cardForm.card === "Roja" && cardForm.reason === "Motivos deportivos") ? 1 : cardForm.card === "Roja" && cardForm.reason === "Motivos antideportivos"
-      ? cardForm.suspensionReason === "Encararse con otro jugador" ? 2 : cardForm.suspensionReason === "Insultar o faltar al respeto al árbitro" ? 3 : cardForm.suspensionReason === "Motivo deportivo violento" ? 4 : Number(cardForm.suspensionMatches) || 0
-      : Number(cardForm.suspensionMatches) || 0;
-
     const sanctionAmount = getSanctionPoints(cardForm.card, cardForm.reason, cardForm.manualAmount);
-    const nextRecord = {
-      id: editingCardId ?? Date.now(),
-      matchId: linkedMatch.id,
-      player: playerName,
-      team: teamName,
-      playerId: selectedTeam.players.find((player) => player.name.toLowerCase() === playerName.toLowerCase())?.id ?? undefined,
-      teamId: selectedTeam.id,
-      card: cardForm.card,
-      card_type: cardForm.card,
-      matches: 1,
-      remaining: 1,
-      reason: (["Amarilla", "Doble amarilla"] as CardType[]).includes(cardForm.card) ? "Motivos deportivos" : cardForm.reason.trim() || "Registrada por el administrador",
-      jornada: effectiveSanctionJornada,
-      suspensionReason: cardForm.card === "Roja" && cardForm.reason === "Motivos antideportivos" ? cardForm.suspensionReason : undefined,
-      suspensionMatches: automaticSuspension,
-      suspensionRemaining: automaticSuspension,
-      costAmount: sanctionAmount,
-      cost_amount: sanctionAmount,
-      points: sanctionAmount,
-      pointsAmount: sanctionAmount,
-    };
+    const nextRecords = playerNames.map((playerName, index) => {
+      const previousYellowCount = getYellowCardsForPlayer(cardDocket.filter((record) => record.id !== editingCardId), calendarRounds, teamName, playerName, yellowCardResetRoundId);
+      const automaticSuspension = cardForm.card === "Amarilla" && previousYellowCount >= 2 ? 1 : cardForm.card === "Doble amarilla" || (cardForm.card === "Roja" && cardForm.reason === "Motivos deportivos") ? 1 : cardForm.card === "Roja" && cardForm.reason === "Motivos antideportivos"
+        ? cardForm.suspensionReason === "Encararse con otro jugador" ? 2 : cardForm.suspensionReason === "Insultar o faltar al respeto al árbitro" ? 3 : cardForm.suspensionReason === "Motivo deportivo violento" ? 4 : Number(cardForm.suspensionMatches) || 0
+        : Number(cardForm.suspensionMatches) || 0;
+
+      return {
+        id: editingCardId ?? Date.now() + index,
+        matchId: linkedMatch.id,
+        player: playerName,
+        team: teamName,
+        playerId: selectedTeam.players.find((player) => player.name.toLowerCase() === playerName.toLowerCase())?.id ?? undefined,
+        teamId: selectedTeam.id,
+        card: cardForm.card,
+        card_type: cardForm.card,
+        matches: 1,
+        remaining: 1,
+        reason: (["Amarilla", "Doble amarilla"] as CardType[]).includes(cardForm.card) ? "Motivos deportivos" : cardForm.reason.trim() || "Registrada por el administrador",
+        jornada: effectiveSanctionJornada,
+        suspensionReason: cardForm.card === "Roja" && cardForm.reason === "Motivos antideportivos" ? cardForm.suspensionReason : undefined,
+        suspensionMatches: automaticSuspension,
+        suspensionRemaining: automaticSuspension,
+        costAmount: sanctionAmount,
+        cost_amount: sanctionAmount,
+        points: sanctionAmount,
+        pointsAmount: sanctionAmount,
+      };
+    });
 
     const nextSanctions = editingCardId !== null
-      ? cardDocket.map((record) => record.id === editingCardId ? { ...record, ...nextRecord } : record)
-      : [nextRecord, ...cardDocket];
+      ? cardDocket.map((record) => record.id === editingCardId ? { ...record, ...nextRecords[0] } : record)
+      : [...nextRecords.reverse(), ...cardDocket];
 
     setCardDocket(nextSanctions);
     setFormError(null);
@@ -3301,15 +3332,15 @@ export default function AdminPage() {
                       <div className="results-match-list" style={{ display: "grid", gap: 8 }}>
                         {round.matches.map((fixture, fixtureIndex) => {
                           const draft = resultDrafts[resultDraftKey(fixture.home, fixture.away)] ?? (linkedMatches[fixtureIndex] ? resultDraftFromMatch(linkedMatches[fixtureIndex]) : { home: "", away: "", homeScorers: [], awayScorers: [], shootoutHome: "", shootoutAway: "" });
-                          const homePlayers = playerRosterByTeam[fixture.home] ?? [];
-                          const awayPlayers = playerRosterByTeam[fixture.away] ?? [];
+                          const homePlayers = resultScorerPlayersByTeam[fixture.home] ?? [];
+                          const awayPlayers = resultScorerPlayersByTeam[fixture.away] ?? [];
                           const homeScorers = draft.homeScorers ?? [];
                           const awayScorers = draft.awayScorers ?? [];
                           const isDraw = /^\d+$/.test(draft.home) && /^\d+$/.test(draft.away) && draft.home === draft.away;
                           const isMatchFinalized = draft.isFinalized === true;
                           const matchStatusLabel = isMatchFinalized ? "Finalizado" : round.status === "in-progress" ? "En curso" : "Próximo";
 
-                          const scorerPicker = (team: "homeScorers" | "awayScorers", players: string[], selected: string[]) => (
+                          const scorerPicker = (team: "homeScorers" | "awayScorers", players: Array<{ name: string; dorsal?: number | string }>, selected: string[]) => (
                             <div style={{ display: "grid", gap: 8 }}>
                               <ResultScorerPicker
                                 label={`Seleccionar goleador ${team === "homeScorers" ? fixture.home : fixture.away}`}
@@ -3437,6 +3468,7 @@ export default function AdminPage() {
                       player: nextPlayer,
                       jornada: nextRound?.title ?? "",
                     }));
+                    setSelectedSanctionPlayers(nextPlayer ? [nextPlayer] : []);
                   }}>
                     {visibleTeams.map((team) => (
                       <option key={team.name} value={team.name}>{team.name}</option>
@@ -3449,15 +3481,20 @@ export default function AdminPage() {
                 </label>
                 <label>
                   Jugador
-                  <select value={cardForm.player} onChange={(event) => setCardForm((previous) => ({ ...previous, player: event.target.value }))}>
-                    {selectedTeamPlayers.length > 0 ? (
-                      selectedTeamPlayers.map((player) => (
-                        <option key={player} value={player}>{player}</option>
-                      ))
-                    ) : (
-                      <option value="">Sin jugadores</option>
-                    )}
-                  </select>
+                  <ResultScorerPicker
+                    label={`Seleccionar jugador ${cardForm.team}`}
+                    players={selectedTeamPlayers}
+                    selected={editingCardId !== null ? (cardForm.player ? [cardForm.player] : []) : selectedSanctionPlayers}
+                    selectionLabel="jugador"
+                    onSelect={(player) => {
+                      setSelectedSanctionPlayers((previous) => previous.includes(player) ? previous : [...previous, player]);
+                      setCardForm((previous) => ({ ...previous, player: previous.player || player }));
+                    }}
+                    onRemove={(index) => {
+                      setSelectedSanctionPlayers((previous) => previous.filter((_, playerIndex) => playerIndex !== index));
+                      setCardForm((previous) => ({ ...previous, player: selectedSanctionPlayers.filter((_, playerIndex) => playerIndex !== index)[0] ?? "" }));
+                    }}
+                  />
                   <small className="yellow-card-counter">
                     Amarillas acumuladas: {selectedPlayerYellowCards}/3
                     {selectedPlayerYellowCards === 2 ? " · la próxima en otra jornada genera 1 partido de suspensión" : ""}
