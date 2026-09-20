@@ -205,12 +205,12 @@ export default function ClasificacionPage() {
               <table className="league-table standings-table">
                 <thead>
                   <tr>
-                    <th>Pos</th>
+                    <th><span className="desktop-column-heading">Pos</span></th>
                     <th>Equipo</th>
                     <th>PJ</th>
                     <th><span className="desktop-column-heading">G</span><span className="mobile-column-heading">V</span></th>
-                    <th><span className="desktop-column-heading">EG</span><span className="mobile-column-heading">E</span></th>
-                    <th>EP</th>
+                    <th><span className="desktop-column-heading">EG</span><span className="mobile-column-heading">EV</span></th>
+                    <th><span className="desktop-column-heading">EP</span><span className="mobile-column-heading">ED</span></th>
                     <th><span className="desktop-column-heading">P</span><span className="mobile-column-heading">D</span></th>
                     <th>GF</th>
                     <th>GC</th>
@@ -236,7 +236,8 @@ export default function ClasificacionPage() {
                         </td>
                         <td className="mobile-standing-stat" data-label="PJ">{team.played}</td>
                         <td className="mobile-standing-stat" data-label="V">{team.wins}</td>
-                        <td className="mobile-standing-stat" data-label="E">{team.eg + team.ep}</td>
+                        <td className="mobile-standing-stat" data-label="EV">{team.eg}</td>
+                        <td className="mobile-standing-stat" data-label="ED">{team.ep}</td>
                         <td className="mobile-standing-stat" data-label="D">{team.losses}</td>
                         <td className="mobile-standing-stat" data-label="DG">{team.goalDifference > 0 ? `+${team.goalDifference}` : String(team.goalDifference)}</td>
                         <td className="mobile-standing-stat mobile-standing-points" data-label="PTS">{team.points}</td>
