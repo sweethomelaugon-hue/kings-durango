@@ -77,7 +77,8 @@ function normalizeGoalScore(rawValue: unknown): [number, number] {
 
 export function buildStandingsFromMatches(
   teams: Array<{ name: string }>,
-  matches: Array<Record<string, unknown>>
+  matches: Array<Record<string, unknown>>,
+  sanctions: Array<Record<string, unknown>> = []
 ): LeagueStanding[] {
   const uniqueTeams = new Set<string>();
   const storeTeams = teams
@@ -188,14 +189,64 @@ export function buildStandingsFromMatches(
     }
   }
 
+  const pointsGroups = new Map<number, Set<string>>();
+  table.forEach((team) => {
+    const group = pointsGroups.get(team.points) ?? new Set<string>();
+    group.add(team.team);
+    pointsGroups.set(team.points, group);
+  });
+
+  const directPoints = new Map<string, number>();
+  pointsGroups.forEach((group) => group.forEach((team) => directPoints.set(team, 0)));
+  matches.forEach((match) => {
+    const score = typeof match.score === "string" ? match.score.trim() : "";
+    const homeName = typeof match.home === "string" ? match.home.trim() : "";
+    const awayName = typeof match.away === "string" ? match.away.trim() : "";
+    if (!score || score === "-" || !groupForTeams(pointsGroups, homeName, awayName)) {
+      return;
+    }
+
+    const [homeGoals, awayGoals] = normalizeGoalScore(score);
+    const shootoutScore = typeof match.shootoutScore === "string" ? match.shootoutScore.split("-").map((part) => Number.parseInt(part.trim(), 10)) : [];
+    const homeWon = homeGoals > awayGoals || (homeGoals === awayGoals && shootoutScore.length === 2 && shootoutScore[0] > shootoutScore[1]);
+    const awayWon = awayGoals > homeGoals || (homeGoals === awayGoals && shootoutScore.length === 2 && shootoutScore[1] > shootoutScore[0]);
+    const homeMatchPoints = homeWon ? (homeGoals === awayGoals ? 2 : 3) : awayWon ? 1 : 2;
+    const awayMatchPoints = awayWon ? (homeGoals === awayGoals ? 2 : 3) : homeWon ? 1 : 1;
+    directPoints.set(homeName, (directPoints.get(homeName) ?? 0) + homeMatchPoints);
+    directPoints.set(awayName, (directPoints.get(awayName) ?? 0) + awayMatchPoints);
+  });
+
+  const fairPlayPoints = new Map<string, number>();
+  sanctions.forEach((sanction) => {
+    const team = typeof sanction.team === "string" ? sanction.team.trim() : "";
+    if (!team) {
+      return;
+    }
+
+    fairPlayPoints.set(team, (fairPlayPoints.get(team) ?? 0) + Number(sanction.points ?? sanction.pointsAmount ?? 0));
+  });
+
   return table
     .map((team) => ({
       ...team,
       goalDifference: team.goalsFor - team.goalsAgainst,
       form: team.form.slice(-5),
     }))
-    .sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor || a.team.localeCompare(b.team))
+    .sort((a, b) => b.points - a.points
+      || (directPoints.get(b.team) ?? 0) - (directPoints.get(a.team) ?? 0)
+      || b.goalDifference - a.goalDifference
+      || (fairPlayPoints.get(a.team) ?? 0) - (fairPlayPoints.get(b.team) ?? 0)
+      || b.goalsFor - a.goalsFor
+      || a.team.localeCompare(b.team))
     .map((team, index) => ({ ...team, position: index + 1 }));
+}
+
+function groupForTeams(pointsGroups: Map<number, Set<string>>, homeTeam: string, awayTeam: string): boolean {
+  if (!homeTeam || !awayTeam) {
+    return false;
+  }
+
+  return Array.from(pointsGroups.values()).some((group) => group.has(homeTeam) && group.has(awayTeam));
 }
 
 function getTeamPositionMap(standings?: Array<{ team: string; position?: number }>) {
@@ -561,7 +612,7 @@ export function validateDisciplinaryRecords(
 export async function GET() {
   try {
     const store = await ensurePublicSeed();
-    const standings = buildStandingsFromMatches(store.teams, store.matches as Array<Record<string, unknown>>);
+    const standings = buildStandingsFromMatches(store.teams, store.matches as Array<Record<string, unknown>>, store.sanctions as Array<Record<string, unknown>>);
     const scorers = buildScorersFromMatches(store.teams, store.matches as Array<Record<string, unknown>>, standings);
     const zamora = buildZamoraFromMatches(store.teams, store.matches as Array<Record<string, unknown>>, standings);
     return NextResponse.json({ data: { ...store, standings, scorers, zamora } }, { status: 200 });
@@ -629,7 +680,7 @@ export async function POST(request: Request) {
     });
     nextStore.sanctions = recalculateSuspensionRemaining(nextStore.sanctions, nextStore.calendar);
 
-    const standings = buildStandingsFromMatches(nextStore.teams, nextStore.matches as Array<Record<string, unknown>>);
+    const standings = buildStandingsFromMatches(nextStore.teams, nextStore.matches as Array<Record<string, unknown>>, nextStore.sanctions as Array<Record<string, unknown>>);
     const scorers = buildScorersFromMatches(nextStore.teams, nextStore.matches as Array<Record<string, unknown>>, standings);
     const zamora = buildZamoraFromMatches(nextStore.teams, nextStore.matches as Array<Record<string, unknown>>, standings);
     const saved = await writeLeagueStore(nextStore);

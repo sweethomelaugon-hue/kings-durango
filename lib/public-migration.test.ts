@@ -306,6 +306,22 @@ test("buildStandingsFromMatches calcula clasificación determinista desde partid
   assert.equal(standings[2].team, "Inter Panda");
 });
 
+test("buildStandingsFromMatches aplica enfrentamiento directo, Fair Play y goles a favor", () => {
+  const teams = [{ name: "Z" }, { name: "A" }, { name: "C" }, { name: "D" }];
+  const matches = [
+    { home: "Z", away: "A", score: "1 - 0" },
+    { home: "A", away: "C", score: "1 - 0" },
+    { home: "D", away: "Z", score: "1 - 0" },
+    { home: "D", away: "C", score: "1 - 0" },
+  ];
+
+  const standings = buildStandingsFromMatches(teams, matches, [
+    { team: "A", points: 2 },
+  ]);
+
+  assert.deepEqual(standings.map((team) => team.team), ["D", "Z", "A", "C"]);
+});
+
 test("buildStandingsFromMatches rechaza equipos duplicados en la misma tabla", () => {
   const teams = [
     { name: "Aston Birras" },

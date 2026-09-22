@@ -867,6 +867,28 @@ textarea {
   width: 100%;
 }
 
+.home-result-main-line > b {
+  color: var(--text);
+  opacity: 0.72;
+}
+
+.home-result-main-line > b.home-result-winner {
+  color: var(--team-color, var(--green-soft));
+  opacity: 1;
+  font-weight: 800;
+  text-shadow: 0 1px 8px color-mix(in srgb, var(--team-color, var(--green-soft)) 42%, transparent);
+}
+
+.match-list.compact li small.home-result-shootout {
+  align-self: stretch;
+  color: var(--gold-soft);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-top: -4px;
+  text-align: center;
+  text-transform: none;
+}
+
 .home-result-row > span b:last-child {
   text-align: right;
 }
@@ -2129,9 +2151,10 @@ select option {
   align-self: center;
   margin-top: -2px;
   padding: 6px 12px;
-  border-color: rgba(47, 201, 138, 0.22);
-  background: rgba(47, 201, 138, 0.08);
-  color: var(--green-soft);
+  border-color: color-mix(in srgb, var(--team-color, var(--green)) 32%, transparent);
+  background: color-mix(in srgb, var(--team-color, var(--green)) 10%, transparent);
+  color: color-mix(in srgb, var(--team-color, var(--green-soft)) 78%, white);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--team-color, var(--green)) 18%, transparent);
 }
 
 .table-wrap {
@@ -2212,9 +2235,7 @@ select option {
 }
 
 .standings-table thead th {
-  position: sticky;
-  top: 74px;
-  z-index: 5;
+  position: static;
   background: rgba(12, 20, 22, 0.98);
   box-shadow: 0 8px 16px rgba(4, 9, 10, 0.24);
 }

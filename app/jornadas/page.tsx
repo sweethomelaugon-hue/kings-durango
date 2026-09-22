@@ -196,7 +196,7 @@ function JornadasContent() {
                             <span className="team-scorers">{homeScorers.map(([player, goals]) => <span key={player} className="scorer-chip">{player}{goals > 1 ? ` ×${goals}` : ""}</span>)}</span>
                           )}
                         </div>
-                        <div className="match-score">{hasScore ? <><span>{match.score}</span>{match.shootoutScore && <small className="shootout-score">(Penaltis {match.shootoutScore})</small>}</> : <span className="match-time-badge">{match.time}</span>}</div>
+                        <div className="match-score">{hasScore ? <><span>{match.score}</span>{match.shootoutScore && <small className="shootout-score">({match.shootoutScore.replace(/\s+/g, "")})</small>}</> : <span className="match-time-badge">{match.time}</span>}</div>
                         <div className="team-side team-side-away">
                           <strong className={awayIsWinner ? "team-winner" : undefined} style={awayIsWinner ? { "--team-color": teamColorByName[match.away] || teamColors[match.away]?.primary } as React.CSSProperties : undefined}><TeamIdentity name={match.away} compact /></strong>
                           {awayScorers.length > 0 && (
@@ -204,7 +204,7 @@ function JornadasContent() {
                           )}
                         </div>
                       </div>
-                      {isFinished && winner && winner !== "Empate" && <div className="shootout-winner">Ganador · {winner}{match.shootoutScore ? " · Penaltis" : ""}</div>}
+                      {isFinished && winner && winner !== "Empate" && <div className="shootout-winner" style={{ "--team-color": teamColorByName[winner] || teamColors[winner]?.primary } as React.CSSProperties}>Ganador · {winner}{match.shootoutScore ? " · Penaltis" : ""}</div>}
                       <div className="match-footer"><span>Estadio: {match.stadium}</span><span className={isFinished ? "match-status-finished" : undefined}>{statusLabel}</span></div>
                     </article>
                   );

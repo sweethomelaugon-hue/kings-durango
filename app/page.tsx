@@ -15,12 +15,27 @@ type GoalScorerSummary = {
 
 type ScorerSummary = { name: string; team: string; goals: number; matches: number };
 type ZamoraSummary = { name: string; team: string; goalsAgainst: number; matches: number; average: number };
+type StandingSummary = {
+  team: string;
+  played: number;
+  wins: number;
+  eg: number;
+  ep: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+  form: string[];
+  position?: number;
+};
 
 type PublicLeagueState = {
   teams: Array<{ name: string; shortName?: string; primaryColor?: string; players?: Array<{ name: string; dorsal?: number | string; isGoalkeeper?: boolean }> }>;
   matches: Array<{ id: number; home: string; away: string; score: string; shootoutScore?: string; winner?: string; jornada: string; status?: "scheduled" | "finished" | "in-progress" | "cancelled"; goalScorers?: GoalScorerSummary[]; events?: { home: string; away: string } }>;
   calendar: Array<{ id: number; title: string; date: string; status: "completed" | "in-progress" | "upcoming"; matches: Array<{ home: string; away: string; time: string }>; descansan?: string[] }>;
-  sanctions: Array<{ team: string; card: string; player: string; reason: string }>;
+  sanctions: Array<{ team: string; card: string; player: string; reason: string; points?: number; pointsAmount?: number }>;
+  standings: StandingSummary[];
   scorers: ScorerSummary[];
   zamora: ZamoraSummary[];
 };
@@ -30,6 +45,7 @@ const emptyLeague: PublicLeagueState = {
   matches: [],
   calendar: [],
   sanctions: [],
+  standings: [],
   scorers: [],
   zamora: [],
 };
@@ -77,6 +93,7 @@ export default function Home() {
         matches: Array.isArray(payload.data.matches) ? payload.data.matches : [],
         calendar: Array.isArray(payload.data.calendar) ? payload.data.calendar : [],
         sanctions: Array.isArray(payload.data.sanctions) ? payload.data.sanctions : [],
+        standings: Array.isArray(payload.data.standings) ? payload.data.standings : [],
         scorers: Array.isArray(payload.data.scorers) ? payload.data.scorers : [],
         zamora: Array.isArray(payload.data.zamora) ? payload.data.zamora : [],
       });
@@ -136,28 +153,6 @@ export default function Home() {
     : currentRoundHasResults ? "Jornada actual" : "Próxima jornada";
   const teamColorByName = useMemo(() => Object.fromEntries(league.teams.map((team) => [team.name, team.primaryColor])), [league.teams]);
 
-  const sanctionCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    league.teams.forEach((team) => {
-      counts[team.name] = 0;
-    });
-    league.sanctions.forEach((record) => {
-      counts[record.team] = (counts[record.team] ?? 0) + 1;
-    });
-    return counts;
-  }, [league.sanctions, league.teams]);
-
-  const fairPlayTeam = useMemo(() => {
-    if (!league.teams.length) {
-      return "Kings Durango";
-    }
-
-    return [...league.teams].sort((a, b) => {
-      const diff = (sanctionCounts[a.name] ?? 0) - (sanctionCounts[b.name] ?? 0);
-      return diff !== 0 ? diff : a.name.localeCompare(b.name);
-    })[0]?.name ?? "Kings Durango";
-  }, [league.teams, sanctionCounts]);
-
   const topScorer = useMemo(() => {
     return league.scorers[0] ?? { name: "Sin datos", team: "-", goals: 0, matches: 0 };
   }, [league.scorers]);
@@ -186,6 +181,10 @@ export default function Home() {
   const kpiTeamColor = (teamName: string) => teamColorByName[teamName] ?? teamColors[teamName]?.primary ?? "#117d5f";
 
   const homepageStandings = useMemo(() => {
+    if (league.standings.length > 0) {
+      return league.standings.map((entry) => ({ ...entry, positionDelta: 0 }));
+    }
+
     const buildTable = (matches: PublicLeagueState["matches"]) => {
       const table = league.teams.map((team) => ({
         team: team.name,
@@ -256,7 +255,36 @@ export default function Home() {
       ...entry,
       positionDelta: (previousPosition.get(entry.team) ?? index + 1) - (index + 1),
     }));
-  }, [league.matches, league.teams]);
+  }, [league.matches, league.standings, league.teams]);
+
+  const fairPlayTeam = useMemo(() => {
+    if (!league.teams.length) {
+      return "Kings Durango";
+    }
+
+    const fairPlayPoints = new Map<string, number>(league.teams.map((team) => [team.name, 0]));
+    league.sanctions.forEach((sanction) => {
+      fairPlayPoints.set(sanction.team, (fairPlayPoints.get(sanction.team) ?? 0) + Number(sanction.points ?? sanction.pointsAmount ?? 0));
+    });
+    const standingsPosition = new Map(homepageStandings.map((entry, index) => [entry.team, index + 1]));
+
+    return [...league.teams]
+      .sort((a, b) => {
+        const pointsDifference = (fairPlayPoints.get(a.name) ?? 0) - (fairPlayPoints.get(b.name) ?? 0);
+        if (pointsDifference !== 0) {
+          return pointsDifference;
+        }
+
+        return (standingsPosition.get(a.name) ?? Number.MAX_SAFE_INTEGER) - (standingsPosition.get(b.name) ?? Number.MAX_SAFE_INTEGER);
+      })[0]?.name ?? "Kings Durango";
+  }, [homepageStandings, league.sanctions, league.teams]);
+
+  const fairPlayPoints = useMemo(
+    () => league.sanctions
+      .filter((sanction) => sanction.team === fairPlayTeam)
+      .reduce((total, sanction) => total + Number(sanction.points ?? sanction.pointsAmount ?? 0), 0),
+    [fairPlayTeam, league.sanctions]
+  );
 
   const lastCompletedRound = useMemo(
     () => [...league.calendar].filter((round) => round.status === "completed").sort((a, b) => b.id - a.id)[0],
@@ -382,7 +410,7 @@ export default function Home() {
               <TeamShield name={zamoraLeader.team} className="kpi-shield" size={72} />
             </Link>
             <Link href="/sanciones" className="stat-card highlight kpi-card" aria-label="Ver clasificación Fair Play" style={{ "--kpi-team-color": kpiTeamColor(fairPlayTeam) } as React.CSSProperties}>
-              <div className="kpi-copy"><span className="kpi-label">Fair Play</span><strong>{fairPlayTeam}</strong><small>{sanctionCounts[fairPlayTeam] ?? 0} puntos</small></div>
+              <div className="kpi-copy"><span className="kpi-label">Fair Play</span><strong>{fairPlayTeam}</strong><small>{fairPlayPoints} puntos</small></div>
               <TeamShield name={fairPlayTeam} className="kpi-shield" size={72} />
             </Link>
           </section>
@@ -428,10 +456,32 @@ export default function Home() {
                     <small style={{ color: "#a9b9b5", fontWeight: 700, letterSpacing: 0.3 }}>{formatVisibleDate(lastCompletedRound.date)}</small>
                   ) : null}
                 </div>
-                <Link href="/jornadas">Ver jornada</Link>
+                  <Link href={lastCompletedRound?.title ? `/jornadas?jornada=${encodeURIComponent(lastCompletedRound.title)}` : "/jornadas"}>Ver jornada</Link>
               </div>
               <ul className="match-list compact">
-                {lastCompletedMatches.length > 0 ? lastCompletedMatches.map((match) => <li key={match.id} className="home-result-row"><span><b><TeamIdentity name={match.home} compact /></b><strong>{match.score || "-"}</strong><b><TeamIdentity name={match.away} compact /></b></span><small>Finalizado</small></li>) : <li><span>Sin resultados</span><small>--</small></li>}
+                {lastCompletedMatches.length > 0 ? lastCompletedMatches.map((match) => {
+                  const [homeGoals, awayGoals] = (match.score || "").split("-").map((value) => Number(value.trim()));
+                  const hasDraw = Number.isFinite(homeGoals) && Number.isFinite(awayGoals) && homeGoals === awayGoals;
+                  const shootout = (match.shootoutScore || "").split("-").map((value) => Number(value.trim()));
+                  const shootoutWinner = hasDraw && shootout.length === 2 && Number.isFinite(shootout[0]) && Number.isFinite(shootout[1]) && shootout[0] !== shootout[1]
+                    ? shootout[0] > shootout[1] ? match.home : match.away
+                    : undefined;
+                  const winner = match.winner ?? (!hasDraw && Number.isFinite(homeGoals) && Number.isFinite(awayGoals)
+                    ? homeGoals > awayGoals ? match.home : awayGoals > homeGoals ? match.away : undefined
+                    : shootoutWinner);
+
+                  return (
+                    <li key={match.id} className="home-result-row">
+                      <span className="home-result-main-line">
+                        <b className={winner === match.home ? "home-result-winner" : undefined} style={winner === match.home ? { "--team-color": teamColorByName[match.home] } as React.CSSProperties : undefined}><TeamIdentity name={match.home} compact /></b>
+                        <strong>{match.score || "-"}</strong>
+                        <b className={winner === match.away ? "home-result-winner" : undefined} style={winner === match.away ? { "--team-color": teamColorByName[match.away] } as React.CSSProperties : undefined}><TeamIdentity name={match.away} compact /></b>
+                      </span>
+                      {shootoutWinner ? <small className="home-result-shootout">{shootout[0]}-{shootout[1]}</small> : null}
+                      <small>Finalizado</small>
+                    </li>
+                  );
+                }) : <li><span>Sin resultados</span><small>--</small></li>}
               </ul>
             </div>
           </section>
