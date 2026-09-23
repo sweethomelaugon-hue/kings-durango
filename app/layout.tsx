@@ -21,9 +21,29 @@ const resolveSupabaseAssetUrl = (fileName: string) => {
   return `${baseUrl}/storage/v1/object/public/league-assets/${encodeURIComponent(fileName)}`;
 };
 
+const shareImageUrl = resolveSupabaseAssetUrl("Kings League.png");
+
 export const metadata: Metadata = {
   title: "Kings Durango | Tabira",
   description: "Aplicación web de Kings Durango con clasificación, Pitxitxi, jornadas y gestión administrativa.",
+  openGraph: {
+    title: "Kings Durango | Tabira",
+    description: "Clasificación, Pitxitxi, jornadas y gestión de Kings Durango.",
+    type: "website",
+    locale: "es_ES",
+    images: [
+      {
+        url: shareImageUrl,
+        alt: "Kings Durango",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kings Durango | Tabira",
+    description: "Clasificación, Pitxitxi, jornadas y gestión de Kings Durango.",
+    images: [shareImageUrl],
+  },
 };
 
 export const viewport: Viewport = {
