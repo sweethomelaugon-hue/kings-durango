@@ -26,6 +26,10 @@ const shareImageUrl = resolveSupabaseAssetUrl("Kings League.png");
 export const metadata: Metadata = {
   title: "Kings Durango | Tabira",
   description: "Aplicación web de Kings Durango con clasificación, Pitxitxi, jornadas y gestión administrativa.",
+  icons: {
+    icon: shareImageUrl,
+    apple: shareImageUrl,
+  },
   openGraph: {
     title: "Kings Durango | Tabira",
     description: "Clasificación, Pitxitxi, jornadas y gestión de Kings Durango.",
