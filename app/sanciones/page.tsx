@@ -6,6 +6,8 @@ import { getTeamPalette } from "@/lib/league-data";
 import { dedupeActiveDisciplineStatus, getDisciplineStatus, getNextTeamRound } from "@/lib/discipline";
 import { TeamIdentity } from "@/lib/team-identity";
 import { TeamShield } from "@/lib/team-identity";
+import { findPlayerDorsal, PlayerDorsal } from "@/components/PlayerDorsal";
+import { LeagueInformationButton } from "@/components/LeagueInformationButton";
 
 type SanctionRow = {
   id: number;
@@ -28,7 +30,12 @@ type SanctionRow = {
   cost_amount?: number;
 };
 
-type TeamRow = { name: string; primaryColor?: string; shieldImage?: string };
+type TeamRow = {
+  name: string;
+  primaryColor?: string;
+  shieldImage?: string;
+  players?: Array<{ name: string; dorsal?: number | string | null }>;
+};
 type CalendarRound = {
   id: number;
   title: string;
@@ -162,7 +169,10 @@ export default function SancionesPage() {
           <p className="eyebrow">Disciplina</p>
           <h1>Sanciones y amonestaciones</h1>
         </div>
-        <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        <div className="page-header-actions">
+          <LeagueInformationButton section="sanciones" />
+          <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        </div>
       </header>
 
       {loading && <p className="empty-state">Cargando sanciones…</p>}
@@ -238,7 +248,12 @@ export default function SancionesPage() {
                   {activeSanctions.map((item) => (
                     <tr key={item.id}>
                       <td><span className="team-tag sanction-team-tag" style={{ background: `${getTeamPalette(item.team, teams.find((team) => team.name === item.team)?.primaryColor).primary}1A`, color: getTeamPalette(item.team, teams.find((team) => team.name === item.team)?.primaryColor).secondary }}><TeamIdentity name={item.team} className="sanction-team-identity" compact /></span></td>
-                      <td><strong>{item.player}</strong></td>
+                      <td>
+                        <span className="player-name-with-dorsal">
+                          <PlayerDorsal dorsal={findPlayerDorsal(teams, item.team, item.player)} />
+                          <strong>{item.player}</strong>
+                        </span>
+                      </td>
                       <td><span className={`sanction-badge ${item.card.toLowerCase().replace(/ /g, "-")}`}>{item.isYellowAccumulationSuspension ? "3 amarillas" : item.card}</span></td>
                       <td>
                         <strong>
@@ -288,9 +303,12 @@ export default function SancionesPage() {
               {accumulatedYellowCards.length > 0 ? accumulatedYellowCards.map((record) => (
                 <div key={`${record.team}-${record.player}`} className="team-points-row">
                   <span>
-                    <strong style={{ color: getTeamPalette(record.team, teams.find((team) => team.name === record.team)?.primaryColor).primary }}>
-                      {record.player}
-                    </strong>
+                    <span className="player-name-with-dorsal">
+                      <PlayerDorsal dorsal={findPlayerDorsal(teams, record.team, record.player)} />
+                      <strong style={{ color: getTeamPalette(record.team, teams.find((team) => team.name === record.team)?.primaryColor).primary }}>
+                        {record.player}
+                      </strong>
+                    </span>
                     <small style={{ display: "block", color: "#b0bab8", marginTop: 3 }}>
                       <TeamIdentity
                         name={record.team}

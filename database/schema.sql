@@ -129,6 +129,28 @@ CREATE TABLE IF NOT EXISTS finance_entities (
   UNIQUE (season_id, name, entity_type)
 );
 
+CREATE TABLE IF NOT EXISTS league_section_information (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  season_id UUID NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+  section_key VARCHAR(40) NOT NULL,
+  title VARCHAR(120) NOT NULL,
+  content TEXT NOT NULL DEFAULT '',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (season_id, section_key)
+);
+
+ALTER TABLE league_section_information ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can read league section information" ON league_section_information;
+CREATE POLICY "Public can read league section information"
+  ON league_section_information
+  FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+GRANT SELECT ON TABLE league_section_information TO anon, authenticated;
+GRANT ALL ON TABLE league_section_information TO service_role;
+
 ALTER TABLE financial_movements
   ADD COLUMN IF NOT EXISTS entity_id UUID REFERENCES finance_entities(id) ON DELETE SET NULL;
 
@@ -154,5 +176,6 @@ CREATE INDEX IF NOT EXISTS idx_matches_season_id ON matches(season_id);
 CREATE INDEX IF NOT EXISTS idx_financial_movements_season_id ON financial_movements(season_id);
 CREATE INDEX IF NOT EXISTS idx_financial_movements_entity_id ON financial_movements(entity_id);
 CREATE INDEX IF NOT EXISTS idx_finance_entities_season_id ON finance_entities(season_id);
+CREATE INDEX IF NOT EXISTS idx_league_section_information_season ON league_section_information(season_id);
 CREATE INDEX IF NOT EXISTS idx_disciplinary_records_player_id ON disciplinary_records(player_id);
 CREATE INDEX IF NOT EXISTS idx_league_standings_season_team ON league_standings(season_id, team_id);

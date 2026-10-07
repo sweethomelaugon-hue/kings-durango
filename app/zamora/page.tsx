@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getTeamPalette, teamColors } from "@/lib/league-data";
 import { TeamIdentity, TeamShield } from "@/lib/team-identity";
+import { LeagueInformationButton } from "@/components/LeagueInformationButton";
 
 type ZamoraRow = {
   name: string;
@@ -99,7 +100,10 @@ export default function ZamoraPage() {
           <p className="eyebrow">Porteros</p>
           <h1>Ranking de Zamora</h1>
         </div>
-        <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        <div className="page-header-actions">
+          <LeagueInformationButton section="zamora" />
+          <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        </div>
       </header>
 
       {loading && <p className="empty-state">Cargando Zamora…</p>}

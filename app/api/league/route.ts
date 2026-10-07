@@ -4,6 +4,7 @@ import { publicLeagueMigrationSeed } from "@/lib/league-data";
 import { recalculateSuspensionRemaining } from "@/lib/discipline";
 import { readLeagueStore, repairMojibake, validateLeagueStorePayload, writeLeagueStore } from "@/lib/league-store";
 import { isAdminAuthorized } from "@/lib/supabase";
+import { phaseTwoRounds } from "@/lib/phase-two-calendar";
 
 function isEmptyStore(store: unknown): boolean {
   if (!store || typeof store !== "object") {
@@ -613,9 +614,51 @@ export async function GET() {
   try {
     const store = await ensurePublicSeed();
     const standings = buildStandingsFromMatches(store.teams, store.matches as Array<Record<string, unknown>>, store.sanctions as Array<Record<string, unknown>>);
+    const phaseTwoStartDate = phaseTwoRounds[0]?.date ?? "2027-02-21";
+    const phaseTwoEndDate = phaseTwoRounds[phaseTwoRounds.length - 1]?.date ?? phaseTwoStartDate;
+    const phaseOneMatches = store.matches.filter((match) => match.date < phaseTwoStartDate);
+    const phaseTwoMatches = store.matches.filter((match) => match.date >= phaseTwoStartDate && match.date <= phaseTwoEndDate);
+    const matchDateById = new Map(store.matches.map((match) => [String(match.id), match.date]));
+    const roundDateByTitle = new Map(store.calendar.map((round) => [round.title, round.date]));
+    const getSanctionDate = (sanction: (typeof store.sanctions)[number]) =>
+      (sanction.matchId === undefined ? undefined : matchDateById.get(String(sanction.matchId)))
+      ?? roundDateByTitle.get(sanction.jornada ?? "")
+      ?? "";
+    const phaseOneSanctions = store.sanctions.filter((sanction) => {
+      const date = getSanctionDate(sanction);
+      return date !== "" && date < phaseTwoStartDate;
+    });
+    const phaseTwoSanctions = store.sanctions.filter((sanction) => {
+      const date = getSanctionDate(sanction);
+      return date >= phaseTwoStartDate && date <= phaseTwoEndDate;
+    });
+    const phaseOneStandings = buildStandingsFromMatches(
+      store.teams,
+      phaseOneMatches as Array<Record<string, unknown>>,
+      phaseOneSanctions as Array<Record<string, unknown>>
+    );
+    const championsTeamNames = new Set(phaseOneStandings.slice(0, 6).map((team) => team.team));
+    const hoyoTeamNames = new Set(phaseOneStandings.slice(6, 12).map((team) => team.team));
+    const buildPhaseTwoGroupStandings = (groupTeamNames: Set<string>) => {
+      const groupTeams = store.teams.filter((team) => groupTeamNames.has(team.name));
+      const groupMatches = phaseTwoMatches.filter((match) => groupTeamNames.has(match.home) && groupTeamNames.has(match.away));
+      const groupSanctions = phaseTwoSanctions.filter((sanction) => groupTeamNames.has(sanction.team));
+      return buildStandingsFromMatches(
+        groupTeams,
+        groupMatches as Array<Record<string, unknown>>,
+        groupSanctions as Array<Record<string, unknown>>
+      );
+    };
+    const phaseStandings = {
+      phase1: phaseOneStandings,
+      phase2: {
+        champions: buildPhaseTwoGroupStandings(championsTeamNames),
+        hoyo: buildPhaseTwoGroupStandings(hoyoTeamNames),
+      },
+    };
     const scorers = buildScorersFromMatches(store.teams, store.matches as Array<Record<string, unknown>>, standings);
     const zamora = buildZamoraFromMatches(store.teams, store.matches as Array<Record<string, unknown>>, standings);
-    return NextResponse.json({ data: { ...store, standings, scorers, zamora } }, { status: 200 });
+    return NextResponse.json({ data: { ...store, standings, phaseStandings, scorers, zamora } }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo leer el store de la liga.";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -5,6 +5,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getTeamPalette } from "@/lib/league-data";
 import { TeamIdentity } from "@/lib/team-identity";
 import { getPlayerGoalSummary } from "@/lib/player-goal-balls";
+import { LeagueInformationButton } from "@/components/LeagueInformationButton";
+import { phaseTwoRounds } from "@/lib/phase-two-calendar";
+
+const phaseTwoStartDate = phaseTwoRounds[0]?.date ?? "2027-02-21";
+const phaseTwoEndDate = phaseTwoRounds[phaseTwoRounds.length - 1]?.date ?? phaseTwoStartDate;
 
 type TeamRow = {
   id?: string;
@@ -16,6 +21,7 @@ type TeamRow = {
 
 type MatchRow = {
   id: number;
+  date?: string;
   home: string;
   away: string;
   score: string;
@@ -24,7 +30,7 @@ type MatchRow = {
   goalScorers?: Array<{ player: string; team: string }>;
 };
 
-type CalendarRow = { id: number; title: string; status: "completed" | "in-progress" | "upcoming" };
+type CalendarRow = { id: number; title: string; date: string; status: "completed" | "in-progress" | "upcoming" };
 
 type StandingRow = {
   team: string;
@@ -39,6 +45,14 @@ type StandingRow = {
   points: number;
   form: string[];
   position?: number;
+};
+
+type PhaseStandings = {
+  phase1: StandingRow[];
+  phase2: {
+    champions: StandingRow[];
+    hoyo: StandingRow[];
+  };
 };
 
 function sortPlayersByDorsal<T extends { name: string; dorsal?: number | string }>(players: T[]) {
@@ -130,16 +144,18 @@ function buildStandings(teams: TeamRow[], matches: MatchRow[]): StandingRow[] {
 
 export default function ClasificacionPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [selectedPhase, setSelectedPhase] = useState<"fase1" | "fase2">("fase1");
+  const [selectedPhaseTwoLeague, setSelectedPhaseTwoLeague] = useState<"champions" | "hoyo">("champions");
   const [isMobileHeaderFixed, setIsMobileHeaderFixed] = useState(false);
+  const [mobileHeaderMetrics, setMobileHeaderMetrics] = useState({ left: 0, width: 0, top: 0 });
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [calendar, setCalendar] = useState<CalendarRow[]>([]);
-  const [standings, setStandings] = useState<StandingRow[]>([]);
+  const [phaseStandings, setPhaseStandings] = useState<PhaseStandings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mobileHeaderRef = useRef<HTMLDivElement>(null);
   const mobileHeaderTopRef = useRef<number | null>(null);
-  const mobileHeaderMetricsRef = useRef({ left: 0, width: 0, top: 0 });
 
   useEffect(() => {
     let active = true;
@@ -161,14 +177,11 @@ export default function ClasificacionPage() {
 
         const nextTeams = Array.isArray(payload.data.teams) ? payload.data.teams : [];
         const nextMatches = Array.isArray(payload.data.matches) ? payload.data.matches : [];
-        const nextStandings = Array.isArray(payload.data.standings) && payload.data.standings.length > 0
-          ? payload.data.standings
-          : buildStandings(nextTeams, nextMatches);
-
         setTeams(nextTeams);
         setMatches(nextMatches);
-        setCalendar(Array.isArray(payload.data.calendar) ? payload.data.calendar : []);
-        setStandings(nextStandings);
+        const nextCalendar = Array.isArray(payload.data.calendar) ? payload.data.calendar : [];
+        setCalendar(nextCalendar);
+        setPhaseStandings(payload.data.phaseStandings ?? null);
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : "Error cargando la clasificación.";
         setError(message);
@@ -199,11 +212,16 @@ export default function ClasificacionPage() {
         const panelBounds = panel?.getBoundingClientRect();
         mobileHeaderTopRef.current = bounds.top + window.scrollY;
         const topbar = document.querySelector<HTMLElement>(".topbar");
-        mobileHeaderMetricsRef.current = {
+        const nextMetrics = {
           left: panelBounds?.left ?? bounds.left,
           width: panelBounds?.width ?? bounds.width,
           top: topbar?.getBoundingClientRect().bottom ?? 0,
         };
+        setMobileHeaderMetrics((current) =>
+          current.left === nextMetrics.left && current.width === nextMetrics.width && current.top === nextMetrics.top
+            ? current
+            : nextMetrics
+        );
       }
 
       const shouldFix = window.scrollY > (mobileHeaderTopRef.current ?? 0);
@@ -221,22 +239,50 @@ export default function ClasificacionPage() {
     };
   }, [isMobileHeaderFixed]);
 
-  const resolvedStandings = useMemo(() => standings.length > 0 ? standings : buildStandings(teams, matches), [matches, standings, teams]);
+  const phaseOneMatches = useMemo(
+    () => matches.filter((match) => Boolean(match.date) && match.date! < phaseTwoStartDate),
+    [matches]
+  );
+  const phaseTwoMatches = useMemo(
+    () => matches.filter((match) => Boolean(match.date) && match.date! >= phaseTwoStartDate && match.date! <= phaseTwoEndDate),
+    [matches]
+  );
+  const calculatedPhaseOneStandings = useMemo(() => buildStandings(teams, phaseOneMatches), [phaseOneMatches, teams]);
+  const phaseOneStandings = phaseStandings?.phase1 ?? calculatedPhaseOneStandings;
+  const championsTeamNames = new Set(phaseOneStandings.slice(0, 6).map((team) => team.team));
+  const hoyoTeamNames = new Set(phaseOneStandings.slice(6, 12).map((team) => team.team));
+  const selectedPhaseTwoTeamNames = selectedPhaseTwoLeague === "champions" ? championsTeamNames : hoyoTeamNames;
+  const selectedPhaseTwoTeams = teams.filter((team) => selectedPhaseTwoTeamNames.has(team.name));
+  const selectedPhaseTwoMatches = phaseTwoMatches.filter((match) =>
+    selectedPhaseTwoTeamNames.has(match.home) && selectedPhaseTwoTeamNames.has(match.away)
+  );
+  const calculatedPhaseTwoStandings = useMemo(
+    () => buildStandings(selectedPhaseTwoTeams, selectedPhaseTwoMatches),
+    [selectedPhaseTwoMatches, selectedPhaseTwoTeams]
+  );
+  const resolvedStandings = selectedPhase === "fase1"
+    ? phaseOneStandings
+    : phaseStandings?.phase2[selectedPhaseTwoLeague] ?? calculatedPhaseTwoStandings;
+  const phaseMatchesForTable = selectedPhase === "fase1" ? phaseOneMatches : selectedPhaseTwoMatches;
+  const teamsForTable = selectedPhase === "fase1" ? teams : selectedPhaseTwoTeams;
+  const calendarForPhase = calendar.filter((round) => selectedPhase === "fase1"
+    ? round.date < phaseTwoStartDate
+    : round.date >= phaseTwoStartDate);
   const positionChanges = useMemo(() => {
-    const lastCompletedRound = [...calendar].filter((round) => round.status === "completed").sort((a, b) => b.id - a.id)[0];
+    const lastCompletedRound = [...calendarForPhase].filter((round) => round.status === "completed").sort((a, b) => b.id - a.id)[0];
     if (!lastCompletedRound) {
       return new Map<string, number>();
     }
 
-    const previousMatches = matches.filter((match) => match.jornada !== lastCompletedRound.title);
+    const previousMatches = phaseMatchesForTable.filter((match) => match.date !== lastCompletedRound.date);
     if (!previousMatches.some((match) => match.score && match.score !== "-")) {
       return new Map<string, number>();
     }
 
-    const previousStandings = buildStandings(teams, previousMatches);
+    const previousStandings = buildStandings(teamsForTable, previousMatches);
     const previousPositions = new Map(previousStandings.map((team, index) => [team.team, team.position ?? index + 1]));
     return new Map(resolvedStandings.map((team, index) => [team.team, (previousPositions.get(team.team) ?? index + 1) - (team.position ?? index + 1)]));
-  }, [calendar, matches, resolvedStandings, teams]);
+  }, [calendarForPhase, phaseMatchesForTable, resolvedStandings, teamsForTable]);
   const teamRoster = useMemo(() => Object.fromEntries(teams.map((team) => [team.name, team.players])), [teams]);
   const selectedRoster = selectedTeam ? sortPlayersByDorsal(teamRoster[selectedTeam] ?? []) : [];
 
@@ -247,7 +293,10 @@ export default function ClasificacionPage() {
           <p className="eyebrow">Tabla</p>
           <h1>Clasificación</h1>
         </div>
-        <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        <div className="page-header-actions">
+          <LeagueInformationButton section="clasificacion" />
+          <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        </div>
       </header>
 
       {loading && <p className="empty-state">Cargando clasificación…</p>}
@@ -255,16 +304,30 @@ export default function ClasificacionPage() {
 
       {!loading && !error && (
         <>
+          <div className="calendar-phase-switch" role="tablist" aria-label="Fase de clasificación">
+            <button type="button" role="tab" aria-selected={selectedPhase === "fase1"} className={`calendar-phase-tab ${selectedPhase === "fase1" ? "active" : ""}`} onClick={() => { setSelectedPhase("fase1"); setSelectedTeam(null); }}>Fase 1</button>
+            <button type="button" role="tab" aria-selected={selectedPhase === "fase2"} className={`calendar-phase-tab ${selectedPhase === "fase2" ? "active" : ""}`} onClick={() => { setSelectedPhase("fase2"); setSelectedTeam(null); }}>Fase 2</button>
+          </div>
+          {selectedPhase === "fase2" ? (
+            <div className="calendar-phase-switch" role="tablist" aria-label="Liga de Fase 2">
+              <button type="button" role="tab" aria-selected={selectedPhaseTwoLeague === "champions"} className={`calendar-phase-tab ${selectedPhaseTwoLeague === "champions" ? "active" : ""}`} onClick={() => { setSelectedPhaseTwoLeague("champions"); setSelectedTeam(null); }}>Liga de Campeones</button>
+              <button type="button" role="tab" aria-selected={selectedPhaseTwoLeague === "hoyo"} className={`calendar-phase-tab ${selectedPhaseTwoLeague === "hoyo" ? "active" : ""}`} onClick={() => { setSelectedPhaseTwoLeague("hoyo"); setSelectedTeam(null); }}>Liga del Hoyo</button>
+            </div>
+          ) : null}
           <section className="content-card table-wrap">
+            <div className="section-header compact-header">
+              <h2>{selectedPhase === "fase1" ? "Fase 1 · Liga regular" : selectedPhaseTwoLeague === "champions" ? "Fase 2 · Liga de Campeones" : "Fase 2 · Liga del Hoyo"}</h2>
+              <span>{selectedPhase === "fase1" ? "12 equipos" : selectedPhaseTwoLeague === "champions" ? "Puestos 1–6 de Fase 1" : "Puestos 7–12 de Fase 1"}</span>
+            </div>
             {resolvedStandings.length > 0 ? (
               <>
                 <div
                   ref={mobileHeaderRef}
                   className={`standings-mobile-sticky-header ${isMobileHeaderFixed ? "is-fixed" : ""}`}
                   style={isMobileHeaderFixed ? {
-                    left: mobileHeaderMetricsRef.current.left,
-                    width: mobileHeaderMetricsRef.current.width,
-                    top: mobileHeaderMetricsRef.current.top,
+                    left: mobileHeaderMetrics.left,
+                    width: mobileHeaderMetrics.width,
+                    top: mobileHeaderMetrics.top,
                   } : undefined}
                   aria-hidden="true"
                 >
@@ -292,12 +355,15 @@ export default function ClasificacionPage() {
                   {resolvedStandings.map((team) => {
                     const palette = getTeamPalette(team.team, teams.find((candidate) => candidate.name === team.team)?.primaryColor);
                     const configuredColor = palette.primary;
-                    const isLeagueDivider = team.position === 7;
+                    const belongsToChampions = selectedPhase === "fase1"
+                      ? (team.position ?? Number.MAX_SAFE_INTEGER) <= 6
+                      : selectedPhaseTwoLeague === "champions";
+                    const isLeagueDivider = selectedPhase === "fase1" && team.position === 7;
 
                     return (
                       <tr
                         key={team.team}
-                        className={`team-row-clickable ${team.position && team.position <= 6 ? "group-champions" : "group-hoyo"} ${isLeagueDivider ? "league-divider-row" : ""}`}
+                        className={`team-row-clickable ${belongsToChampions ? "group-champions" : "group-hoyo"} ${isLeagueDivider ? "league-divider-row" : ""}`}
                         role="button"
                         tabIndex={0}
                         aria-label={`Ver jugadores de ${team.team}`}

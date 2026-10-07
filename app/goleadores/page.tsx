@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getTeamPalette, teamColors } from "@/lib/league-data";
+import { getTeamPalette } from "@/lib/league-data";
 import { TeamIdentity, TeamShield } from "@/lib/team-identity";
+import { findPlayerDorsal, PlayerDorsal } from "@/components/PlayerDorsal";
+import { LeagueInformationButton } from "@/components/LeagueInformationButton";
 
 type ScorerRow = {
   name: string;
@@ -13,7 +15,11 @@ type ScorerRow = {
   positionDelta?: number;
 };
 
-type TeamRow = { name: string; primaryColor?: string };
+type TeamRow = {
+  name: string;
+  primaryColor?: string;
+  players?: Array<{ name: string; dorsal?: number | string | null }>;
+};
 
 export default function GoleadoresPage() {
   const [scorers, setScorers] = useState<ScorerRow[]>([]);
@@ -87,7 +93,10 @@ export default function GoleadoresPage() {
           <p className="eyebrow">Estadísticas</p>
           <h1>Pitxitxi</h1>
         </div>
-        <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        <div className="page-header-actions">
+          <LeagueInformationButton section="goleadores" />
+          <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        </div>
       </header>
 
       {loading && <p className="empty-state">Cargando goleadores…</p>}
@@ -101,7 +110,10 @@ export default function GoleadoresPage() {
             }}>
               <div className="spotlight-copy">
                 <span className="eyebrow">Pitxitxi</span>
-                <h2>{featured.name}</h2>
+                <h2 className="player-name-with-dorsal player-name-featured">
+                  <PlayerDorsal dorsal={findPlayerDorsal(teams, featured.team, featured.name)} />
+                  <span>{featured.name}</span>
+                </h2>
                 <p><TeamIdentity name={featured.team} compact /></p>
                 <div className="spotlight-stats">
                   <strong>{featured.goals}</strong>
@@ -128,7 +140,10 @@ export default function GoleadoresPage() {
                   <div key={player.name} className="stat-rank-item">
                     <span className="position">#{index + 1}</span>
                     <div className="player-meta">
-                      <strong>{player.name}</strong>
+                      <span className="player-name-with-dorsal">
+                        <PlayerDorsal dorsal={findPlayerDorsal(teams, player.team, player.name)} />
+                        <strong>{player.name}</strong>
+                      </span>
                       <TeamIdentity name={player.team} compact />
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -167,7 +182,12 @@ export default function GoleadoresPage() {
                   {orderedScorers.map((player, index) => (
                     <tr key={`${player.name}-${player.team}`}>
                       <td>{index + 1}</td>
-                      <td>{player.name}</td>
+                      <td>
+                        <span className="player-name-with-dorsal">
+                          <PlayerDorsal dorsal={findPlayerDorsal(teams, player.team, player.name)} />
+                          <span>{player.name}</span>
+                        </span>
+                      </td>
                       <td>
                         <span className="team-tag" style={{ background: `${getTeamPalette(player.team, teams.find((team) => team.name === player.team)?.primaryColor).primary}1A`, color: getTeamPalette(player.team, teams.find((team) => team.name === player.team)?.primaryColor).secondary }}>
                           <TeamIdentity name={player.team} compact />

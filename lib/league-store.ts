@@ -373,8 +373,11 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
   }));
 
   const roundIdByTitle = new Map<string, string>();
+  const roundIdByTitleAndDate = new Map<string, string>();
   for (const round of roundRows) {
-    roundIdByTitle.set(String(round.title).trim().toLowerCase(), String(round.id));
+    const normalizedTitle = String(round.title).trim().toLowerCase();
+    roundIdByTitle.set(normalizedTitle, String(round.id));
+    roundIdByTitleAndDate.set(`${normalizedTitle}::${String(round.date).trim()}`, String(round.id));
   }
 
   const matchRows = store.matches.map((match, index) => {
@@ -382,7 +385,9 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
     const [homeGoals, awayGoals] = score === "-" ? [0, 0] : score.split(/[-:]/).map((value) => Number.parseInt(value.trim(), 10) || 0);
     const homeTeamId = teamIds.get(String(match.home ?? "").trim().toLowerCase()) ?? teamIds.get(String(store.teams[index]?.name ?? "").trim().toLowerCase()) ?? crypto.randomUUID();
     const awayTeamId = teamIds.get(String(match.away ?? "").trim().toLowerCase()) ?? crypto.randomUUID();
-    const roundId = roundIdByTitle.get(String(match.jornada ?? match.home ?? "").trim().toLowerCase())
+    const matchRoundTitle = String(match.jornada ?? match.home ?? "").trim().toLowerCase();
+    const roundId = roundIdByTitleAndDate.get(`${matchRoundTitle}::${String(match.date ?? "").trim()}`)
+      ?? roundIdByTitle.get(matchRoundTitle)
       ?? roundIdByTitle.get(String(store.calendar.find((calendarRound) => calendarRound.matches.some((entry) => entry.home === match.home && entry.away === match.away))?.title ?? "").trim().toLowerCase())
       ?? String(roundRows[0]?.id ?? crypto.randomUUID());
 

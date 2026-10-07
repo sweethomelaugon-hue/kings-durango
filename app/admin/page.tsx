@@ -19,6 +19,8 @@ import { clearAuthSession, isAdminSession, readAuthSession } from "@/lib/auth";
 import { getMovementConceptLabel, getMovementTypeLabel, MOVEMENT_CONCEPT_OPTIONS, normalizeFinanceKind } from "@/lib/finance-movements";
 import { buildAdminHeaders } from "@/lib/supabase";
 import { TeamIdentity } from "@/lib/team-identity";
+import { findPlayerDorsal, PlayerDorsal } from "@/components/PlayerDorsal";
+import { leagueInformationSections, type LeagueInformationRecord, type LeagueInformationSection } from "@/lib/league-information";
 
 type CardType = "Amarilla" | "Doble amarilla" | "Roja" | "Otra";
 type SanctionReason = "Motivos deportivos" | "Motivos antideportivos" | "Motivos de vestimenta/indumentaria no oficial" | "Otros motivos";
@@ -45,11 +47,21 @@ type ResultDraft = {
   isFinalized?: boolean;
 };
 
-const resultDraftKey = (home: string, away: string) => `${home}::${away}`;
+const resultDraftKey = (home: string, away: string, jornada = "", date = "") => `${jornada}::${date}::${home}::${away}`;
+
+const getSanctionRoundsForTeam = (teamName: string, rounds: RoundEditor[], matches: Match[]) =>
+  rounds
+    .filter((round) => round.status !== "upcoming" && matches.some((match) =>
+      match.jornada === round.title
+      && (match.home === teamName || match.away === teamName)
+      && Boolean(match.score && match.score !== "-")
+    ))
+    .sort((first, second) => second.id - first.id);
 
 type ResultScorerPickerProps = {
   label: string;
   players: Array<{ name: string; dorsal?: number | string }>;
+  playerLabels?: Array<{ name: string; dorsal?: number | string }>;
   selected: string[];
   onSelect: (player: string) => void;
   onRemove: (index: number) => void;
@@ -57,9 +69,13 @@ type ResultScorerPickerProps = {
   selectionLabel?: string;
 };
 
-function ResultScorerPicker({ label, players, selected, onSelect, onRemove, single = false, selectionLabel = "goleador" }: ResultScorerPickerProps) {
+function ResultScorerPicker({ label, players, playerLabels = players, selected, onSelect, onRemove, single = false, selectionLabel = "goleador" }: ResultScorerPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const getPlayerLabel = (playerName: string) => {
+    const dorsal = String(playerLabels.find((player) => player.name === playerName)?.dorsal ?? "").trim();
+    return dorsal ? `#${dorsal} · ${playerName}` : playerName;
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -86,7 +102,7 @@ function ResultScorerPicker({ label, players, selected, onSelect, onRemove, sing
         className={`result-scorer-trigger ${isOpen ? "is-open" : ""}`}
         onClick={() => setIsOpen((previous) => !previous)}
       >
-        <span>{selected.length > 0 ? single ? selected[0] : `${selected.length} ${selectionLabel}${selected.length > 1 ? "es" : ""} seleccionado${selected.length > 1 ? "s" : ""}` : single ? "Seleccionar jugador..." : selectionLabel === "jugador" ? "Añadir jugadores..." : "Añadir goleador..."}</span>
+        <span>{selected.length > 0 ? single ? getPlayerLabel(selected[0]) : `${selected.length} ${selectionLabel}${selected.length > 1 ? "es" : ""} seleccionado${selected.length > 1 ? "s" : ""}` : single ? "Seleccionar jugador..." : selectionLabel === "jugador" ? "Añadir jugadores..." : "Añadir goleador..."}</span>
         <span className="result-scorer-caret">▾</span>
       </button>
 
@@ -102,7 +118,7 @@ function ResultScorerPicker({ label, players, selected, onSelect, onRemove, sing
                 setIsOpen(false);
               }}
             >
-              <span className="result-scorer-dorsal">{player.dorsal ?? "-"}</span>
+              <span className="result-scorer-dorsal">{player.dorsal !== undefined && String(player.dorsal).trim() !== "" ? `#${player.dorsal}` : "-"}</span>
               <span>{player.name}</span>
             </button>
           )) : (
@@ -123,7 +139,7 @@ function ResultScorerPicker({ label, players, selected, onSelect, onRemove, sing
                 onClick={() => onRemove(selected.lastIndexOf(player))}
                 title="Quitar un gol de este jugador"
               >
-                {player}{count > 1 ? ` · ${count} goles` : ""} ×
+                {getPlayerLabel(player)}{count > 1 ? ` · ${count} goles` : ""} ×
               </button>
             );
           })}
@@ -260,7 +276,7 @@ const sanctionPrices: Record<CardType, number> = {
 
 const defaultSanctionPoints = { yellow: 2, doubleYellow: 4, red: 5, other: 0 };
 
-type AdminTab = "equipos" | "calendario" | "resultados" | "sanciones" | "economia";
+type AdminTab = "equipos" | "calendario" | "resultados" | "sanciones" | "economia" | "informacion";
 type SaveFeedback = { type: "success" | "error"; message: string };
 
 const adminTabs: Array<{ id: AdminTab; label: string }> = [
@@ -269,7 +285,12 @@ const adminTabs: Array<{ id: AdminTab; label: string }> = [
   { id: "resultados", label: "Resultados" },
   { id: "sanciones", label: "Sanciones" },
   { id: "economia", label: "Economía" },
+  { id: "informacion", label: "Información" },
 ];
+
+const defaultLeagueInformation = Object.fromEntries(
+  leagueInformationSections.map((section) => [section.key, { title: section.title, content: "content" in section ? section.content : "" }])
+) as Record<LeagueInformationSection, { title: string; content: string }>;
 
 const roundTimeOptions = ["14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
 const shieldImageOptions = [
@@ -379,6 +400,12 @@ export default function AdminPage() {
   const [adminToken, setAdminToken] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>("resultados");
+  const [informationSection, setInformationSection] = useState<LeagueInformationSection>("clasificacion");
+  const [leagueInformation, setLeagueInformation] = useState(defaultLeagueInformation);
+  const [loadedLeagueInformationSeasonId, setLoadedLeagueInformationSeasonId] = useState<string | null>(null);
+  const [isLoadingLeagueInformation, setIsLoadingLeagueInformation] = useState(true);
+  const [isSavingLeagueInformation, setIsSavingLeagueInformation] = useState(false);
+  const [leagueInformationFeedback, setLeagueInformationFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [seasons, setSeasons] = useState<SeasonRecord[]>(initialSeasons);
@@ -425,7 +452,7 @@ export default function AdminPage() {
   const [saveFeedback, setSaveFeedback] = useState<SaveFeedback | null>(null);
   const [matchResults, setMatchResults] = useState(initialMatches);
   const [resultDrafts, setResultDrafts] = useState<Record<string, ResultDraft>>(() =>
-    Object.fromEntries(initialMatches.map((match) => [resultDraftKey(match.home, match.away), resultDraftFromMatch(match)]))
+    Object.fromEntries(initialMatches.map((match) => [resultDraftKey(match.home, match.away, match.jornada, match.date), resultDraftFromMatch(match)]))
   );
 
   useEffect(() => {
@@ -436,25 +463,54 @@ export default function AdminPage() {
     setAuthError(null);
   }, []);
 
-  useEffect(() => {
-    const handleResume = () => {
-      if (document.visibilityState === "visible") {
-        window.location.reload();
-      }
-    };
+  const hasAdminAccess = useMemo(() => isAuthenticated && adminToken.trim().length > 0, [adminToken, isAuthenticated]);
 
-    window.addEventListener("focus", handleResume);
-    window.addEventListener("resume", handleResume);
-    document.addEventListener("visibilitychange", handleResume);
+  useEffect(() => {
+    if (!hasAdminAccess) {
+      return;
+    }
+
+    let isActive = true;
+    fetch("/api/league-information", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "No se pudo cargar la información de la liga.");
+        }
+        return payload;
+      })
+      .then((payload) => {
+        if (!isActive || !Array.isArray(payload?.data)) {
+          return;
+        }
+        const nextInformation = { ...defaultLeagueInformation };
+        payload.data.forEach((record: LeagueInformationRecord) => {
+          if (record.sectionKey in nextInformation && record.content.trim()) {
+            nextInformation[record.sectionKey] = { title: record.title, content: record.content };
+          }
+        });
+        setLeagueInformation(nextInformation);
+        setLoadedLeagueInformationSeasonId(typeof payload.seasonId === "string" ? payload.seasonId : null);
+        setLeagueInformationFeedback(null);
+      })
+      .catch((error: unknown) => {
+        if (isActive) {
+          setLeagueInformationFeedback({
+            type: "error",
+            message: error instanceof Error ? error.message : "No se pudo cargar la información de la liga.",
+          });
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoadingLeagueInformation(false);
+        }
+      });
 
     return () => {
-      window.removeEventListener("focus", handleResume);
-      window.removeEventListener("resume", handleResume);
-      document.removeEventListener("visibilitychange", handleResume);
+      isActive = false;
     };
-  }, []);
-
-  const hasAdminAccess = useMemo(() => isAuthenticated && adminToken.trim().length > 0, [adminToken, isAuthenticated]);
+  }, [activeSeason.id, hasAdminAccess]);
 
   const assertAdminAccess = () => {
     if (!hasAdminAccess) {
@@ -535,6 +591,49 @@ export default function AdminPage() {
     setIsAuthenticated(false);
     setAuthError(null);
   };
+
+  const saveLeagueInformation = async () => {
+    try {
+      assertAdminAccess();
+      if (loadedLeagueInformationSeasonId !== activeSeason.id) {
+        throw new Error("Espera a que se cargue la información de la temporada activa.");
+      }
+      setIsSavingLeagueInformation(true);
+      setLeagueInformationFeedback(null);
+      const response = await fetch("/api/league-information", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...buildAdminHeaders(adminToken),
+        },
+        body: JSON.stringify({
+          seasonId: activeSeason.id,
+          sectionKey: informationSection,
+          ...leagueInformation[informationSection],
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "No se pudo guardar la información.");
+      }
+      setLeagueInformation((previous) => ({
+        ...previous,
+        [informationSection]: {
+          title: payload.data.title,
+          content: payload.data.content,
+        },
+      }));
+      setLeagueInformationFeedback({ type: "success", message: `Información de ${leagueInformationSections.find((section) => section.key === informationSection)?.label ?? "la sección"} guardada.` });
+    } catch (error) {
+      setLeagueInformationFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "No se pudo guardar la información.",
+      });
+    } finally {
+      setIsSavingLeagueInformation(false);
+    }
+  };
+
   const autoStandings = useMemo(() => {
     const table = storeTeams.map((team) => ({
       team: team.name,
@@ -652,7 +751,7 @@ export default function AdminPage() {
         setStoreTeams(canonicalTeams);
         const canonicalMatches = store.matches ?? initialMatches;
         setMatchResults(canonicalMatches);
-        setResultDrafts(Object.fromEntries(canonicalMatches.map((match: typeof initialMatches[number]) => [resultDraftKey(match.home, match.away), resultDraftFromMatch(match)])));
+        setResultDrafts(Object.fromEntries(canonicalMatches.map((match: typeof initialMatches[number]) => [resultDraftKey(match.home, match.away, match.jornada, match.date), resultDraftFromMatch(match)])));
         setCalendarRounds(store.calendar ?? initialCalendar);
         const loadedCalendar = store.calendar ?? initialCalendar;
         const defaultSanctionRound = loadedCalendar.find((round: RoundEditor) => round.status === "in-progress") ?? loadedCalendar.find((round: RoundEditor) => round.status === "upcoming") ?? [...loadedCalendar].reverse().find((round: RoundEditor) => round.status === "completed") ?? loadedCalendar[0];
@@ -792,16 +891,16 @@ export default function AdminPage() {
   const [playerSearch, setPlayerSearch] = useState("");
 
   const [cardForm, setCardForm] = useState({
-    player: initialStoreTeams[0]?.players[0]?.name ?? "",
+    player: "",
     team: initialStoreTeams[0]?.name ?? "Aston Birras",
     card: "Amarilla" as CardType,
     reason: "Motivos deportivos" as SanctionReason,
-    jornada: initialCalendar.find((round) => round.status === "in-progress")?.title ?? initialCalendar.find((round) => round.status === "completed")?.title ?? "Jornada 1",
+    jornada: "",
     manualAmount: "",
     suspensionReason: "Encararse con otro jugador" as SuspensionReason,
     suspensionMatches: "",
   });
-  const [selectedSanctionPlayers, setSelectedSanctionPlayers] = useState<string[]>([initialStoreTeams[0]?.players[0]?.name ?? ""]);
+  const [selectedSanctionPlayers, setSelectedSanctionPlayers] = useState<string[]>([]);
   const [editingCardId, setEditingCardId] = useState<number | null>(null);
   const [isSanctionDialogOpen, setIsSanctionDialogOpen] = useState(false);
 
@@ -818,14 +917,6 @@ export default function AdminPage() {
     }
     return card === "Amarilla" ? penaltyPoints.yellow : card === "Doble amarilla" ? penaltyPoints.doubleYellow : card === "Roja" ? penaltyPoints.red : penaltyPoints.other;
   };
-
-  const playerRosterByTeam = useMemo(
-    () =>
-      Object.fromEntries(
-        storeTeams.map((team) => [team.name, team.players.map((player) => player.name)])
-      ) as Record<string, string[]>,
-    [storeTeams]
-  );
 
   const resultScorerPlayersByTeam = useMemo(
     () => Object.fromEntries(
@@ -858,11 +949,7 @@ export default function AdminPage() {
   );
 
   const sanctionRounds = useMemo(
-    () => calendarRounds.filter((round) => round.status !== "upcoming" && matchResults.some((match) =>
-      match.jornada === round.title
-      && (match.home === cardForm.team || match.away === cardForm.team)
-      && Boolean(match.score && match.score !== "-")
-    )),
+    () => getSanctionRoundsForTeam(cardForm.team, calendarRounds, matchResults),
     [calendarRounds, cardForm.team, matchResults]
   );
   const effectiveSanctionJornada = sanctionRounds.some((round) => round.title === cardForm.jornada)
@@ -926,7 +1013,7 @@ export default function AdminPage() {
     return calendarRounds
       .map((round) => {
         const linkedMatches = round.matches.map((fixture) => matchResults.find(
-          (match) => match.home === fixture.home && match.away === fixture.away
+          (match) => match.jornada === round.title && match.date === round.date && match.home === fixture.home && match.away === fixture.away
         ));
         const completedMatches = linkedMatches.filter((match) => match && (match.status === "finished" || (!match.status && match.score !== "-"))).length;
         const isFinalized = round.status === "completed" && round.matches.length > 0 && completedMatches === round.matches.length;
@@ -2350,8 +2437,8 @@ export default function AdminPage() {
     setEditingMatchId(null);
   };
 
-  const updateResultDraft = (home: string, away: string, field: keyof ResultDraft, value: string) => {
-    const key = resultDraftKey(home, away);
+  const updateResultDraft = (home: string, away: string, jornada: string, date: string, field: keyof ResultDraft, value: string) => {
+    const key = resultDraftKey(home, away, jornada, date);
     setResultDrafts((previous) => ({
       ...previous,
       [key]: {
@@ -2361,8 +2448,8 @@ export default function AdminPage() {
     }));
   };
 
-  const toggleResultFinalized = (home: string, away: string, isFinalized: boolean) => {
-    const key = resultDraftKey(home, away);
+  const toggleResultFinalized = (home: string, away: string, jornada: string, date: string, isFinalized: boolean) => {
+    const key = resultDraftKey(home, away, jornada, date);
     setResultDrafts((previous) => ({
       ...previous,
       [key]: {
@@ -2372,12 +2459,12 @@ export default function AdminPage() {
     }));
   };
 
-  const addResultScorer = (home: string, away: string, team: "homeScorers" | "awayScorers", player: string) => {
+  const addResultScorer = (home: string, away: string, jornada: string, date: string, team: "homeScorers" | "awayScorers", player: string) => {
     if (!player) {
       return;
     }
 
-    const key = resultDraftKey(home, away);
+    const key = resultDraftKey(home, away, jornada, date);
     setResultDrafts((previous) => ({
       ...previous,
       [key]: {
@@ -2387,8 +2474,8 @@ export default function AdminPage() {
     }));
   };
 
-  const removeResultScorer = (home: string, away: string, team: "homeScorers" | "awayScorers", scorerIndex: number) => {
-    const key = resultDraftKey(home, away);
+  const removeResultScorer = (home: string, away: string, jornada: string, date: string, team: "homeScorers" | "awayScorers", scorerIndex: number) => {
+    const key = resultDraftKey(home, away, jornada, date);
     setResultDrafts((previous) => ({
       ...previous,
       [key]: {
@@ -2412,7 +2499,7 @@ export default function AdminPage() {
     const updatedByFixture = new Map<string, (typeof matchResults)[number]>();
     for (const [index, fixture] of round.matches.entries()) {
       const match = linkedMatches[index];
-      const draft = resultDrafts[resultDraftKey(fixture.home, fixture.away)] ?? (match ? resultDraftFromMatch(match) : null);
+      const draft = resultDrafts[resultDraftKey(fixture.home, fixture.away, round.title, round.date)] ?? (match ? resultDraftFromMatch(match) : null);
       if (!match || !draft) {
         setFormError(`No se encontró el partido ${fixture.home} vs ${fixture.away} en los resultados.`);
         return;
@@ -2471,7 +2558,7 @@ export default function AdminPage() {
         ...homeScorers.map((player) => ({ player, team: fixture.home })),
         ...awayScorers.map((player) => ({ player, team: fixture.away })),
       ];
-      updatedByFixture.set(resultDraftKey(fixture.home, fixture.away), {
+      updatedByFixture.set(resultDraftKey(fixture.home, fixture.away, round.title, round.date), {
         ...match,
         score: hasAnyScore || isFinalized ? `${homeGoals} - ${awayGoals}` : "-",
         status: isFinalized ? "finished" : hasAnyScore ? "in-progress" : "scheduled",
@@ -2481,8 +2568,11 @@ export default function AdminPage() {
       });
     }
 
-    const nextMatchResults = matchResults.map((match) => updatedByFixture.get(resultDraftKey(match.home, match.away)) ?? match);
-    const roundResults = round.matches.map((fixture) => nextMatchResults.find((match) => resultDraftKey(match.home, match.away) === resultDraftKey(fixture.home, fixture.away)));
+    const nextMatchResults = matchResults.map((match) => updatedByFixture.get(resultDraftKey(match.home, match.away, match.jornada, match.date)) ?? match);
+    const roundResults = round.matches.map((fixture) => nextMatchResults.find((match) =>
+      match.jornada === round.title && match.date === round.date
+      && resultDraftKey(match.home, match.away, match.jornada, match.date) === resultDraftKey(fixture.home, fixture.away, round.title, round.date)
+    ));
     const finalizedMatches = roundResults.filter((match) => match?.status === "finished").length;
     const hasResults = roundResults.some((match) => match?.status === "finished" || match?.status === "in-progress");
     const nextRoundStatus: RoundStatus = finalizedMatches === round.matches.length
@@ -2582,7 +2672,7 @@ export default function AdminPage() {
       }
 
       candidate.matches.forEach((fixture) => {
-        nextDrafts[resultDraftKey(fixture.home, fixture.away)] = {
+        nextDrafts[resultDraftKey(fixture.home, fixture.away, candidate.title, candidate.date)] = {
           home: "",
           away: "",
           homeScorers: [],
@@ -2631,18 +2721,17 @@ export default function AdminPage() {
     setEditingCardId(null);
     setIsSanctionDialogOpen(false);
     const fallbackTeam = visibleTeams[0]?.name ?? initialStoreTeams[0]?.name ?? "Aston Birras";
-    const fallbackPlayer = playerRosterByTeam[fallbackTeam]?.[0] ?? initialStoreTeams[0]?.players[0]?.name ?? "";
     setCardForm({
-      player: fallbackPlayer,
+      player: "",
       team: fallbackTeam,
       card: "Amarilla",
       reason: "Motivos deportivos",
-      jornada: calendarRounds.find((round) => round.status === "in-progress")?.title ?? calendarRounds.find((round) => round.status === "upcoming")?.title ?? [...calendarRounds].reverse().find((round) => round.status === "completed")?.title ?? calendarRounds[0]?.title ?? "Jornada 1",
+      jornada: "",
       manualAmount: "",
       suspensionReason: "Encararse con otro jugador",
       suspensionMatches: "",
     });
-    setSelectedSanctionPlayers(fallbackPlayer ? [fallbackPlayer] : []);
+    setSelectedSanctionPlayers([]);
   };
 
   const startEditCard = (record: typeof cardDocket[number]) => {
@@ -3307,7 +3396,7 @@ export default function AdminPage() {
                   const { round, linkedMatches, completedMatches, isFinalized } = entry;
                   const isCurrent = roundIndex === 0 && !isFinalized;
                   const allDraftsComplete = round.matches.every((fixture) => {
-                    const draft = resultDrafts[resultDraftKey(fixture.home, fixture.away)];
+                    const draft = resultDrafts[resultDraftKey(fixture.home, fixture.away, round.title, round.date)];
                     return Boolean(draft && (/^\d+$/.test(draft.home.trim()) || /^\d+$/.test(draft.away.trim())));
                   });
 
@@ -3331,7 +3420,7 @@ export default function AdminPage() {
 
                       <div className="results-match-list" style={{ display: "grid", gap: 8 }}>
                         {round.matches.map((fixture, fixtureIndex) => {
-                          const draft = resultDrafts[resultDraftKey(fixture.home, fixture.away)] ?? (linkedMatches[fixtureIndex] ? resultDraftFromMatch(linkedMatches[fixtureIndex]) : { home: "", away: "", homeScorers: [], awayScorers: [], shootoutHome: "", shootoutAway: "" });
+                          const draft = resultDrafts[resultDraftKey(fixture.home, fixture.away, round.title, round.date)] ?? (linkedMatches[fixtureIndex] ? resultDraftFromMatch(linkedMatches[fixtureIndex]) : { home: "", away: "", homeScorers: [], awayScorers: [], shootoutHome: "", shootoutAway: "" });
                           const homePlayers = resultScorerPlayersByTeam[fixture.home] ?? [];
                           const awayPlayers = resultScorerPlayersByTeam[fixture.away] ?? [];
                           const homeScorers = draft.homeScorers ?? [];
@@ -3346,8 +3435,8 @@ export default function AdminPage() {
                                 label={`Seleccionar goleador ${team === "homeScorers" ? fixture.home : fixture.away}`}
                                 players={players}
                                 selected={selected}
-                                onSelect={(player) => addResultScorer(fixture.home, fixture.away, team, player)}
-                                onRemove={(index) => removeResultScorer(fixture.home, fixture.away, team, index)}
+                                onSelect={(player) => addResultScorer(fixture.home, fixture.away, round.title, round.date, team, player)}
+                                onRemove={(index) => removeResultScorer(fixture.home, fixture.away, round.title, round.date, team, index)}
                               />
                             </div>
                           );
@@ -3357,9 +3446,9 @@ export default function AdminPage() {
                               <div className="results-match-top" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 150px minmax(0, 1fr)", gap: 14, alignItems: "center" }}>
                                 <div className="results-team-name" style={{ justifyContent: "flex-end", textAlign: "right", fontWeight: 800, color: "#edf3f1" }}><span className="results-match-time">{fixture.time}</span><TeamIdentity name={fixture.home} compact /></div>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "6px 0" }}>
-                                  <input className="result-score-input" aria-label={`Goles ${fixture.home}`} inputMode="numeric" min="0" type="number" value={draft.home} onChange={(event) => updateResultDraft(fixture.home, fixture.away, "home", event.target.value)} style={{ width: 56, height: 46, textAlign: "center", fontWeight: 900, fontSize: 20, padding: "8px 4px" }} placeholder="-" />
+                                  <input className="result-score-input" aria-label={`Goles ${fixture.home}`} inputMode="numeric" min="0" type="number" value={draft.home} onChange={(event) => updateResultDraft(fixture.home, fixture.away, round.title, round.date, "home", event.target.value)} style={{ width: 56, height: 46, textAlign: "center", fontWeight: 900, fontSize: 20, padding: "8px 4px" }} placeholder="-" />
                                   <span style={{ color: "#819894", fontWeight: 900 }}>:</span>
-                                  <input className="result-score-input" aria-label={`Goles ${fixture.away}`} inputMode="numeric" min="0" type="number" value={draft.away} onChange={(event) => updateResultDraft(fixture.home, fixture.away, "away", event.target.value)} style={{ width: 56, height: 46, textAlign: "center", fontWeight: 900, fontSize: 20, padding: "8px 4px" }} placeholder="-" />
+                                  <input className="result-score-input" aria-label={`Goles ${fixture.away}`} inputMode="numeric" min="0" type="number" value={draft.away} onChange={(event) => updateResultDraft(fixture.home, fixture.away, round.title, round.date, "away", event.target.value)} style={{ width: 56, height: 46, textAlign: "center", fontWeight: 900, fontSize: 20, padding: "8px 4px" }} placeholder="-" />
                                 </div>
                                 <div className="results-team-name" style={{ fontWeight: 800, color: "#edf3f1" }}><TeamIdentity name={fixture.away} compact /></div>
                               </div>
@@ -3368,7 +3457,7 @@ export default function AdminPage() {
                                 <input
                                   type="checkbox"
                                   checked={isMatchFinalized}
-                                  onChange={(event) => toggleResultFinalized(fixture.home, fixture.away, event.target.checked)}
+                                  onChange={(event) => toggleResultFinalized(fixture.home, fixture.away, round.title, round.date, event.target.checked)}
                                 />
                                 <span className="result-finalization-switch" aria-hidden="true"><span /></span>
                                 <span>
@@ -3391,9 +3480,9 @@ export default function AdminPage() {
                               {isDraw ? (
                                 <div className="result-shootout" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 12px", borderRadius: 9, background: "rgba(212,173,77,0.08)", border: "1px solid rgba(212,173,77,0.18)" }}>
                                   <span style={{ color: "#f4d78d", fontSize: 12, fontWeight: 800 }}>DESEMPATE POR PENALTIS</span>
-                                  <input className="result-shootout-input" aria-label={`Penaltis ${fixture.home}`} inputMode="numeric" min="0" type="number" value={draft.shootoutHome} onChange={(event) => updateResultDraft(fixture.home, fixture.away, "shootoutHome", event.target.value)} style={{ width: 52, textAlign: "center", padding: "7px 4px" }} placeholder="-" />
+                                  <input className="result-shootout-input" aria-label={`Penaltis ${fixture.home}`} inputMode="numeric" min="0" type="number" value={draft.shootoutHome} onChange={(event) => updateResultDraft(fixture.home, fixture.away, round.title, round.date, "shootoutHome", event.target.value)} style={{ width: 52, textAlign: "center", padding: "7px 4px" }} placeholder="-" />
                                   <span style={{ color: "#f4d78d", fontWeight: 800 }}>:</span>
-                                  <input className="result-shootout-input" aria-label={`Penaltis ${fixture.away}`} inputMode="numeric" min="0" type="number" value={draft.shootoutAway} onChange={(event) => updateResultDraft(fixture.home, fixture.away, "shootoutAway", event.target.value)} style={{ width: 52, textAlign: "center", padding: "7px 4px" }} placeholder="-" />
+                                  <input className="result-shootout-input" aria-label={`Penaltis ${fixture.away}`} inputMode="numeric" min="0" type="number" value={draft.shootoutAway} onChange={(event) => updateResultDraft(fixture.home, fixture.away, round.title, round.date, "shootoutAway", event.target.value)} style={{ width: 52, textAlign: "center", padding: "7px 4px" }} placeholder="-" />
                                   <span style={{ color: "#bda96d", fontSize: 12 }}>No cuenta para goleadores ni Zamora</span>
                                 </div>
                               ) : null}
@@ -3456,19 +3545,14 @@ export default function AdminPage() {
                   Equipo
                   <select value={cardForm.team} onChange={(event) => {
                     const nextTeam = event.target.value;
-                    const nextPlayer = playerRosterByTeam[nextTeam]?.[0] ?? "";
-                    const nextRound = calendarRounds.find((round) => round.status !== "upcoming" && matchResults.some((match) =>
-                      match.jornada === round.title
-                      && (match.home === nextTeam || match.away === nextTeam)
-                      && Boolean(match.score && match.score !== "-")
-                    ));
+                    const nextRound = getSanctionRoundsForTeam(nextTeam, calendarRounds, matchResults)[0];
                     setCardForm((previous) => ({
                       ...previous,
                       team: nextTeam,
-                      player: nextPlayer,
+                      player: "",
                       jornada: nextRound?.title ?? "",
                     }));
-                    setSelectedSanctionPlayers(nextPlayer ? [nextPlayer] : []);
+                    setSelectedSanctionPlayers([]);
                   }}>
                     {visibleTeams.map((team) => (
                       <option key={team.name} value={team.name}>{team.name}</option>
@@ -3484,6 +3568,7 @@ export default function AdminPage() {
                   <ResultScorerPicker
                     label={`Seleccionar jugador ${cardForm.team}`}
                     players={selectedTeamPlayers}
+                    playerLabels={resultScorerPlayersByTeam[cardForm.team] ?? []}
                     selected={editingCardId !== null ? (cardForm.player ? [cardForm.player] : []) : selectedSanctionPlayers}
                     selectionLabel="jugador"
                     onSelect={(player) => {
@@ -3621,7 +3706,10 @@ export default function AdminPage() {
                 {currentSanctions.length > 0 ? currentSanctions.map((record) => (
                   <div key={`active-${record.id}`} className="sanction-active-card">
                     <div className="sanction-active-main">
-                      <strong>{record.player}</strong>
+                      <span className="player-name-with-dorsal">
+                        <PlayerDorsal dorsal={findPlayerDorsal(storeTeams, record.team, record.player)} />
+                        <strong>{record.player}</strong>
+                      </span>
                       <span>{record.team}</span>
                     </div>
                     <div className="sanction-active-meta">
@@ -3659,7 +3747,10 @@ export default function AdminPage() {
                   {accumulatedYellowCards.length > 0 ? accumulatedYellowCards.map((record) => (
                     <div key={`${record.team}-${record.player}`} className="team-points-row">
                       <span>
-                        <strong>{record.player}</strong>
+                        <span className="player-name-with-dorsal">
+                          <PlayerDorsal dorsal={findPlayerDorsal(storeTeams, record.team, record.player)} />
+                          <strong>{record.player}</strong>
+                        </span>
                         <small style={{ display: "block", color: "#b0bab8", marginTop: 3 }}>{record.team}</small>
                         {record.yellowCards >= 3 ? <small style={{ display: "block", color: "#f4d78d", marginTop: 5 }}>No podrá jugar{record.suspensionRoundTitle ? ` en ${record.suspensionRoundTitle}` : " en la próxima jornada de su equipo"}</small> : null}
                       </span>
@@ -3677,7 +3768,13 @@ export default function AdminPage() {
                 <div className="team-points-list">
                   {latestRoundSanctions.records.length > 0 ? latestRoundSanctions.records.map((record) => (
                     <div key={`new-${record.id}`} className="team-points-row">
-                      <span><strong>{record.player}</strong><small style={{ display: "block", color: "#b0bab8", marginTop: 3 }}>{record.team} · {record.card}</small></span>
+                      <span>
+                        <span className="player-name-with-dorsal">
+                          <PlayerDorsal dorsal={findPlayerDorsal(storeTeams, record.team, record.player)} />
+                          <strong>{record.player}</strong>
+                        </span>
+                        <small style={{ display: "block", color: "#b0bab8", marginTop: 3 }}>{record.team} · {record.card}</small>
+                      </span>
                       <strong className="medium">€{Number(record.costAmount ?? record.cost_amount ?? 0)}</strong>
                     </div>
                   )) : <p className="empty-state">No hay sanciones nuevas en la última jornada.</p>}
@@ -3721,7 +3818,12 @@ export default function AdminPage() {
                       {searchableSanctions.map((record) => (
                         <tr key={record.id} onClick={() => startEditCard(record)} className="admin-sanction-row">
                           <td>{record.jornada ?? "Sin jornada"}</td>
-                          <td><strong>{record.player}</strong></td>
+                          <td>
+                            <span className="player-name-with-dorsal">
+                              <PlayerDorsal dorsal={findPlayerDorsal(storeTeams, record.team, record.player)} />
+                              <strong>{record.player}</strong>
+                            </span>
+                          </td>
                           <td><TeamIdentity name={record.team} compact /></td>
                           <td><span className={`sanction-badge ${record.card.toLowerCase().replace(/ /g, "-")}`}>{record.card}</span></td>
                           <td>{record.reason}</td>
@@ -4251,6 +4353,69 @@ export default function AdminPage() {
             </section>
           </>
         );
+      case "informacion": {
+        const selectedInformation = leagueInformation[informationSection];
+        return (
+          <section className="league-information-editor content-card">
+            <div className="section-header compact-header">
+              <div>
+                <p className="eyebrow">Contenido público · {activeSeason.name}</p>
+                <h2>Información y normativa</h2>
+              </div>
+              <span className="pill">7 apartados</span>
+            </div>
+            <p className="league-information-intro">Edita el texto que aparecerá en el botón «Información» de cada sección pública.</p>
+            <div className="league-information-form">
+              <label>
+                Apartado
+                <select value={informationSection} onChange={(event) => {
+                  setInformationSection(event.target.value as LeagueInformationSection);
+                  setLeagueInformationFeedback(null);
+                }}>
+                  {leagueInformationSections.map((section) => (
+                    <option key={section.key} value={section.key}>{section.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Título del diálogo
+                <input
+                  maxLength={120}
+                  value={selectedInformation.title}
+                  onChange={(event) => setLeagueInformation((previous) => ({
+                    ...previous,
+                    [informationSection]: { ...previous[informationSection], title: event.target.value },
+                  }))}
+                />
+              </label>
+              <label>
+                Información y normativa
+                <textarea
+                  className="league-information-textarea"
+                  maxLength={12000}
+                  value={selectedInformation.content}
+                  onChange={(event) => setLeagueInformation((previous) => ({
+                    ...previous,
+                    [informationSection]: { ...previous[informationSection], content: event.target.value },
+                  }))}
+                  placeholder="Escribe aquí la información y normativa de este apartado. Se respetarán los saltos de línea."
+                />
+                <span className="league-information-character-count">{selectedInformation.content.length.toLocaleString("es-ES")} / 12.000 caracteres</span>
+              </label>
+              {leagueInformationFeedback ? (
+                <p className={`league-information-feedback ${leagueInformationFeedback.type}`} role={leagueInformationFeedback.type === "error" ? "alert" : "status"}>
+                  {leagueInformationFeedback.message}
+                </p>
+              ) : null}
+              <div className="form-actions">
+                <button type="button" className="action-button" onClick={() => void saveLeagueInformation()} disabled={isSavingLeagueInformation || isLoadingLeagueInformation || loadedLeagueInformationSeasonId !== activeSeason.id}>
+                  {isSavingLeagueInformation ? "Guardando…" : "Guardar información"}
+                </button>
+              </div>
+            </div>
+          </section>
+        );
+      }
       default:
         return (
           <section className="two-column">

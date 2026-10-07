@@ -6,6 +6,10 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { teamColors } from "@/lib/league-data";
 import { TeamIdentity } from "@/lib/team-identity";
+import { LeagueInformationButton } from "@/components/LeagueInformationButton";
+import { phaseTwoRounds } from "@/lib/phase-two-calendar";
+
+const phaseTwoStartDate = phaseTwoRounds[0]?.date ?? "2027-02-21";
 
 type LeagueMatch = {
   id: number;
@@ -37,12 +41,16 @@ type LeagueTeam = {
   primaryColor?: string;
 };
 
+type LeagueStanding = { team: string; position?: number };
+
 function JornadasContent() {
   const searchParams = useSearchParams();
   const requestedRound = searchParams.get("jornada");
   const [calendar, setCalendar] = useState<LeagueRound[]>([]);
   const [matches, setMatches] = useState<LeagueMatch[]>([]);
   const [teams, setTeams] = useState<LeagueTeam[]>([]);
+  const [phaseOneStandings, setPhaseOneStandings] = useState<LeagueStanding[]>([]);
+  const [selectedPhase, setSelectedPhase] = useState<"fase1" | "fase2">("fase1");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,6 +75,7 @@ function JornadasContent() {
         setCalendar(Array.isArray(payload.data.calendar) ? payload.data.calendar : []);
         setMatches(Array.isArray(payload.data.matches) ? payload.data.matches : []);
         setTeams(Array.isArray(payload.data.teams) ? payload.data.teams : []);
+        setPhaseOneStandings(Array.isArray(payload.data.phaseStandings?.phase1) ? payload.data.phaseStandings.phase1 : []);
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : "No se pudo cargar la jornada.";
         setError(message);
@@ -84,23 +93,69 @@ function JornadasContent() {
     };
   }, []);
 
+  const phaseTwoDisplayRounds = useMemo(() => {
+    const registeredRounds = calendar.filter((round) => round.date >= phaseTwoStartDate);
+    const teamAtPosition = new Map(phaseOneStandings.map((entry, index) => [entry.position ?? index + 1, entry.team]));
+    const plannedRounds = phaseTwoRounds.map((round, roundIndex) => {
+      const registeredRound = registeredRounds.find((candidate) => candidate.date === round.date)
+        ?? registeredRounds.find((candidate) => candidate.title === round.title);
+      if (registeredRound) {
+        return registeredRound;
+      }
+
+      const fixtures = round.fixtures.map((fixture) => ({
+        time: fixture.time,
+        home: teamAtPosition.get(fixture.homePosition) ?? `Equipo ${fixture.homePosition}`,
+        away: teamAtPosition.get(fixture.awayPosition) ?? `Equipo ${fixture.awayPosition}`,
+      }));
+      const roundMatches = matches.filter((match) => match.date === round.date);
+      const findFixtureMatch = (fixture: (typeof fixtures)[number]) => roundMatches.find((match) =>
+        match.home === fixture.home && match.away === fixture.away
+      );
+      const allFixturesFinished = fixtures.length > 0 && fixtures.every((fixture) => {
+        const match = findFixtureMatch(fixture);
+        return Boolean(match && (match.status === "finished" || (!match.status && match.score !== "-")));
+      });
+      const anyFixtureInProgress = fixtures.some((fixture) => findFixtureMatch(fixture)?.status === "in-progress");
+      const usedTeams = new Set(fixtures.flatMap((fixture) => [fixture.home, fixture.away]));
+
+      return {
+        id: -(roundIndex + 1),
+        title: round.title,
+        date: round.date,
+        status: allFixturesFinished ? "completed" as const : anyFixtureInProgress ? "in-progress" as const : "upcoming" as const,
+        matches: fixtures,
+        descansan: teams.map((team) => team.name).filter((teamName) => !usedTeams.has(teamName)),
+      };
+    });
+    const registeredIds = new Set(plannedRounds
+      .filter((round) => registeredRounds.some((registered) => registered.id === round.id))
+      .map((round) => round.id));
+    const extraRegisteredRounds = registeredRounds.filter((round) => !registeredIds.has(round.id));
+
+    return [...plannedRounds, ...extraRegisteredRounds].sort((first, second) => first.date.localeCompare(second.date));
+  }, [calendar, matches, phaseOneStandings, teams]);
+
+  const phaseRounds = selectedPhase === "fase1"
+    ? calendar.filter((round) => round.date < phaseTwoStartDate)
+    : phaseTwoDisplayRounds;
+
   const visibleRounds = useMemo(() => {
-    const roundsByDate = [...calendar].sort((a, b) => a.id - b.id);
+    const roundsByDate = [...phaseRounds].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+    const hasRoundResults = (round: LeagueRound) => round.matches.some((fixture) => matches.some((match) =>
+      match.date === round.date && match.home === fixture.home && match.away === fixture.away && match.score && match.score !== "-"
+    ));
     const finalizedRounds = roundsByDate.filter((round) => round.status === "completed");
     const pendingRounds = roundsByDate.filter((round) => round.status !== "completed");
     const currentRound = pendingRounds.find((round) => round.status === "in-progress")
-      ?? pendingRounds.find((round) =>
-        matches.some((match) => match.jornada === round.title && match.score && match.score !== "-")
-      );
-    const nextRound = pendingRounds.find((round) => round === currentRound || !matches.some(
-      (match) => match.jornada === round.title && match.score && match.score !== "-"
-    ));
+      ?? pendingRounds.find(hasRoundResults);
+    const nextRound = pendingRounds.find((round) => round === currentRound || !hasRoundResults(round));
     const activeOrNextRound = currentRound ?? nextRound;
 
     return activeOrNextRound
       ? [...finalizedRounds, activeOrNextRound].sort((a, b) => a.id - b.id)
       : finalizedRounds;
-  }, [calendar, matches]);
+  }, [matches, phaseRounds]);
 
   const orderedRounds = useMemo(
     () => visibleRounds.map((round) => {
@@ -110,20 +165,19 @@ function JornadasContent() {
   );
 
   const [selectedRound, setSelectedRound] = useState<string>("");
-
-  useEffect(() => {
-    if (!orderedRounds.length) {
-      setSelectedRound("");
-      return;
-    }
-    const nextSelected = orderedRounds.find((round) => round.title === requestedRound)?.title
+  const selectedRoundTitle = orderedRounds.some((round) => round.title === selectedRound)
+    ? selectedRound
+    : orderedRounds.find((round) => round.title === requestedRound)?.title
       ?? orderedRounds.find((round) => round.status === "in-progress")?.title
       ?? orderedRounds.find((round) => round.status === "upcoming")?.title
-      ?? orderedRounds[orderedRounds.length - 1].title;
-    setSelectedRound((currentValue) => (orderedRounds.some((round) => round.title === currentValue) ? currentValue : nextSelected));
-  }, [orderedRounds, requestedRound]);
-
-  const activeMatches = useMemo(() => matches.filter((match) => match.jornada === selectedRound), [matches, selectedRound]);
+      ?? orderedRounds[orderedRounds.length - 1]?.title
+      ?? "";
+  const selectedRoundData = orderedRounds.find((round) => round.title === selectedRoundTitle);
+  const activeMatches = useMemo(() => selectedRoundData
+    ? matches.filter((match) => match.date === selectedRoundData.date && selectedRoundData.matches.some((fixture) =>
+      fixture.home === match.home && fixture.away === match.away
+    ))
+    : [], [matches, selectedRoundData]);
   const teamColorByName = useMemo(() => Object.fromEntries(teams.map((team) => [team.name, team.primaryColor])), [teams]);
 
   return (
@@ -133,19 +187,27 @@ function JornadasContent() {
           <p className="eyebrow">Competiciones</p>
           <h1>Resultados por jornada</h1>
         </div>
-        <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        <div className="page-header-actions">
+          <LeagueInformationButton section="jornadas" />
+          <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        </div>
       </header>
 
       {loading && <p className="empty-state">Cargando resultados…</p>}
       {error && <p className="empty-state error">{error}</p>}
 
       {!loading && !error && (
+        <>
+        <div className="calendar-phase-switch" role="tablist" aria-label="Fase de resultados">
+          <button type="button" role="tab" aria-selected={selectedPhase === "fase1"} className={`calendar-phase-tab ${selectedPhase === "fase1" ? "active" : ""}`} onClick={() => setSelectedPhase("fase1")}>Fase 1</button>
+          <button type="button" role="tab" aria-selected={selectedPhase === "fase2"} className={`calendar-phase-tab ${selectedPhase === "fase2" ? "active" : ""}`} onClick={() => setSelectedPhase("fase2")}>Fase 2</button>
+        </div>
         <section className="content-card">
           {orderedRounds.length > 0 ? (
             <>
               <div className="tabs">
                 {orderedRounds.map((round) => (
-                  <button key={round.id} type="button" className={`tab ${selectedRound === round.title ? "active" : ""}`} onClick={() => setSelectedRound(round.title)}>
+                  <button key={round.id} type="button" className={`tab ${selectedRoundTitle === round.title ? "active" : ""}`} onClick={() => setSelectedRound(round.title)}>
                     {round.title}
                     <span className={`status-pill ${round.status}`}>
                       {round.status === "in-progress" ? "En curso" : round.status === "upcoming" ? "Próxima" : "Finalizada"}
@@ -155,7 +217,7 @@ function JornadasContent() {
               </div>
 
               <div className="round-summary">
-                <strong>{selectedRound}</strong>
+                <strong>{selectedRoundTitle}</strong>
                 <span>{orderedRounds.find((round) => round.title === selectedRound)?.date ?? "Jornada"}</span>
               </div>
 
@@ -211,8 +273,9 @@ function JornadasContent() {
                 }) : <p className="empty-state">No hay partidos para esta jornada.</p>}
               </div>
             </>
-          ) : <p className="empty-state">Todavía no hay jornadas disponibles.</p>}
+          ) : <p className="empty-state">{selectedPhase === "fase2" ? "Todavía no hay jornadas de Fase 2 registradas." : "Todavía no hay jornadas disponibles."}</p>}
         </section>
+        </>
       )}
     </main>
   );

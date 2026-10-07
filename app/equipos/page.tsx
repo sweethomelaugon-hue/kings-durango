@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { TeamIdentity, TeamShield } from "@/lib/team-identity";
 import { getPlayerGoalSummary } from "@/lib/player-goal-balls";
+import { LeagueInformationButton } from "@/components/LeagueInformationButton";
 import { useEffect, useState } from "react";
 
 type TeamRow = {
@@ -77,7 +78,10 @@ export default function EquiposPage() {
           <p className="eyebrow">Liga</p>
           <h1>Equipos y plantillas</h1>
         </div>
-        <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        <div className="page-header-actions">
+          <LeagueInformationButton section="equipos" />
+          <Link href="/" className="button button-secondary">Volver al inicio</Link>
+        </div>
       </header>
 
       {loading && <p className="empty-state">Cargando equipos…</p>}
