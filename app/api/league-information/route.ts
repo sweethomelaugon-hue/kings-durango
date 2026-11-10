@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { isLeagueInformationSection } from "@/lib/league-information";
+import { isLeagueInformationSection, normalizeLeagueInformationContent } from "@/lib/league-information";
 import { getSupabaseClient, getSupabaseWriteClient, hasSupabaseConfig, hasSupabaseWriteConfig, isAdminAuthorized } from "@/lib/supabase";
 
 export async function GET() {
@@ -39,7 +39,7 @@ export async function GET() {
     data: (data ?? []).map((row) => ({
       sectionKey: row.section_key,
       title: row.title,
-      content: row.content,
+      content: normalizeLeagueInformationContent(row.section_key, row.content),
     })),
   });
 }

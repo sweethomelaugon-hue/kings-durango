@@ -313,10 +313,13 @@ SELECT
 
 ## Sanciones económicas
 ### Importe por tarjeta
+Cada euro de sanción equivale a un punto Fair Play.
 - Tarjeta amarilla: 2 €.
 - Tarjeta roja por doble amarilla: 4 €.
 - Tarjeta roja directa por motivos deportivos: 5 €.
-- Tarjeta roja directa por motivos antideportivos: 10 €.
+- Tarjeta roja directa por encararse con otro jugador o juego brusco: 5 € y 5 puntos Fair Play.
+- Tarjeta roja directa por falta de respeto al árbitro: 5 € y 5 puntos Fair Play.
+- Tarjeta roja directa por entrada antideportiva o amenazas: 10 € y 10 puntos Fair Play.
 
 ### Pago
 Las cantidades acumuladas deberán abonarse al cierre de cada mes y, en todo caso, antes del inicio de la jornada. Si un equipo no ha pagado antes de que comience la jornada, perderá su partido.
@@ -325,9 +328,9 @@ Las cantidades acumuladas deberán abonarse al cierre de cada mes y, en todo cas
 - Tres tarjetas amarillas acumuladas: 1 partido.
 - Tarjeta roja por doble amarilla: 1 partido.
 - Tarjeta roja directa por motivos deportivos: 1 partido.
-- Tarjeta roja por encararse con otro jugador: 2 partidos.
-- Tarjeta roja por insultar o faltar al respeto al árbitro: 3 partidos.
-- Tarjeta roja por una acción violenta de carácter deportivo (por ejemplo, una entrada a destiempo que ponga en peligro al rival): 4 partidos.
+- Tarjeta roja por encararse con otro jugador o juego brusco: 2 partidos.
+- Tarjeta roja por falta de respeto al árbitro: 3 partidos.
+- Tarjeta roja por entrada antideportiva o amenazas: 4 partidos.
 - Si un jugador agrede a otro, el jugador y su equipo serán expulsados de la liga de forma inmediata. El equipo perderá también la fianza.
 
 ### Otros motivos

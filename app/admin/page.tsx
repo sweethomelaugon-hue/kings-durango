@@ -24,7 +24,7 @@ import { leagueInformationSections, type LeagueInformationRecord, type LeagueInf
 
 type CardType = "Amarilla" | "Doble amarilla" | "Roja" | "Otra";
 type SanctionReason = "Motivos deportivos" | "Motivos antideportivos" | "Motivos de vestimenta/indumentaria no oficial" | "Otros motivos";
-type SuspensionReason = "Encararse con otro jugador" | "Insultar o faltar al respeto al árbitro" | "Motivo deportivo violento" | "Otro motivo";
+type SuspensionReason = "Encararse con otro jugador o juego brusco" | "Falta de respeto al árbitro" | "Entrada antideportiva o amenazas" | "Otro motivo";
 type ExpenseType = "gasto" | "cobro";
 type RoundStatus = "completed" | "in-progress" | "upcoming";
 
@@ -270,7 +270,7 @@ const initialExpenses: ExpenseItem[] = [
 const sanctionPrices: Record<CardType, number> = {
   Amarilla: 30,
   "Doble amarilla": 60,
-  Roja: 80,
+  Roja: 5,
   Otra: 120,
 };
 
@@ -897,7 +897,7 @@ export default function AdminPage() {
     reason: "Motivos deportivos" as SanctionReason,
     jornada: "",
     manualAmount: "",
-    suspensionReason: "Encararse con otro jugador" as SuspensionReason,
+    suspensionReason: "Encararse con otro jugador o juego brusco" as SuspensionReason,
     suspensionMatches: "",
   });
   const [selectedSanctionPlayers, setSelectedSanctionPlayers] = useState<string[]>([]);
@@ -908,14 +908,18 @@ export default function AdminPage() {
     return getSanctionPoints(card, reason, manualAmount);
   };
 
-  const getSanctionPoints = (card: CardType, reason: string, manualAmount = "") => {
+  const getSanctionPoints = (card: CardType, reason: string, manualAmount = "", suspensionReason?: string) => {
     if ((card === "Otra" || /otros motivos/i.test(reason)) && manualAmount.trim() !== "") {
       return Number(manualAmount) || 0;
     }
-    if (card === "Roja" && /antideportiv/i.test(reason)) {
+    if (card === "Roja" && suspensionReason === "Entrada antideportiva o amenazas") {
       return penaltyPoints.red * 2;
     }
     return card === "Amarilla" ? penaltyPoints.yellow : card === "Doble amarilla" ? penaltyPoints.doubleYellow : card === "Roja" ? penaltyPoints.red : penaltyPoints.other;
+  };
+
+  const getSanctionCost = (card: CardType, reason: string, manualAmount = "", suspensionReason?: string) => {
+    return getSanctionPoints(card, reason, manualAmount, suspensionReason);
   };
 
   const resultScorerPlayersByTeam = useMemo(
@@ -1232,14 +1236,10 @@ export default function AdminPage() {
     });
 
     cardDocket.forEach((card) => {
-      const amount =
-        card.card === "Amarilla"
-          ? penaltyCosts.yellow
-          : card.card === "Doble amarilla"
-            ? penaltyCosts.doubleYellow
-            : card.card === "Roja"
-              ? penaltyCosts.red * (/antideportiv/i.test(card.reason) ? 2 : 1)
-              : penaltyCosts.other;
+      const savedAmount = Number(card.costAmount ?? card.cost_amount);
+      const amount = Number.isFinite(savedAmount)
+        ? savedAmount
+        : getSanctionCost(card.card, card.reason, "", card.suspensionReason);
       totals[card.team] = (totals[card.team] ?? 0) + amount;
     });
 
@@ -2235,27 +2235,19 @@ export default function AdminPage() {
         ? cardDocket.map((record) => record.player === previousName && record.team === team.name ? { ...record, player: normalizedName } : record)
         : cardDocket;
       try {
-        if (!previousPlayer?.id) {
-          throw new Error("No se encontró el identificador del jugador en Supabase.");
-        }
-
-        const response = await fetch("/api/players", {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...buildAdminHeaders(adminToken),
+        await persistLeagueStore({
+          seasons,
+          teams: nextTeams,
+          matches: nextMatches,
+          calendar: calendarRounds,
+          sanctions: nextSanctions,
+          finances: {
+            fees: registrationFees,
+            payments: teamPayments,
+            expenses: expenseItems,
+            costs: penaltyCosts,
           },
-          body: JSON.stringify({
-            id: previousPlayer.id,
-            name: normalizedName,
-            dorsal: playerForm.dorsal === "" ? 0 : Number(playerForm.dorsal) || playerForm.dorsal,
-            isGoalkeeper: playerForm.isGoalkeeper,
-          }),
         });
-        if (!response.ok) {
-          const payloadError = await response.json().catch(() => null);
-          throw new Error(payloadError?.error ?? "No se pudo actualizar el jugador en Supabase.");
-        }
 
         setStoreTeams(nextTeams);
         if (nameChanged) {
@@ -2728,7 +2720,7 @@ export default function AdminPage() {
       reason: "Motivos deportivos",
       jornada: "",
       manualAmount: "",
-      suspensionReason: "Encararse con otro jugador",
+      suspensionReason: "Encararse con otro jugador o juego brusco",
       suspensionMatches: "",
     });
     setSelectedSanctionPlayers([]);
@@ -2744,7 +2736,16 @@ export default function AdminPage() {
       reason: (record.reason as SanctionReason) || "Otros motivos",
       jornada: record.jornada ?? calendarRounds.find((round) => round.status === "completed")?.title ?? "Jornada 1",
       manualAmount: String(record.points ?? record.pointsAmount ?? record.costAmount ?? record.cost_amount ?? ""),
-      suspensionReason: (record.suspensionReason as SuspensionReason) || "Encararse con otro jugador",
+      suspensionReason: record.suspensionReason === "Motivo deportivo violento"
+        ? "Entrada antideportiva o amenazas"
+        : record.suspensionReason === "Insultar o faltar al respeto al árbitro"
+          ? "Falta de respeto al árbitro"
+          : record.suspensionReason === "Encararse con otro jugador"
+            ? "Encararse con otro jugador o juego brusco"
+            : (record.suspensionReason as SuspensionReason)
+              || (Number(record.suspensionMatches ?? record.matches) === 4 ? "Entrada antideportiva o amenazas" : undefined)
+              || (Number(record.suspensionMatches ?? record.matches) === 3 ? "Falta de respeto al árbitro" : undefined)
+              || "Encararse con otro jugador o juego brusco",
       suspensionMatches: String(record.suspensionMatches ?? record.matches ?? ""),
     });
     setSelectedSanctionPlayers([record.player]);
@@ -2811,11 +2812,12 @@ export default function AdminPage() {
       }
     }
 
-    const sanctionAmount = getSanctionPoints(cardForm.card, cardForm.reason, cardForm.manualAmount);
+    const sanctionPoints = getSanctionPoints(cardForm.card, cardForm.reason, cardForm.manualAmount, cardForm.suspensionReason);
+    const sanctionAmount = getSanctionCost(cardForm.card, cardForm.reason, cardForm.manualAmount, cardForm.suspensionReason);
     const nextRecords = playerNames.map((playerName, index) => {
       const previousYellowCount = getYellowCardsForPlayer(cardDocket.filter((record) => record.id !== editingCardId), calendarRounds, teamName, playerName, yellowCardResetRoundId);
       const automaticSuspension = cardForm.card === "Amarilla" && previousYellowCount >= 2 ? 1 : cardForm.card === "Doble amarilla" || (cardForm.card === "Roja" && cardForm.reason === "Motivos deportivos") ? 1 : cardForm.card === "Roja" && cardForm.reason === "Motivos antideportivos"
-        ? cardForm.suspensionReason === "Encararse con otro jugador" ? 2 : cardForm.suspensionReason === "Insultar o faltar al respeto al árbitro" ? 3 : cardForm.suspensionReason === "Motivo deportivo violento" ? 4 : Number(cardForm.suspensionMatches) || 0
+        ? cardForm.suspensionReason === "Encararse con otro jugador o juego brusco" ? 2 : cardForm.suspensionReason === "Falta de respeto al árbitro" ? 3 : cardForm.suspensionReason === "Entrada antideportiva o amenazas" ? 4 : Number(cardForm.suspensionMatches) || 0
         : Number(cardForm.suspensionMatches) || 0;
 
       return {
@@ -2836,8 +2838,8 @@ export default function AdminPage() {
         suspensionRemaining: automaticSuspension,
         costAmount: sanctionAmount,
         cost_amount: sanctionAmount,
-        points: sanctionAmount,
-        pointsAmount: sanctionAmount,
+        points: sanctionPoints,
+        pointsAmount: sanctionPoints,
       };
     });
 
@@ -3610,8 +3612,12 @@ export default function AdminPage() {
                   </select>
                 </label>
                 <label>
-                  Puntos
-                  <input value={getSanctionPoints(cardForm.card, cardForm.reason)} readOnly />
+                  Puntos Fair Play
+                  <input value={getSanctionPoints(cardForm.card, cardForm.reason, cardForm.manualAmount, cardForm.suspensionReason)} readOnly />
+                </label>
+                <label>
+                  Importe (€)
+                  <input value={getSanctionCost(cardForm.card, cardForm.reason, cardForm.manualAmount, cardForm.suspensionReason)} readOnly />
                 </label>
                 <label>
                   Motivo
@@ -3631,9 +3637,9 @@ export default function AdminPage() {
                     <label>
                       Motivo de la roja antideportiva
                       <select value={cardForm.suspensionReason} onChange={(event) => setCardForm((previous) => ({ ...previous, suspensionReason: event.target.value as SuspensionReason }))}>
-                        <option value="Encararse con otro jugador">Encararse con otro jugador · 2 partidos</option>
-                        <option value="Insultar o faltar al respeto al árbitro">Insultar o faltar al respeto al árbitro · 3 partidos</option>
-                        <option value="Motivo deportivo violento">Motivo deportivo violento · 4 partidos</option>
+                        <option value="Encararse con otro jugador o juego brusco">Encararse con otro jugador o juego brusco · 2 partidos</option>
+                        <option value="Falta de respeto al árbitro">Falta de respeto al árbitro · 3 partidos</option>
+                        <option value="Entrada antideportiva o amenazas">Entrada antideportiva o amenazas · 4 partidos</option>
                         <option value="Otro motivo">Otro motivo</option>
                       </select>
                     </label>
@@ -3668,23 +3674,23 @@ export default function AdminPage() {
               </form>
               <div className="admin-form-grid" style={{ marginTop: 18 }}>
                 <label>
-                  Puntos tarjeta amarilla
+                  Importe amarilla (€ / puntos)
                   <input type="number" min="0" value={penaltyPoints.yellow} onChange={(event) => updatePenaltyPoints("yellow", Number(event.target.value) || 0)} />
                 </label>
                 <label>
-                  Puntos doble amarilla
+                  Importe doble amarilla (€ / puntos)
                   <input type="number" min="0" value={penaltyPoints.doubleYellow} onChange={(event) => updatePenaltyPoints("doubleYellow", Number(event.target.value) || 0)} />
                 </label>
                 <label>
-                  Puntos roja deportiva
+                  Importe roja (€ / puntos)
                   <input type="number" min="0" value={penaltyPoints.red} onChange={(event) => updatePenaltyPoints("red", Number(event.target.value) || 0)} />
                 </label>
                 <label>
-                  Puntos otras amonestaciones
+                  Importe otras sanciones (€ / puntos)
                   <input type="number" min="0" value={penaltyPoints.other} onChange={(event) => updatePenaltyPoints("other", Number(event.target.value) || 0)} />
                 </label>
                 <p style={{ gridColumn: "1 / -1", color: "#b0bab8", fontSize: 12, margin: 0 }}>
-                  Una roja con motivo antideportivo aplica automáticamente el doble de puntos.
+                  Cada euro de sanción equivale a un punto Fair Play; entrada antideportiva o amenazas suma 10 € y 10 puntos.
                 </p>
                 <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", paddingTop: 6, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                   <span style={{ color: "#b0bab8", fontSize: 12 }}>

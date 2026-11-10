@@ -561,9 +561,13 @@ export function validateDisciplinaryRecords(
       throw new Error(`La sanción ${index + 1} solo puede registrarse cuando el partido de ${teamName} ya tiene resultado.`);
     }
 
-    const player = team.players.find((candidate) => candidate.name.toLowerCase() === playerName.toLowerCase());
+    const playerId = typeof record.playerId === "string" ? record.playerId.trim() : typeof record.player_id === "string" ? record.player_id.trim() : "";
+    const player = team.players.find((candidate) => playerId && candidate.id === playerId)
+      ?? team.players.find((candidate) => candidate.name.toLowerCase() === playerName.toLowerCase());
     if (!player) {
-      console.warn(`Sanción ignorada por jugador inexistente: ${playerName} (${teamName})`);
+      if (jornada || record.matchId !== undefined || record.match_id !== undefined) {
+        throw new Error(`El jugador "${playerName}" no está en la plantilla de "${teamName}". Actualiza primero el nombre del jugador y vuelve a guardar la sanción.`);
+      }
       continue;
     }
 
@@ -578,7 +582,13 @@ export function validateDisciplinaryRecords(
     const existingMatches = Number(record.matches ?? 1) || 1;
     const remaining = Number(record.remaining ?? existingMatches) || existingMatches;
     const configuredPoints = Number(store.finances.points?.[card === "Amarilla" ? "yellow" : card === "Doble amarilla" ? "doubleYellow" : card === "Roja" ? "red" : "other"]) || 0;
-    const points = hasManualAmount ? manualAmount : card === "Roja" && /antideportiv/i.test(reason) ? configuredPoints * 2 : configuredPoints;
+    const suspensionReason = typeof record.suspensionReason === "string" ? record.suspensionReason : "";
+    const isEntryOrThreats = card === "Roja" && (
+      suspensionReason === "Entrada antideportiva o amenazas"
+      || suspensionReason === "Motivo deportivo violento"
+      || Number(record.suspensionMatches) === 4
+    );
+    const points = hasManualAmount ? manualAmount : isEntryOrThreats ? configuredPoints * 2 : configuredPoints;
     const sanctionAmount = points;
 
     normalized.push({
@@ -586,12 +596,12 @@ export function validateDisciplinaryRecords(
       id: typeof record.id === "number" || typeof record.id === "string" ? record.id : Date.now() + index,
       jornada: jornada || linkedMatch?.jornada,
       matchId: linkedMatch?.id ?? (typeof record.matchId === "string" || typeof record.matchId === "number" ? record.matchId : undefined),
-      suspensionReason: typeof record.suspensionReason === "string" ? record.suspensionReason : undefined,
+      suspensionReason: suspensionReason || undefined,
       suspensionMatches: Number(record.suspensionMatches ?? record.matches ?? 0) || 0,
       suspensionRemaining: Number(record.suspensionRemaining ?? record.suspensionMatches ?? record.matches ?? 0) || 0,
-      player: playerName,
+      player: player.name,
       team: teamName,
-      playerId: typeof record.playerId === "string" ? record.playerId : typeof record.player_id === "string" ? record.player_id : player.id,
+      playerId: player.id,
       teamId: typeof record.teamId === "string" ? record.teamId : typeof record.team_id === "string" ? record.team_id : team.id,
       card,
       card_type: card,
@@ -679,6 +689,7 @@ export async function POST(request: Request) {
     const validationStore = {
       ...current,
       teams: Array.isArray(parsedPayload.teams) ? validateLeagueStorePayload({ ...current, ...parsedPayload, teams: parsedPayload.teams }).teams : current.teams,
+      finances: isObjectRecord(parsedPayload.finances) ? { ...current.finances, ...parsedPayload.finances } : current.finances,
     };
     const matches = normalizeGoalScorerTeamNames(validationStore, rawMatches);
     for (const [index, match] of matches.entries()) {
@@ -702,11 +713,11 @@ export async function POST(request: Request) {
         }
       }
 
-      validateGoalScorers(current, match, index);
+      validateGoalScorers(validationStore, match, index);
     }
 
     const sanctions = Array.isArray(parsedPayload.sanctions) ? parsedPayload.sanctions : current.sanctions;
-    const normalizedSanctions = validateDisciplinaryRecords(current, sanctions);
+    const normalizedSanctions = validateDisciplinaryRecords(validationStore, sanctions);
 
     const nextStore = validateLeagueStorePayload({
       ...current,

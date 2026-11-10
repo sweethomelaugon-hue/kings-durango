@@ -9,6 +9,7 @@ import {
   normalizeSupabaseRoundRow,
   normalizeSupabaseSanctionRow,
 } from "@/lib/supabase";
+import { normalizeLeagueInformationContent } from "@/lib/league-information";
 
 test("normalizeLeagueStore normaliza campos del modelo y conserva la estructura", () => {
   const store = {
@@ -62,6 +63,49 @@ test("validateLeagueStorePayload acepta payload completo", () => {
   const result = validateLeagueStorePayload(payload);
   assert.equal(result.teams[0].name, "Equipo A");
   assert.equal(result.finances.costs.red, 80);
+});
+
+test("normalizeLeagueStore conserva un nombre editado aunque el dorsal exista en el seed", () => {
+  const normalized = normalizeLeagueStore({
+    teams: [{
+      id: "gure-fc",
+      name: "Gure FC",
+      seasonId: "season-2026",
+      players: [{
+        id: "player-19",
+        name: "Peru Aresti Gabiola",
+        dorsal: 19,
+        teamId: "gure-fc",
+        seasonId: "season-2026",
+      }],
+    }],
+    matches: [],
+    calendar: [],
+    sanctions: [],
+    finances: {
+      fees: {},
+      payments: {},
+      expenses: [],
+      costs: { yellow: 0, doubleYellow: 0, red: 0, other: 0 },
+    },
+  });
+
+  assert.equal(normalized.teams[0].players[0].name, "Peru Aresti Gabiola");
+  assert.equal(normalized.teams[0].players[0].id, "player-19");
+});
+
+test("normaliza la normativa de sanciones guardada con importes y nombres antiguos", () => {
+  const content = normalizeLeagueInformationContent("sanciones", [
+    "- Tarjeta roja directa por motivos antideportivos: 10 €.",
+    "- Tarjeta roja por encararse con otro jugador: 2 partidos.",
+    "- Tarjeta roja por insultar o faltar al respeto al árbitro: 3 partidos.",
+    "- Tarjeta roja por una acción violenta de carácter deportivo (por ejemplo, una entrada a destiempo que ponga en peligro al rival): 4 partidos.",
+  ].join("\n"));
+
+  assert.match(content, /encararse con otro jugador o juego brusco: 5 € y 5 puntos Fair Play/);
+  assert.match(content, /falta de respeto al árbitro: 5 € y 5 puntos Fair Play/);
+  assert.match(content, /entrada antideportiva o amenazas: 10 € y 10 puntos Fair Play/);
+  assert.equal((normalizeLeagueInformationContent("sanciones", content).match(/Cada euro de sanción equivale a un punto Fair Play\./g) ?? []).length, 1);
 });
 
 test("normalizeSupabase helpers map an SQL row to the app model", () => {

@@ -120,10 +120,13 @@ Cada equipo deberá elegir un color de camiseta y de pantalón. Los colores de l
 
 ## Sanciones económicas
 ### Importe por tarjeta
+Cada euro de sanción equivale a un punto Fair Play.
 - Tarjeta amarilla: 2 €.
 - Tarjeta roja por doble amarilla: 4 €.
 - Tarjeta roja directa por motivos deportivos: 5 €.
-- Tarjeta roja directa por motivos antideportivos: 10 €.
+- Tarjeta roja directa por encararse con otro jugador o juego brusco: 5 € y 5 puntos Fair Play.
+- Tarjeta roja directa por falta de respeto al árbitro: 5 € y 5 puntos Fair Play.
+- Tarjeta roja directa por entrada antideportiva o amenazas: 10 € y 10 puntos Fair Play.
 
 ### Pago
 Las cantidades acumuladas deberán abonarse al cierre de cada mes y, en todo caso, antes del inicio de la jornada. Si un equipo no ha pagado antes de que comience la jornada, perderá su partido.
@@ -132,9 +135,9 @@ Las cantidades acumuladas deberán abonarse al cierre de cada mes y, en todo cas
 - Tres tarjetas amarillas acumuladas: 1 partido.
 - Tarjeta roja por doble amarilla: 1 partido.
 - Tarjeta roja directa por motivos deportivos: 1 partido.
-- Tarjeta roja por encararse con otro jugador: 2 partidos.
-- Tarjeta roja por insultar o faltar al respeto al árbitro: 3 partidos.
-- Tarjeta roja por una acción violenta de carácter deportivo (por ejemplo, una entrada a destiempo que ponga en peligro al rival): 4 partidos.
+- Tarjeta roja por encararse con otro jugador o juego brusco: 2 partidos.
+- Tarjeta roja por falta de respeto al árbitro: 3 partidos.
+- Tarjeta roja por entrada antideportiva o amenazas: 4 partidos.
 - Si un jugador agrede a otro, el jugador y su equipo serán expulsados de la liga de forma inmediata. El equipo perderá también la fianza.
 
 ### Otros motivos
@@ -157,6 +160,34 @@ export type LeagueInformationRecord = {
   title: string;
   content: string;
 };
+
+export function normalizeLeagueInformationContent(sectionKey: unknown, content: string): string {
+  if (sectionKey !== "sanciones") {
+    return content;
+  }
+
+  const normalizedContent = content
+    .replace(
+      "- Tarjeta roja directa por motivos antideportivos: 10 €.",
+      "- Tarjeta roja directa por encararse con otro jugador o juego brusco: 5 € y 5 puntos Fair Play.\n- Tarjeta roja directa por falta de respeto al árbitro: 5 € y 5 puntos Fair Play.\n- Tarjeta roja directa por entrada antideportiva o amenazas: 10 € y 10 puntos Fair Play."
+    )
+    .replace(
+      "- Tarjeta roja por encararse con otro jugador: 2 partidos.",
+      "- Tarjeta roja por encararse con otro jugador o juego brusco: 2 partidos."
+    )
+    .replace(
+      "- Tarjeta roja por insultar o faltar al respeto al árbitro: 3 partidos.",
+      "- Tarjeta roja por falta de respeto al árbitro: 3 partidos."
+    )
+    .replace(
+      "- Tarjeta roja por una acción violenta de carácter deportivo (por ejemplo, una entrada a destiempo que ponga en peligro al rival): 4 partidos.",
+      "- Tarjeta roja por entrada antideportiva o amenazas: 4 partidos."
+    );
+
+  return normalizedContent.includes("Cada euro de sanción equivale a un punto Fair Play.")
+    ? normalizedContent
+    : normalizedContent.replace("### Importe por tarjeta", "### Importe por tarjeta\nCada euro de sanción equivale a un punto Fair Play.");
+}
 
 export function isLeagueInformationSection(value: unknown): value is LeagueInformationSection {
   return typeof value === "string" && leagueInformationSections.some((section) => section.key === value);

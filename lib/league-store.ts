@@ -434,6 +434,7 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
   const sanctionRows = store.sanctions.map((sanction) => {
     const team = store.teams.find((candidate) => candidate.name.trim().toLowerCase() === String(sanction.team ?? "").trim().toLowerCase());
     const player = team?.players.find((candidate) => candidate.name.trim().toLowerCase() === String(sanction.player ?? "").trim().toLowerCase());
+    const sanctionAmount = Number(sanction.points ?? sanction.pointsAmount ?? sanction.costAmount ?? sanction.cost_amount ?? 0);
 
     return {
       id: toUuid(sanction.id, "sanction"),
@@ -446,8 +447,8 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
       reason: sanction.reason ?? "Registrada desde admin",
       suspension_matches: Number(sanction.suspensionMatches ?? sanction.matches ?? 0),
       suspension_remaining: Number(sanction.suspensionRemaining ?? sanction.suspensionMatches ?? sanction.matches ?? 0),
-      points_amount: Number(sanction.points ?? sanction.pointsAmount ?? sanction.costAmount ?? sanction.cost_amount ?? 0),
-      cost_amount: Number(sanction.points ?? sanction.pointsAmount ?? sanction.costAmount ?? sanction.cost_amount ?? 0),
+      points_amount: sanctionAmount,
+      cost_amount: sanctionAmount,
       paid_amount: Number(sanction.paidAmount ?? sanction.paid_amount ?? 0),
     };
   });
@@ -513,7 +514,7 @@ export function buildSupabaseSyncRows(store: LeagueStore) {
   });
 
   const sanctionFinancialMovementRows = store.sanctions.map((sanction) => {
-    const amount = Number(sanction.points ?? sanction.pointsAmount ?? sanction.costAmount ?? sanction.cost_amount ?? 0);
+    const amount = Number(sanction.costAmount ?? sanction.cost_amount ?? sanction.points ?? sanction.pointsAmount ?? 0);
     const paid = Math.min(Number(sanction.paidAmount ?? sanction.paid_amount ?? 0), amount);
     const teamName = String(sanction.team ?? "").trim();
     const teamId = teamIds.get(teamName.toLowerCase()) ?? null;
@@ -828,11 +829,9 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
           cardValue === "Amarilla" ? "yellow" : cardValue === "Doble amarilla" ? "doubleYellow" : cardValue === "Roja" ? "red" : "other"
         ] ?? 0;
         const storedPoints = Number((entry as { points_amount?: number }).points_amount);
-        const calculatedPoints = cardValue === "Roja" && /antideportiv/i.test(reason) ? configuredPoints * 2 : configuredPoints;
-        const storedCost = Number((entry as { cost_amount?: number }).cost_amount);
-        const points = storedPoints === 0 && Number.isFinite(storedCost) && storedCost !== 0
-          ? storedCost
-          : Number.isFinite(storedPoints) ? storedPoints : calculatedPoints;
+        const calculatedPoints = configuredPoints;
+        const points = Number.isFinite(storedPoints) ? storedPoints : calculatedPoints;
+        const costAmount = points;
         const suspensionMatches = cardValue === "Roja" && /^motivos deportivos$/i.test(reason) ? 1 : 0;
         const storedSuspensionMatches = Number((entry as { suspension_matches?: number }).suspension_matches);
         const storedSuspensionRemaining = Number((entry as { suspension_remaining?: number }).suspension_remaining);
@@ -853,11 +852,18 @@ async function readSupabaseLeagueStore(): Promise<LeagueStore | null> {
           remaining: 1,
           suspensionMatches: resolvedSuspensionMatches,
           suspensionRemaining: resolvedSuspensionRemaining,
+          suspensionReason: cardValue === "Roja" && resolvedSuspensionMatches === 4
+            ? "Entrada antideportiva o amenazas"
+            : cardValue === "Roja" && resolvedSuspensionMatches === 3
+              ? "Falta de respeto al árbitro"
+              : cardValue === "Roja" && resolvedSuspensionMatches === 2
+                ? "Encararse con otro jugador o juego brusco"
+                : undefined,
           reason,
           points,
           pointsAmount: points,
-          costAmount: points,
-          cost_amount: points,
+          costAmount,
+          cost_amount: costAmount,
           paidAmount: Number((entry as { paid_amount?: number }).paid_amount ?? 0),
           paid_amount: Number((entry as { paid_amount?: number }).paid_amount ?? 0),
         } satisfies DisciplinaryRecord;
@@ -1028,13 +1034,6 @@ export function repairMojibake(value: string): string {
   return repaired;
 }
 
-function normalizePlayerNameForSeed(teamName: string, playerName: string, dorsal: number | string): string {
-  const seedTeam = seedTeams.find((team) => team.name === teamName);
-  const normalizedDorsal = String(dorsal).trim();
-  const seedPlayer = seedTeam?.players.find((player) => String(player.dorsal).trim() === normalizedDorsal);
-  return seedPlayer?.name ?? playerName;
-}
-
 function normalizeTeam(value: unknown): TeamRecord | null {
   if (!isRecord(value)) {
     return null;
@@ -1061,10 +1060,9 @@ function normalizeTeam(value: unknown): TeamRecord | null {
             : typeof player.dorsal === "string"
               ? Number(player.dorsal) || 0
               : 0;
-          const canonicalPlayerName = normalizePlayerNameForSeed(name, playerName, dorsal);
           return {
             id: typeof player.id === "string" ? player.id : undefined,
-            name: canonicalPlayerName,
+            name: playerName,
             dorsal,
             teamId: typeof player.teamId === "string" ? player.teamId : undefined,
             seasonId: typeof player.seasonId === "string" ? player.seasonId : seasonId,
